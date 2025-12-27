@@ -1,8 +1,11 @@
 evalaution
-指标绘图文件夹
-    confidence
-    xxx=velocity_confidence_plot(adata,xxxx,xxxx)
-    return
 
+    Velocity confidence and ridge line
+    adata=velocity_confidence_plot(adata,input_dir,output_dir)
 
-    ipynb
+Input: An AnnData object. The object must contain velocity information (specified by vkey) within adata.layers. Additionally, UMAP coordinates and the velocity graph (computed via scvelo.velocity_graph()) must be pre-calculated.
+
+Output: Returns a UMAP plot visualizing velocity confidence and a CSV file containing the raw velocity confidence values.
+
+Follow-up: Subsequently, ridge_line.R will be generated to compare results across multiple tasks.
+

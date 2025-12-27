@@ -5,6 +5,7 @@ import pandas as pd
 import tensorflow as tf
 import os
 import scanpy as sc
+import argparse
 from unit import find_cluster_column
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
@@ -36,6 +37,8 @@ def main(data_dir, save_dir):
     scv.pl.velocity_embedding(adata, arrow_length=3, arrow_size=2, dpi=120, save=f'{save_dir}/{ID}/full_arrow.pdf')
     adata.write_h5ad(f'{save_dir}/{ID}/{data_file.split(".")[0]}_velo.h5ad')
 if __name__ == '__main__':
-    save_dir = '.../example/result/unitvelo/...'
-    data_dir = '.../example/data/...'
+    parser = argparse.ArgumentParser(description="Data path select.")
+    parser.add_argument("--save_dir", default='.../example/result/unitvelo/...')
+    parser.add_argument("--data_dir", default='.../example/data/...')
+    args = parser.parse_args()  
     main(data_dir, save_dir)

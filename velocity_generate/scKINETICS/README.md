@@ -1,44 +1,6 @@
 # scKINETICS Velocity Analysis
 
-This script runs the complete scKINETICS velocity analysis pipeline from raw data to final visualization.
-
-## Installation
-
-### Prerequisites
-
-scKINETICS is **not available on PyPI**. You must install it from GitHub:
-
-```bash
-# Method 1: Clone and install
-git clone https://github.com/dpeerlab/scKINETICS.git
-cd scKINETICS
-pip install -e .
-
-# Method 2: Direct install
-pip install git+https://github.com/dpeerlab/scKINETICS.git
-```
-
-### Other Dependencies
-
-```bash
-pip install scanpy scvelo pandas numpy tqdm
-```
-
-### Optional (for PDF conversion of stream plots)
-
-Install one of the following for SVG→PDF conversion if stream plot PDF generation fails:
-
-```bash
-# Option 1: cairosvg (recommended)
-pip install cairosvg
-
-# Option 2: svglib + reportlab
-pip install svglib reportlab
-
-# Option 3: Inkscape (system package)
-# Ubuntu/Debian: sudo apt-get install inkscape
-# macOS: brew install inkscape
-```
+It is recommended to install scKINETICS from GitHub.
 
 ## Usage
 
@@ -96,15 +58,15 @@ Must be a 3-column BED file (with or without header):
 
 Example:
 ```
-chrom	chromStart	chromEnd
-chr1	3292586	3292976
-chr1	3371598	3371961
+chrom   chromStart      chromEnd
+chr1    3292586 3292976
+chr1    3371598 3371961
 ```
 
 Or without header:
 ```
-chr1	3292586	3292976
-chr1	3371598	3371961
+chr1    3292586 3292976
+chr1    3371598 3371961
 ```
 
 ## Output

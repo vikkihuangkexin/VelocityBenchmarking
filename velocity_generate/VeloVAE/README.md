@@ -1,14 +1,4 @@
-# VeloVAE Velocity Analysis
-
-## Installation
-
-```bash
-git clone https://github.com/welch-lab/VeloVAE.git
-cd VeloVAE && pip install -e .
-pip install scanpy scvelo pandas numpy matplotlib scipy
-```
-
-## Usage
+# VeloVAE Velocity Analysis Usage
 
 ### Single File Mode
 

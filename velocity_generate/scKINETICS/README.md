@@ -113,26 +113,10 @@ figures/
 
 ## Notes
 
-- The script automatically converts `celltype` to numeric `cluster` codes required by scKINETICS
-- UMAP computation is skipped if `X_umap` already exists in the input data
 - BED file header is auto-detected
-- Peaks are filtered to width < 2000bp
 - Stream plot PDF generation includes fallback to SVG conversion if needed
 
-## Citation
-
-If you use scKINETICS, please cite:
-
-```
-Fang et al., "Inference of transcriptional regulatory network from single-cell chromatin accessibility and gene expression data",
-Nature Biotechnology (2023)
-```
-
 ## Troubleshooting
-
-### ImportError: No module named 'sckinetics'
-
-Make sure you installed scKINETICS from GitHub (see Installation section).
 
 ### PDF stream plot is corrupted or missing
 

@@ -158,12 +158,6 @@ Output NPZ files will use the same naming with `_gt_data.npz` suffix:
 2. Run `get_gt_concurrent.py` to precompute NPZ files
 3. Use the output directory with the metric
 
-## Requirements
-
-```bash
-pip install scanpy scvelo numpy
-```
-
 ## Troubleshooting
 
 ### "GT NPZ file not found"

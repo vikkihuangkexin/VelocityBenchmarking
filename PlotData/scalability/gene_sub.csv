@@ -1,0 +1,22 @@
+﻿Method,genesub-bifurcating_cell1000_gene10000_60pct_6022genes,genesub-bifurcating_cell1000_gene10000_70pct_7025genes,genesub-bifurcating_cell1000_gene10000_80pct_8029genes,genesub-bifurcating_cell1000_gene10000_90pct_9032genes,genesub-bifurcating_cell1000_gene10000_95pct_9534genes
+cell2fate,0.54,0.52,0.46,0.46,0.5
+cellDancer,0.52,0.59,0.58,0.57,0.57
+DeepVelo,0.56,0.55,0.54,0.55,0.54
+k-velo,,,,,
+LatentVelo,0.54,0.5,0.47,0.49,0.53
+NeuroVelo,0.54,0.36,0.31,0.46,0.38
+PhyloVelo,0.46,0.46,0.46,0.47,0.45
+Pyro-Velocity,0.45,0.46,0.51,0.5,0.42
+Region Velocity,,,,,
+scRNAkinetics,0.43,0.51,0.47,0.31,0.37
+scVelo dynamical,0.37,0.31,0.3,0.33,0.33
+scVelo stochastic,0.4,0.45,0.44,0.45,0.44
+SDEvelo,0.44,0.71,0.69,0.6,0.66
+STT,0.47,0.5,0.53,0.49,0.49
+TFvelo,0.44,0.4,0.4,0.45,0.44
+TopicVelo,0.5,,,,0.49
+UniTVelo,0.51,0.56,0.58,0.54,0.55
+VeloAE,0.72,0.73,0.3,0.71,0.28
+velocyto,0.44,0.44,0.46,0.47,0.46
+VeloVAE,0.47,0.56,0.52,0.53,0.56
+veloVI,0.6,0.51,0.58,0.6,0.57

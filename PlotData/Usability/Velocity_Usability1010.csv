@@ -1,0 +1,22 @@
+Method,Install-friendly score,Usage guidance score,Maintenance score,Code quality score,Feedback score,Overall
+velocyto,7.5,7.5,7.5,7.4,7.4,7.5
+scVelo stochastic,9,9,9,8.9,8.9,9
+scVelo dynamical,9,9,9,8.9,8.9,9
+veloVI,7.4,8,7.3,7.3,7.3,7.5
+cellDancer,6.8,7.2,7,7.2,7,7
+UniTVelo,8,9,7,9,7,8
+TFvelo,7.5,7.5,7.5,7.4,7.4,7.5
+NeuroVelo,7.6,8,9,7.6,7.6,8
+DeepVelo,8.2,7.2,8.3,8.2,8.3,8
+Region Velocity,4,5.5,4.5,5.6,5.6,5
+VeloVAE,6.8,7.1,7.1,7.2,7,7
+scRNAkinetics,6.8,7.2,7.2,7,7,7
+Pyro-Velocity,9,9,9,8.9,8.9,9
+VeloAE,8,7.4,7.3,7.3,7.3,7.5
+PhyloVelo,8.4,8.4,8.2,8.2,7,8
+k-velo,6.8,7.2,7,7.4,6.8,7
+TopicVelo,5,5,5,5.1,5.1,5
+LatentVelo,6.8,7.4,7,7,7,7
+SDEvelo,6.8,9,9,8.2,7,8
+STT,6,6,6,6.1,6.1,6
+cell2fate,6.8,7.1,7.1,7.1,7.1,7

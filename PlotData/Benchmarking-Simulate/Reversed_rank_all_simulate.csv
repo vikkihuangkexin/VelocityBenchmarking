@@ -1,0 +1,21 @@
+﻿Method,ICCoh,CBDir,Inter_distance,Intra_distance,Inter_vs_Intra,Angle_cell_ratio,Consistency_score,Groundtruth correlation,AVG
+cell2fate,6,12,17,11,9,14,15,6,11.25
+cellDancer,1,6,1,15,1,18,2,14,7.25
+DeepVelo,13,13,7,5,7,15,11,11,10.25
+k-velo,2,11,2,2,3,12,5,15,6.5
+LatentVelo,18,3,3,1,2,6,17,7,7.125
+NeuroVelo,9,16,9,6,8,2,18,2,8.75
+PhyloVelo,7,5,6,4,6,1,0,1,3.75
+Pyro-Velocity,15,8,15,16,18,7,3,8,11.25
+Region Velocity,0,0,0,0,0,0,0,0,0
+scVelo dynamical,16,10,14,13,13,8,14,13,12.625
+scVelo stochastic,8,4,12,9,10,11,7,16,9.625
+SDEvelo,10,9,13,8,11,4,10,10,9.375
+STT,11,18,10,19,15,13,8,12,13.25
+TFvelo,17,1,18,14,16,3,13,4,10.75
+TopicVelo,12,19,8,10,14,10,9,5,10.875
+UniTVelo,4,14,11,12,12,16,4,17,11.25
+VeloAE,19,2,19,18,19,5,19,3,13
+velocyto,3,15,4,7,5,17,6,18,9.375
+VeloVAE,5,7,5,3,4,9,16,9,7.25
+veloVI,14,17,16,17,17,19,12,19,16.375

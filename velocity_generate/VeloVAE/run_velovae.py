@@ -5,10 +5,16 @@ VeloVAE velocity analysis pipeline
 INSTALLATION:
     git clone https://github.com/welch-lab/VeloVAE.git
     cd VeloVAE && pip install -e .
-    If based on Docker, run pip install - e. -- no deps
+    If based on Docker, run pip install -e . --no-deps
 
 USAGE:
+    # For real data (default):
     python run_velovae.py --input data.h5ad --output-dir ./output --fig-dir ./figures --cluster-key celltype
+
+    # For simulated data:
+    python run_velovae.py --input data.h5ad --output-dir ./output --fig-dir ./figures --cluster-key milestone --dimred-key X_dimred --dim-z 4 --zero-threshold
+
+    # Batch mode:
     python run_velovae.py --metadata-file datasets.csv --output-dir ./output --fig-dir ./figures
 """
 
@@ -167,16 +173,18 @@ def determine_preprocessing_params(adata):
 
 
 def check_or_compute_dimred(adata, dimred_key: str, npc: int):
-    """Check if dimensionality reduction exists, compute UMAP if not."""
-    if dimred_key in adata.obsm:
-        if dimred_key != 'X_umap':
-            adata.obsm['X_umap'] = adata.obsm[dimred_key]
-    else:
+    """
+    Check if dimensionality reduction exists, compute UMAP if not.
+
+    Note: Does NOT modify the original dimred_key in adata.obsm.
+    This preserves data integrity for downstream analysis scripts.
+    """
+    if dimred_key not in adata.obsm:
         print(f"  Computing UMAP ({dimred_key} not found)...")
         sc.pp.neighbors(adata, n_neighbors=15, n_pcs=npc)
         sc.tl.umap(adata)
-        if dimred_key != 'X_umap':
-            adata.obsm[dimred_key] = adata.obsm['X_umap'].copy()
+        # Store under the requested key
+        adata.obsm[dimred_key] = adata.obsm['X_umap'].copy()
 
 
 def run_velovae_analysis(
@@ -216,6 +224,9 @@ def run_velovae_analysis(
         n_gene, npc, batch_size = determine_preprocessing_params(adata)
         check_or_compute_dimred(adata, dimred_key, npc)
 
+        # Extract basis name for VeloVAE (e.g., 'X_dimred' -> 'dimred')
+        basis_name = dimred_key.replace('X_', '')
+
         if not isinstance(adata.layers["spliced"], csr_matrix):
             adata.layers["spliced"] = csr_matrix(adata.layers["spliced"])
         if not isinstance(adata.layers["unspliced"], csr_matrix):
@@ -235,8 +246,9 @@ def run_velovae_analysis(
         figure_path.mkdir(exist_ok=True)
 
         config = {"batch_size": batch_size}
-        vae = vv.VAE(adata, tmax=10, dim_z=dim_z, device=device, config=config)
-        vae.train(adata, figure_path=str(figure_path), embed='umap', config=config)
+        vae = vv.VAE(adata, tmax=20, dim_z=dim_z, device=device, config=config)
+        vae.train(adata, figure_path=str(figure_path), embed=basis_name,
+                  cluster_key=cluster_key, config=config)
         vae.save_anndata(adata, key='vae', file_path=str(output_dir))
 
         adata.obs[cluster_key] = adata.obs[cluster_key].astype(str)
@@ -246,7 +258,7 @@ def run_velovae_analysis(
         _, _ = vv.post_analysis(
             adata, output_basename,
             methods=['VeloVAE'], keys=['vae'],
-            cluster_key=cluster_key, n_jobs=n_jobs
+            cluster_key=cluster_key, embed=basis_name, n_jobs=n_jobs
         )
 
         del vae
@@ -255,12 +267,15 @@ def run_velovae_analysis(
 
         print("  Generating plots...")
 
+        # Velocity embedding key: {vkey}_velocity_{basis}
+        velocity_embed_key = f'vae_velocity_{basis_name}'
+
         # 1. UMAP scatter
         for fmt in ['png', 'pdf']:
             save_dir = png_dir if fmt == 'png' else pdf_dir
-            save_path = save_dir / f"{output_basename}_umap.{fmt}"
+            save_path = save_dir / f"{output_basename}_{basis_name}.{fmt}"
             scv.pl.scatter(
-                adata, basis='umap', vkey='vae_velocity', color=cluster_key,
+                adata, basis=basis_name, vkey='vae_velocity', color=cluster_key,
                 palette=PALETTE, size=100, alpha=0.6,
                 legend_loc='right margin', legend_fontsize=9, fontsize=None,
                 title='VeloVAE', dpi=400, show=False, save=str(save_path)
@@ -274,7 +289,7 @@ def run_velovae_analysis(
             save_stream_plot_with_fallback(
                 adata, save_path,
                 size=100, alpha=0.6, vkey='vae_velocity',
-                V=adata.obsm['vae_velocity_umap'], basis="umap",
+                V=adata.obsm[velocity_embed_key], basis=basis_name,
                 color=cluster_key, legend_fontsize=9, legend_loc='right margin',
                 fontsize=None, density=2, dpi=400, arrow_size=1, linewidth=1,
                 palette=PALETTE, title='VeloVAE'
@@ -286,7 +301,7 @@ def run_velovae_analysis(
             save_path = save_dir / f"{output_basename}_grid.{fmt}"
             scv.pl.velocity_embedding_grid(
                 adata, vkey='vae_velocity', size=100, alpha=0.6,
-                V=adata.obsm['vae_velocity_umap'], basis="umap",
+                V=adata.obsm[velocity_embed_key], basis=basis_name,
                 color=cluster_key, legend_fontsize=9, legend_loc='right margin',
                 fontsize=None, density=0.8, dpi=400, arrow_size=1, linewidth=0.3,
                 palette=PALETTE, title='VeloVAE', save=str(save_path), show=False
@@ -305,7 +320,7 @@ def run_velovae_analysis(
             save_dir = png_dir if fmt == 'png' else pdf_dir
             save_path = save_dir / f"{output_basename}_pseudotime.{fmt}"
             scv.pl.scatter(
-                adata, basis='umap', color='vae_time_normalized',
+                adata, basis=basis_name, color='vae_time_normalized',
                 cmap='gnuplot', size=100, dpi=400, figsize=(8, 6),
                 colorbar=True, title='VeloVAE', save=str(save_path), show=False
             )
@@ -427,11 +442,13 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", required=True, help="Output directory for H5AD files")
     parser.add_argument("--fig-dir", required=True, help="Output directory for figures")
 
-    parser.add_argument("--cluster-key", default=None, help="Cell type column name (required)")
-    parser.add_argument("--dimred-key", default="X_umap", help="Dimensionality reduction key")
-    parser.add_argument("--dim-z", type=int, default=5, help="Latent dimension (5 for real, 4 for simulated)")
+    parser.add_argument("--cluster-key", default=None, help="Cell type column name (required for single-file mode)")
+    parser.add_argument("--dimred-key", default="X_umap",
+                        help="Dimensionality reduction key (X_umap for real data, X_dimred for simulated data)")
+    parser.add_argument("--dim-z", type=int, default=5,
+                        help="Latent dimension (5 for real data, 4 for simulated data)")
     parser.add_argument("--zero-threshold", action="store_true", default=False,
-                        help="Use zero thresholds (for simulated data)")
+                        help="Set min_shared_counts/cells to 0 in preprocessing (REQUIRED for simulated data)")
     parser.add_argument("--device", default="cuda:0", help="PyTorch device")
     parser.add_argument("--n-jobs", type=int, default=1, help="Parallel jobs for post-analysis")
 

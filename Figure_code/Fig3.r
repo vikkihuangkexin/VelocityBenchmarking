@@ -3,7 +3,7 @@ library(ggplot2)
 library(tidyverse)
 
 ####### 1. Inter/Intra Ratio###########
-ratio_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-RealData/all_new_data_id/Inter_vs_intra_ratio.csv")
+ratio_data<-read.csv("./PlotData/Benchmarking-RealData/all_new_data_id/Inter_vs_intra_ratio.csv")
 ratio_data <- ratio_data[,1:55]
 ratio_data[is.na(ratio_data)] <- 0
 
@@ -19,7 +19,7 @@ ratio_summary_df <- ratio_df %>%
   )
 
 #Method order is same as it is in Rank list, to make sure color for each method is same in Figure 2 and 3.
-rank_df<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-RealData/all/Reversed_rank_all.csv")
+rank_df<-read.csv("./PlotData/Benchmarking-RealData/all/Reversed_rank_all.csv")
 ratio_summary_df$Method <- factor(ratio_summary_df$Method, levels = rank_df$Method)
 
 colors_21 <- c(
@@ -69,7 +69,7 @@ p_ratio <- ggplot(ratio_summary_df, aes(x = Method, y = mean_value, fill = Metho
 
 
 ######## 2. Inter-class Distance###########
-inter_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-RealData/all_new_data_id/Inter_class_distance.csv")
+inter_data<-read.csv("./PlotData/Benchmarking-RealData/all_new_data_id/Inter_class_distance.csv")
 inter_data <- inter_data[,1:55]
 inter_data[is.na(inter_data)] <- 0
 
@@ -109,7 +109,7 @@ p_inter <- ggplot(inter_summary_df, aes(x = Method, y = mean_value, fill = Metho
 
 
 ######## 3. Intra-class Distance###########
-intra_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-RealData/all_new_data_id/Intra_class_distance.csv")
+intra_data<-read.csv("./PlotData/Benchmarking-RealData/all_new_data_id/Intra_class_distance.csv")
 intra_data <- intra_data[,1:55]
 intra_data[is.na(intra_data)] <- 0
 
@@ -148,7 +148,7 @@ p_intra <- ggplot(intra_summary_df, aes(x = Method, y = mean_value, fill = Metho
   )
 
 ######## 4. Consistency Score###########
-cs_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-RealData/all_new_data_id/Consistency_Score.csv")
+cs_data<-read.csv("./PlotData/Benchmarking-RealData/all_new_data_id/Consistency_Score.csv")
 cs_data <- cs_data[,1:55]
 cs_data[is.na(cs_data)] <- 0
 
@@ -187,7 +187,7 @@ p_cs <- ggplot(cs_summary_df, aes(x = Method, y = mean_value, fill = Method)) +
   )
 
 ######## 5. Velocity Angle###########
-angle_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-RealData/all_new_data_id/Velocity_Angle.csv")
+angle_data<-read.csv("./PlotData/Benchmarking-RealData/all_new_data_id/Velocity_Angle.csv")
 angle_data <- angle_data[,1:46]
 angle_data[is.na(angle_data)] <- 0
 
@@ -226,7 +226,7 @@ p_angle <- ggplot(angle_summary_df, aes(x = Method, y = mean_value, fill = Metho
   )
 
 ######## 6. ICCoh ###########
-ICCoh_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-RealData/all_new_data_id/ICCoh.csv")
+ICCoh_data<-read.csv("./PlotData/Benchmarking-RealData/all_new_data_id/ICCoh.csv")
 ICCoh_data <- ICCoh_data[,1:55]
 ICCoh_data[is.na(ICCoh_data)] <- 0
 
@@ -265,7 +265,7 @@ p_ICCoh <- ggplot(ICCoh_summary_df, aes(x = Method, y = mean_value, fill = Metho
 
 
 ######## 7. CBDir ###########
-CBDir_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-RealData/all_new_data_id/CBDir.csv")
+CBDir_data<-read.csv("./PlotData/Benchmarking-RealData/all_new_data_id/CBDir.csv")
 CBDir_data <- CBDir_data[,1:46]
 CBDir_data[is.na(CBDir_data)] <- 0
 
@@ -303,13 +303,13 @@ p_CBDir <- ggplot(CBDir_summary_df, aes(x = Method, y = mean_value, fill = Metho
   )
 
 library(gridExtra)
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/SupplFigure_ACC_real.pdf", 14, 12)
+pdf("./SupplFigure_ACC_real.pdf", 14, 12)
 grid.arrange(p0, p_cs, p_angle, p_inter, p_intra, p_ratio, p_CBDir, p_ICCoh, nrow = 1)
 #grid.arrange(p0, p_ratio, nrow = 1)
 dev.off()
 
 ## Usability
-usa_rank_df<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Usability/Velocity_Usability1010.csv")
+usa_rank_df<-read.csv("./PlotData/Usability/Velocity_Usability1010.csv")
 usa_score <- usa_rank_df[,1:6, drop = FALSE]
 
 usa_score_df<- usa_score %>%
@@ -337,7 +337,7 @@ p <- ggplot(usa_score_df, aes(x = Metric, y = Method)) +
   ) +
   labs(fill = "Score", size = "Score", shape = "High Score (≥8.5)")
 ###################################################################################
-usa_rank_df <- read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Usability/Velocity_Usability1010.csv")
+usa_rank_df <- read.csv("./PlotData/Usability/Velocity_Usability1010.csv")
 usa_score   <- usa_rank_df[,1:6, drop = FALSE]
 
 usa_score_df <- usa_score %>%
@@ -377,22 +377,13 @@ p
 
 
 library(gridExtra)
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure3_Usability2.pdf", 37, 12)
+pdf("./Figure3_Usability.pdf", 37, 12)
 grid.arrange(p0, p_cs, p_angle, p_inter, p_intra, p_ratio, p_CBDir, p_ICCoh, p, nrow = 1)
 dev.off()
 
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure3_Usability3roll.pdf",20, 12)
-grid.arrange(p0, p_cs, p_angle, p, nrow = 1)
-dev.off()
-
-
-
-###############################
-###############################
 ##########Simulated data######
-
 ####### 1. Inter/Intra Ratio###########
-df <- read_excel("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/bar for fig 2.xlsx")
+df <- read_excel("./PlotData/bar for fig 2.xlsx")
 
 df <- df[order(df$Overall), ]
 df$Method <- factor(df$Method, levels = df$Method)
@@ -401,7 +392,7 @@ n_methods <- nrow(df)
 method_levels <- as.character(df$Method)
 
 
-ratio_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-Simulate/new/Inter_vs_Intra_ratio.csv")
+ratio_data<-read.csv("./PlotData/Benchmarking-Simulate/new/Inter_vs_Intra_ratio.csv")
 ratio_data <- ratio_data[,1:90]
 ratio_data[is.na(ratio_data)] <- 0
 
@@ -417,7 +408,7 @@ ratio_summary_df <- ratio_df %>%
   )
 
 #Method order is same as it is in Rank list, to make sure color for each method is same in Figure 2 and 3.
-rank_df<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-Simulate/new/Reversed_rank_all_simulate.csv")
+rank_df<-read.csv("./PlotData/Benchmarking-Simulate/new/Reversed_rank_all_simulate.csv")
 ratio_summary_df$Method <- factor(ratio_summary_df$Method, levels = method_levels)
 
 colors_21 <- c(
@@ -467,7 +458,7 @@ p_ratio <- ggplot(ratio_summary_df, aes(x = Method, y = mean_value, fill = Metho
 p_ratio
 
 ######## 2. Inter-class Distance###########
-inter_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-Simulate/new/Inter_class_distance.csv")
+inter_data<-read.csv("./PlotData/Benchmarking-Simulate/new/Inter_class_distance.csv")
 inter_data <- inter_data[,1:90]
 inter_data[is.na(inter_data)] <- 0
 
@@ -507,7 +498,7 @@ p_inter <- ggplot(inter_summary_df, aes(x = Method, y = mean_value, fill = Metho
 
 
 ######## 3. Intra-class Distance###########
-intra_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-Simulate/new/Intra_class_distance.csv")
+intra_data<-read.csv("./PlotData/Benchmarking-Simulate/new/Intra_class_distance.csv")
 intra_data <- intra_data[,1:90]
 intra_data[is.na(intra_data)] <- 0
 
@@ -546,7 +537,7 @@ p_intra <- ggplot(intra_summary_df, aes(x = Method, y = mean_value, fill = Metho
   )
 
 ######## 4. Consistency Score###########
-cs_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-Simulate/new/Consistency_Score.csv")
+cs_data<-read.csv("./PlotData/Benchmarking-Simulate/new/Consistency_Score.csv")
 cs_data <- cs_data[,1:90]
 cs_data[is.na(cs_data)] <- 0
 
@@ -585,7 +576,7 @@ p_cs <- ggplot(cs_summary_df, aes(x = Method, y = mean_value, fill = Method)) +
   )
 
 ######## 5. Velocity Angle###########
-angle_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-Simulate/new/Velocity_Angle.csv")
+angle_data<-read.csv("./PlotData/Benchmarking-Simulate/new/Velocity_Angle.csv")
 angle_data <- angle_data[,1:90]
 angle_data[is.na(angle_data)] <- 0
 
@@ -624,7 +615,7 @@ p_angle <- ggplot(angle_summary_df, aes(x = Method, y = mean_value, fill = Metho
   )
 
 ######## 6. ICCoh ###########
-ICCoh_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-Simulate/new/ICCoh.csv")
+ICCoh_data<-read.csv("./PlotData/Benchmarking-Simulate/new/ICCoh.csv")
 ICCoh_data <- ICCoh_data[,1:90]
 ICCoh_data[is.na(ICCoh_data)] <- 0
 
@@ -663,7 +654,7 @@ p_ICCoh <- ggplot(ICCoh_summary_df, aes(x = Method, y = mean_value, fill = Metho
 
 
 ######## 7. CBDir ###########
-CBDir_data<-read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-Simulate/new/CBDir.csv")
+CBDir_data<-read.csv("./PlotData/Benchmarking-Simulate/new/CBDir.csv")
 CBDir_data <- CBDir_data[,1:90]
 CBDir_data[is.na(CBDir_data)] <- 0
 
@@ -703,7 +694,7 @@ p_CBDir <- ggplot(CBDir_summary_df, aes(x = Method, y = mean_value, fill = Metho
 
 ######## 8. Groundtruth correlation ###########
 ## 1. Read ground-truth correlation data
-GTcorr_data <- read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/Benchmarking-Simulate/new/ALL_groundtruth_correlation.csv")
+GTcorr_data <- read.csv("./PlotData/Benchmarking-Simulate/new/ALL_groundtruth_correlation.csv")
 GTcorr_data <- GTcorr_data[,1:90]
 GTcorr_data[is.na(GTcorr_data)] <- 0
 
@@ -745,7 +736,7 @@ p_GTcorr <- ggplot(GTcorr_summary_df, aes(x = Method, y = mean_value, fill = Met
   )
 
 ########9. downsampling####
-Down_data <- read.csv("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/scalability/Downsampling_groundtruth_correlation.csv")
+Down_data <- read.csv("./PlotData/scalability/Downsampling_groundtruth_correlation.csv")
 Down_data <- Down_data[, 1:11]          # same as other simulated metrics: take the first 11 columns
 Down_data[is.na(Down_data)] <- 0
 
@@ -786,18 +777,13 @@ p_Down <- ggplot(Down_summary_df, aes(x = Method, y = mean_value, fill = Method)
     plot.title        = element_text(hjust = 0.5)
   )
 
-########10. barchrun####
-
-#shown as table
-
-
 ###########scalability#####
 
 library(ComplexHeatmap)
 library(circlize)
 library(grid)
 #######1. speed----------
-speed_csv_path <- "C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/scalability/docker_speed_dim_means.csv"
+speed_csv_path <- "./PlotData/scalability/docker_speed_dim_means.csv"
 
 spd_df <- read.csv(speed_csv_path,
                    check.names = FALSE,
@@ -916,15 +902,13 @@ ht_speed <- Heatmap(
 )
 
 # 5. Output / display --------------------------------------------
-
-
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure3_docker_speed_heatmap.pdf",
+pdf("./Figure3_docker_speed_heatmap.pdf",
     width = 9.5, height = 14)
 draw(ht_speed)
 dev.off()
 
 #####2.memory--------
-mem_csv_path <- "C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/scalability/docker_memory_dim_means.csv"
+mem_csv_path <- "./PlotData/scalability/docker_memory_dim_means.csv"
 
 mem_df <- read.csv(mem_csv_path,
                    check.names = FALSE,
@@ -1024,18 +1008,13 @@ ht_memory <- Heatmap(
 )
 
 ## 5. Output --------------------------------------------------------
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure3_docker_memory_heatmap.pdf",
+pdf("./Figure3_docker_memory_heatmap.pdf",
     width = 9.5, height = 14)
 draw(ht_memory)
 dev.off()
 
 ####Combine plots---------
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure3_AllMetrics_simulate4.pdf", 50, 12)
-grid.arrange(p0, p_cs, p_angle, p_inter, p_intra, p_ratio, p_CBDir, p_ICCoh, p_GTcorr, p_Down, p, nrow = 1)
-dev.off()
-
-
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure3_AllMetrics_simulate4.pdf", 50, 12)
+pdf("./Figure3_AllMetrics_simulate.pdf", 50, 12)
 grid.arrange(p0, p_cs, p_angle, p_inter, p_intra, p_ratio, p_CBDir, p_ICCoh, p_GTcorr, p_Down, p, nrow = 1)
 dev.off()
 

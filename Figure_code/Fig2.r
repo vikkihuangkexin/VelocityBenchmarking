@@ -3,7 +3,7 @@ library(ggplot2)
 library(patchwork)
 
 #Accuracy
-acc_rank_df<-read.csv("C:/Users/jliu25/Desktop/velocity-based methods/Manuscript/Materials/PlotData/Benchmarking-RealData/all/Reversed_rank_all.csv")
+acc_rank_df<-read.csv("./PlotData/Benchmarking-RealData/all/Reversed_rank_all.csv")
 acc_AVG_rank <- acc_rank_df[, c(1, 9), drop = FALSE]
 acc_AVG_rank$Method <- factor(acc_AVG_rank$Method, levels = acc_AVG_rank$Method)
 
@@ -53,13 +53,13 @@ p_ACC<-ggplot(acc_AVG_rank, aes(x = Method, y = AVG, fill = Method)) +
 
 
 
-pdf("C:/Users/jliu25/Desktop/velocity-based methods/Manuscript/Materials/Figures/Figure2_ACC_reversed_rank.pdf",4,10)
+pdf("./Figure2_ACC_reversed_rank.pdf",4,10)
 p_ACC
 dev.off()
 
 
 ####Usability
-usa_rank_df<-read.csv("C:/Users/jliu25/Desktop/velocity-based methods/Manuscript/Materials/PlotData/Usability/Velocity_Usability1010.csv")
+usa_rank_df<-read.csv("./PlotData/Usability/Velocity_Usability1010.csv")
 usa_AVG_rank <- usa_rank_df[, c(1, 7), drop = FALSE]
 usa_AVG_rank$Method <- factor(usa_AVG_rank$Method, levels = acc_AVG_rank$Method)
 colnames(usa_AVG_rank) <- c('Method', 'AVG')
@@ -84,7 +84,7 @@ p_usa<-ggplot(usa_AVG_rank, aes(x = Method, y = AVG, fill = Method)) +
   )
 
 library(gridExtra)
-pdf("C:/Users/jliu25/Desktop/velocity-based methods/Manuscript/Materials/Figures/Figure2_ACC_Usability.pdf",6,10)
+pdf("./Figure2_ACC_Usability.pdf",6,10)
 grid.arrange(p0, p_ACC, p_usa, nrow = 1)
 dev.off()
 
@@ -96,7 +96,7 @@ library(ggplot2)
 library(gridExtra)
 
 ## 1. Load data ------------------------------------------------------------
-df <- read_excel("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/bar for fig 2.xlsx")
+df <- read_excel("./PlotData/bar for fig 2.xlsx")
 
 ## Rename columns for safety (following the order in your screenshot)
 colnames(df) <- c("Method", "Overall", "Accuracy", "Scalability", "Stability", "Usability")
@@ -156,11 +156,11 @@ p_scal    <- make_bar(df, "Scalability",  "Scalability")
 p_stab    <- make_bar(df, "Stability",    "Stability")
 p_usa     <- make_bar(df, "Usability",    "Usability")
 
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure2_Overall.pdf", 4, 10)
+pdf("./Figure2_Overall.pdf", 4, 10)
 p_overall
 dev.off()
 
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure2_AllMetrics_gradient_color.pdf", 12, 10)
+pdf("./Figure2_AllMetrics_gradient_color.pdf", 12, 10)
 grid.arrange(p0, p_overall, p_acc, p_scal, p_stab, p_usa, nrow = 1)
 dev.off()
 
@@ -171,7 +171,7 @@ library(ggplot2)
 library(gridExtra)
 
 ## 1. Read Excel ---------------------------------------------------------
-df <- read_excel("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/PlotData/bar for fig 2.xlsx")
+df <- read_excel("./PlotData/bar for fig 2.xlsx")
 colnames(df) <- c("Method", "Overall", "Accuracy", "Scalability", "Stability", "Usability")
 
 ## 2. Sort by Overall (ascending) so that after flipping the longest bar is on top -------------------
@@ -249,13 +249,13 @@ p_stab    <- make_bar(df, "Stability",   "Stability",   cols_stability)
 p_usa     <- make_bar(df, "Usability",   "Usability",   cols_usability)
 
 ## 8. Export single plots (if needed) -----------------------------------------------
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure2_Overall.pdf", 4, 10); p_overall; dev.off()
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure2_Accuracy.pdf", 4, 10); p_acc; dev.off()
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure2_Scalability.pdf", 4, 10); p_scal; dev.off()
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure2_Stability.pdf", 4, 10); p_stab; dev.off()
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure2_Usability.pdf", 4, 10); p_usa; dev.off()
+pdf("./Figure2_Overall.pdf", 4, 10); p_overall; dev.off()
+pdf("./Figure2_Accuracy.pdf", 4, 10); p_acc; dev.off()
+pdf("./Figure2_Scalability.pdf", 4, 10); p_scal; dev.off()
+pdf("./Figure2_Stability.pdf", 4, 10); p_stab; dev.off()
+pdf("./Figure2_Usability.pdf", 4, 10); p_usa; dev.off()
 
 ## 9. Combine into one figure (method names on the left + 5 metrics) ------------------------------
-pdf("C:/Users/khuang6/Documents/2024Velocity/Fig/Velocity_Fig_2_3_KH/Figures/Figure2_AllMetrics_gradient.pdf", 12, 10)
+pdf("./Figure2_AllMetrics_gradient.pdf", 12, 10)
 grid.arrange(p0, p_overall, p_acc, p_scal, p_stab, p_usa, nrow = 1)
 dev.off()

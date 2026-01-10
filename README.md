@@ -33,6 +33,55 @@ SCRIPT_CMD="source ~/.bashrc && \
             --save_dir ${CONTAINER_PATH}/${IMAGE_NAME} \
             --data_dir ${CONTAINER_PATH}/data/example.h5ad"
 ```
+### Resource limits in `data.sh`
+
+This project includes optional resource‑limiting code inside `data.sh` to help standardize CPU, memory, and GPU usage across different tool containers. Enabling these limits makes it easier to compare resource consumption and execution speed between tools, and it helps prevent a single container from monopolizing host resources.
+
+---
+
+### Why enable resource limits
+
+- **Fair benchmarking**: Ensures each tool runs under comparable constraints for meaningful performance comparisons.  
+- **Stability on shared hosts**: Prevents runaway processes from affecting other workloads.  
+- **Reproducibility**: Fixed limits make experiments easier to reproduce across machines.
+
+---
+
+### How to enable limits
+
+When you run `data.sh`, you will be prompted:
+
+```
+Apply resource limits?
+```
+
+Type **`y`** to enable the resource‑limiting logic, then adjust the variables in the script to match your hardware and desired constraints.
+
+---
+
+### Example configuration
+
+Edit the variables in `data.sh` to reflect your system. Example:
+
+```bash
+# Define your limits here
+CPU_CORES=8
+MEMORY_GB="32g"
+
+# Bind to specific CPU cores (update based on `lscpu`)
+CPU_SET_VAL="0-7"
+
+# GPU device index (e.g., "device=1")
+GPU_DEVICE_VAL="device=0"
+```
+
+- **CPU_CORES**: Number of CPU cores to reserve for the container.  
+- **MEMORY_GB**: Memory limit in a format accepted by your tooling (e.g., `32g`).  
+- **CPU_SET_VAL**: CPU affinity range or list; verify available cores with `lscpu`.  
+- **GPU_DEVICE_VAL**: GPU device selector used by your runtime (adjust if you have multiple GPUs).
+
+---
+
 # Webserver
 The detailed results for the benchmarking and comparison are available on the https://relab.xidian.edu.cn/RNAVelocity/#/
 

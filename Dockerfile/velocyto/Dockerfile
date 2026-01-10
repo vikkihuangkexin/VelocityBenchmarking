@@ -102,16 +102,16 @@ RUN conda create -n velocyto -c conda-forge --yes python=3.8.0 && \
     pip install velocyto scvelo==0.2.5"
 
 USER root
-# Ensure .bashrc exists and belongs to user1
-RUN touch /home/user1/.bashrc \
- && chown user1:user1 /home/user1/.bashrc
+# Ensure .bashrc exists and belongs to the specified user
+RUN touch /home/${USERNAME}/.bashrc \
+ && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.bashrc
 # Append environment variables so activate/conda are in PATH
-RUN echo 'export PATH=/opt/conda/bin:$PATH' >> /home/user1/.bashrc \
- && echo '. /opt/conda/etc/profile.d/conda.sh' >> /home/user1/.bashrc \
- && chown user1:user1 /home/user1/.bashrc
-
+RUN echo 'export PATH=/opt/conda/bin:$PATH' >> /home/${USERNAME}/.bashrc \
+ && echo '. /opt/conda/etc/profile.d/conda.sh' >> /home/${USERNAME}/.bashrc \
+ && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.bashrc
 
 # Set the default startup command so the container enters a bash shell on start
 # -D: run sshd in the foreground to prevent the container from exiting immediately
 CMD ["/start.sh"]
+
 

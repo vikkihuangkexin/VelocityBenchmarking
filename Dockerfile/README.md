@@ -3,7 +3,7 @@ This repository provides Dockerfiles to build tool-specific images for single‑
 
 ---
 
-### Build an image for a specific tool
+## Build an image for a specific tool
 To build an image for a tool, change into the tool’s directory and run:
 
 ```bash

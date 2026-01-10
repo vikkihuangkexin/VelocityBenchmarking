@@ -1,0 +1,109 @@
+FROM nvidia/cuda:11.0.3-cudnn8-devel-ubuntu20.04
+# 设置环境变量，避免安装过程中的交互式提问
+ENV DEBIAN_FRONTEND=noninteractive
+
+ARG USERNAME=user1
+ARG PASSWORD=080528
+ARG USER_UID=1000
+ARG USER_GID=1000
+
+
+# 更新系统并安装必要的工具
+#RUN sed -i 's/archive.ubuntu.com/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list && \
+#    sed -i 's/security.ubuntu.com/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        wget\
+        openssh-server \
+        bzip2 \
+        gosu \
+        sudo \
+        git \
+        vim \
+        iproute2 \
+        htop \
+        ca-certificates && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# 創建一個非 root 用戶
+# -m: 創建主目錄
+# -s: 指定默認 shell
+# -u, -g: 指定 UID 和 GID
+RUN groupadd --gid ${USER_GID} ${USERNAME} && \
+    useradd --uid ${USER_UID} --gid ${USER_GID} -m -s /bin/bash ${USERNAME}
+RUN echo "${USERNAME}:${PASSWORD}" | chpasswd
+# 給新用戶設置 sudo 權限（可選，但很方便）
+RUN echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# --- SSH 配置 ---
+
+# 1. 為 SSH 服務創建必要的目錄
+RUN mkdir -p /var/run/sshd \
+    && echo "PermitRootLogin yes" >> /etc/ssh/sshd_config \
+    && echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config\
+    && echo "Port 22" >> /etc/ssh/sshd_config
+RUN sed -i '$ a Port 22' /etc/ssh/sshd_config
+COPY start.sh /start.sh
+# 2. 給予腳本可執行權限 (非常重要！)
+RUN sed -i 's/\r$//' /start.sh && \
+    chmod +x /start.sh
+
+# 暴露容器的 22 端口
+EXPOSE 22
+
+# === 新增 ===
+# 为挂载数据创建目录
+RUN mkdir -p /data/simdata
+# 安装 Miniconda
+ENV CONDA_DIR=/opt/conda
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p $CONDA_DIR && \
+    rm ~/miniconda.sh
+ENV PATH=$CONDA_DIR/bin:$PATH
+
+# 初始化Conda，使其在bash shell中可用
+RUN conda init bash
+# 创建一个欢迎脚本，列出所有可用的环境
+RUN echo 'display_resources() { \
+    echo "CPU 线程数: $(grep -c '"'"'^processor'"'"' /proc/cpuinfo)"; \
+    mem_total_kb=$(grep '"'"'MemTotal'"'"' /proc/meminfo | awk '"'"'{print $2}'"'"'); \
+    echo "总内存: $(echo "$mem_total_kb" | awk '"'"'{printf "%.2f GB", $1/1024/1024}'"'"')"; \
+    mem_limit_bytes=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null); \
+    if [ "$mem_limit_bytes" -ge 9223372036854771712 ]; then \
+        echo "内存限制: 无限制"; \
+    else \
+        echo "内存限制: $(echo "$mem_limit_bytes" | awk '"'"'{printf "%.2f GB", $1/1024/1024/1024}'"'"')"; \
+    fi; \
+    cpu_quota=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us 2>/dev/null); \
+    cpu_period=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us 2>/dev/null); \
+    if [ "$cpu_quota" = -1 ]; then \
+        echo "CPU 限制: 无限制"; \
+    else \
+        echo "CPU 限制: ${cpu_quota}/${cpu_period} ($(echo "scale=2; $cpu_quota / $cpu_period" | bc) 核)"; \
+    fi \
+}' >> /etc/bash.bashrc && \
+    echo 'echo "欢迎进入单细胞分析环境！"' >> /etc/bash.bashrc && \
+    echo 'echo "您可以使用 conda activate <env_name> 来激活特定环境。"' >> /etc/bash.bashrc && \
+    echo 'echo "可用的环境包括: unitvelo"' >> /etc/bash.bashrc && \
+    echo 'echo "数据已从宿主机挂载到 /data/simdata"' >> /etc/bash.bashrc && \
+    echo 'echo "容器资源信息:"' >> /etc/bash.bashrc && \
+    echo 'display_resources' >> /etc/bash.bashrc
+
+# 5. unitvelo
+# 接受服务条款 
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+RUN conda create -n unitvelo --yes python=3.8.0 && \
+    /bin/bash -c "source $CONDA_DIR/bin/activate unitvelo && pip install unitvelo scvelo==0.2.5 tensorflow==2.4.1 numba==0.57.1 numpy==1.21.1 GPUtil pynvml"
+
+USER root
+# 保证 .bashrc 存在并属于 user1
+RUN touch /home/${USERNAME}/.bashrc \
+ && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.bashrc
+# 追加环境变量，让 activate/conda 在 PATH 中
+RUN echo 'export PATH=/opt/conda/bin:$PATH' >> /home/${USERNAME}/.bashrc \
+ && echo '. /opt/conda/etc/profile.d/conda.sh' >> /home/${USERNAME}/.bashrc \
+ && chown user1:user1 /home/${USERNAME}/.bashrc
+
+# 设置默认的启动命令，当容器启动时，自动进入bash shell
+#-D: 在前台運行 sshd，防止容器立即退出
+CMD ["/start.sh"]

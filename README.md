@@ -7,14 +7,20 @@ We evaluated the performance, stability, scalability and usability of 29 velocit
 ---
 # File description
 /velocity_generate: Code for run each velocity inference tool.
-/example: Example datasets for running the code.
-/Evaluation: Code of accurary evaluation metrics used in the study.
-/batch_run: Code of stability evaluation used in the study.
-/Dockerfile: Docker for each tool.
-/Figure_code: Code for Figure 2, 3, and 4 in the paper.
-/PlotData: Input data used for the code in ./Figure_code.
----
 
+/example: Example datasets for running the code.
+
+/Evaluation: Code of accurary evaluation metrics used in the study.
+
+/batch_run: Code of stability evaluation used in the study.
+
+/Dockerfile: Docker for each tool.
+
+/Figure_code: Code for Figure 2, 3, and 4 in the paper.
+
+/PlotData: Input data used for the code in ./Figure_code.
+
+---
 
 # Installation and Usage
 

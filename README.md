@@ -87,5 +87,5 @@ GPU_DEVICE_VAL="device=0"
 The detailed results for the benchmarking and comparison are available on the https://relab.xidian.edu.cn/RNAVelocity/#/
 
 # Datasets
-https://zenodo.org/records/18102832
+https://zenodo.org/records/18205008
 

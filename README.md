@@ -33,13 +33,13 @@ SCRIPT_CMD="source ~/.bashrc && \
             --save_dir ${CONTAINER_PATH}/${IMAGE_NAME} \
             --data_dir ${CONTAINER_PATH}/data/example.h5ad"
 ```
-### Resource limits in `data.sh`
+**Resource limits in `data.sh`**
 
 This project includes optional resource‑limiting code inside `data.sh` to help standardize CPU, memory, and GPU usage across different tool containers. Enabling these limits makes it easier to compare resource consumption and execution speed between tools, and it helps prevent a single container from monopolizing host resources.
 
 ---
 
-### Why enable resource limits
+**Why enable resource limits**
 
 - **Fair benchmarking**: Ensures each tool runs under comparable constraints for meaningful performance comparisons.  
 - **Stability on shared hosts**: Prevents runaway processes from affecting other workloads.  
@@ -47,7 +47,7 @@ This project includes optional resource‑limiting code inside `data.sh` to help
 
 ---
 
-### How to enable limits
+**How to enable limits**
 
 When you run `data.sh`, you will be prompted:
 
@@ -59,7 +59,7 @@ Type **`y`** to enable the resource‑limiting logic, then adjust the variables 
 
 ---
 
-### Example configuration
+**Example configuration**
 
 Edit the variables in `data.sh` to reflect your system. Example:
 

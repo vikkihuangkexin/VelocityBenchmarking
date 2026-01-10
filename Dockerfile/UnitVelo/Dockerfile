@@ -87,16 +87,16 @@ RUN echo 'display_resources() { \
 }' >> /etc/bash.bashrc && \
     echo 'echo "Welcome to the single-cell analysis environment!"' >> /etc/bash.bashrc && \
     echo 'echo "Use conda activate <env_name> to activate an environment."' >> /etc/bash.bashrc && \
-    echo 'echo "Available environments: unitvelo"' >> /etc/bash.bashrc && \
+    echo 'echo "Available environments: UnitVelo"' >> /etc/bash.bashrc && \
     echo 'echo "Data from the host is mounted at /data/simdata"' >> /etc/bash.bashrc && \
     echo 'echo "Container resource information:"' >> /etc/bash.bashrc && \
     echo 'display_resources' >> /etc/bash.bashrc
 
-# 5. unitvelo
+# 5. UnitVelo
 # Accept terms of service
 RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
     conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
-RUN conda create -n unitvelo --yes python=3.9.0 && \
+RUN conda create -n UnitVelo --yes python=3.9.0 && \
     /bin/bash -c "source $CONDA_DIR/bin/activate unitvelo && pip install unitvelo GPUtil pynvml"
 # RUN sed -i -e '1i import scanpy as sc' -e 's/scv.read/sc.read/g' /opt/conda/envs/unitvelo/lib/python3.8/site-packages/unitvelo/utils.py
 #     sed -i 's/collections.abc/typing' /opt/conda/envs/unitvelo/lib/python3.8/site-packages/scvelo/logging/_logging.py
@@ -114,3 +114,4 @@ RUN echo 'export PATH=/opt/conda/bin:$PATH' >> /home/${USERNAME}/.bashrc \
 # Set the default startup command so the container enters a bash shell on start
 # -D: run sshd in the foreground to prevent the container from exiting immediately
 CMD ["/start.sh"]
+

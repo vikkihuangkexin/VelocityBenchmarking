@@ -32,7 +32,7 @@ SCRIPT_CMD="source ~/.bashrc && \
             python /path/to/script/${IMAGE_NAME}.py \
             --save_dir ${CONTAINER_PATH}/${IMAGE_NAME} \
             --data_dir ${CONTAINER_PATH}/data/example.h5ad"
-
+```
 # Webserver
 The detailed results for the benchmarking and comparison are available on the https://relab.xidian.edu.cn/RNAVelocity/#/
 

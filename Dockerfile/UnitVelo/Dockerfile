@@ -103,15 +103,16 @@ RUN conda create -n UnitVelo --yes python=3.9.0 && \
 #scvelo==0.2.5 tensorflow==2.4.1 numba==0.57.1 numpy==1.21.1
 
 USER root
-# Ensure .bashrc exists and belongs to user1
+# Ensure .bashrc exists and belongs to the specified user
 RUN touch /home/${USERNAME}/.bashrc \
  && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.bashrc
 # Append environment variables so activate/conda are in PATH
 RUN echo 'export PATH=/opt/conda/bin:$PATH' >> /home/${USERNAME}/.bashrc \
  && echo '. /opt/conda/etc/profile.d/conda.sh' >> /home/${USERNAME}/.bashrc \
- && chown user1:user1 /home/${USERNAME}/.bashrc
+ && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.bashrc
 
 # Set the default startup command so the container enters a bash shell on start
 # -D: run sshd in the foreground to prevent the container from exiting immediately
 CMD ["/start.sh"]
+
 

@@ -46,6 +46,31 @@ Edit the package list and versions to suit your requirements.
 
 ---
 
+## Run Container
+
+### Interactive Mode
+
+```bash
+docker run --gpus all -it --rm \
+  -v /path/to/data:/workspace/data \
+  TOOL-name:tag
+```
+
+### With SSH Access
+
+```bash
+docker run --gpus all -d \
+  -p 2222:22 \
+  -v /path/to/data:/workspace/data \
+  --name TOOL-name-container \
+  TOOL-name:tag
+```
+
+Connect via SSH:
+```bash
+ssh UserNameYouSet@localhost -p 2222
+```
+
 ### Important notes about entrypoint and startup scripts
 - **docker-entrypoint.sh**  
   This script is used to mount local paths into the container at runtime. If your environment does not support this behavior, comment out or remove the related lines in the Dockerfile:

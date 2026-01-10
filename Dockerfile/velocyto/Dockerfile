@@ -87,7 +87,7 @@ RUN echo 'display_resources() { \
 }' >> /etc/bash.bashrc && \
     echo 'echo "Welcome to the single-cell analysis environment!"' >> /etc/bash.bashrc && \
     echo 'echo "Use conda activate <env_name> to activate an environment."' >> /etc/bash.bashrc && \
-    echo 'echo "Available environments: velocyto, scvelo, velovi, celldancer, unitvelo"' >> /etc/bash.bashrc && \
+    echo 'echo "Available environments: velocyto"' >> /etc/bash.bashrc && \
     echo 'echo "Data from the host is mounted at /data/simdata"' >> /etc/bash.bashrc && \
     echo 'echo "Container resource information:"' >> /etc/bash.bashrc && \
     echo 'display_resources' >> /etc/bash.bashrc
@@ -114,3 +114,4 @@ RUN echo 'export PATH=/opt/conda/bin:$PATH' >> /home/user1/.bashrc \
 # Set the default startup command so the container enters a bash shell on start
 # -D: run sshd in the foreground to prevent the container from exiting immediately
 CMD ["/start.sh"]
+

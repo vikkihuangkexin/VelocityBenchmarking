@@ -12,9 +12,9 @@ Example (illustrative):
 
 | data | ID   | PMID           | Accession |
 |------|------|----------------|-----------|
-| 1    | 7    |    31160421    | GSE132188 |
-| 2    | 24   |      NA        | https://www.10xgenomics.com/resources/datasets/fresh-embryonic-e-18-mouse-brain-5-k-1-standard-1-0-0  |
-| 3    | 51   |    37941145    |CNP0004694 |
+| 7_mouse_PancreaticE15.5_GSE132188 .h5ad    | 7    |    31160421    | GSE132188 |
+| 24_mouse_brain.h5ad    | 24   |      NA        | https://www.10xgenomics.com/resources/datasets/fresh-embryonic-e-18-mouse-brain-5-k-1-standard-1-0-0  |
+| 51_mouse_spermary_with_celltype.h5ad    | 51   |    37941145    |CNP0004694 |
 
 
 **Simulated data generation**  

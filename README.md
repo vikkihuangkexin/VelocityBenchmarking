@@ -20,6 +20,8 @@ We evaluated the performance, stability, scalability and usability of 29 velocit
 
 /PlotData: Input data used for the code in ./Figure_code.
 
+/Simulate_generate: a R script to batch-generate simulated single-cell datasets with dyngen across multiple backbone topologies, cell counts, and gene counts.
+
 ---
 
 # Installation and Usage

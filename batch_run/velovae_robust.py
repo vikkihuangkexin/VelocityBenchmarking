@@ -27,8 +27,8 @@ from scipy.sparse import csr_matrix
 import velovae as vv
 
 # Configuration: Modify these paths or set via environment variables
-INPUT_DIR = os.getenv('INPUT_DIR', './data')
-OUTPUT_DIR = os.getenv('OUTPUT_DIR', './output/VeloVAE')
+INPUT_DIR = os.getenv('INPUT_DIR', './example')
+OUTPUT_DIR = os.getenv('OUTPUT_DIR', './example/output/VeloVAE')
 DEVICE = os.getenv('DEVICE', 'cuda')  # GPU device for training
 
 def set_random_seeds():
@@ -69,15 +69,15 @@ def main():
 
     data_files = [
         {
-            "path": os.path.join(INPUT_DIR, "bifurcating_cell1000_gene10000_dataset.h5ad"),
+            "path": os.path.join(INPUT_DIR, "Simulation-data/bifurcating_cell1000_gene500_dataset.h5ad"),
             "type": "simulated",
             "clusterkey": "milestone",
-            "id_pre_base": "VeloVAE_bifurcating_cell1000_gene10000",
+            "id_pre_base": "VeloVAE_bifurcating_cell1000_gene500",
             "dim_z": 4,
             "embed": "dimred"
         },
         {
-            "path": os.path.join(INPUT_DIR, "7_mouse_PancreaticE15.5_GSE132188.h5ad"),
+            "path": os.path.join(INPUT_DIR, "Real-data/7_mouse_PancreaticE15.5_GSE132188.h5ad"),
             "type": "real",
             "clusterkey": "clusters",
             "id_pre_base": "VeloVAE_7",

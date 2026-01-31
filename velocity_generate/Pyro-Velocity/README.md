@@ -1,4 +1,4 @@
-# pyro_velocity Script
+# Pyro-Velocity Script
 =============
 
 Purpose

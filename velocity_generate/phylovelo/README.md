@@ -1,4 +1,4 @@
-# phylovelo Script
+# PhyloVelo Script
 =========
 
 Purpose

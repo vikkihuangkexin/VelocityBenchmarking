@@ -39,6 +39,7 @@ def main_single(data_dir, save_dir, r, simulate=False):
     adata.var.index = adata.var.index.str.replace('ENSMU', 'ensmu', case=False)
 
     if simulate:
+        label = "milestone"
         scv.pp.filter_and_normalize(adata, min_shared_counts=None, n_top_genes=adata.n_vars)
     else:
         scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)

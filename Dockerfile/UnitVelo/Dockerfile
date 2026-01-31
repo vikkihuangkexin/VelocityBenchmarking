@@ -97,10 +97,7 @@ RUN echo 'display_resources() { \
 RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
     conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 RUN conda create -n UnitVelo --yes python=3.9.0 && \
-    /bin/bash -c "source $CONDA_DIR/bin/activate unitvelo && pip install unitvelo GPUtil pynvml"
-# RUN sed -i -e '1i import scanpy as sc' -e 's/scv.read/sc.read/g' /opt/conda/envs/unitvelo/lib/python3.8/site-packages/unitvelo/utils.py
-#     sed -i 's/collections.abc/typing' /opt/conda/envs/unitvelo/lib/python3.8/site-packages/scvelo/logging/_logging.py
-#scvelo==0.2.5 tensorflow==2.4.1 numba==0.57.1 numpy==1.21.1
+    /bin/bash -c "source $CONDA_DIR/bin/activate UnitVelo && pip install unitvelo GPUtil pynvml"
 
 USER root
 # Ensure .bashrc exists and belongs to the specified user

@@ -1,50 +1,13 @@
 import os
-import sys
-import glob
-
-import anndata
 import pandas as pd
-import math
-import matplotlib.pyplot as plt
 import celldancer as cd
 import celldancer.cdplt as cdplt
-import scanpy
-from celldancer.cdplt import colormap
 import celldancer.utilities as cdutil
 import scipy
 import numpy as np
-import tqdm
 import scanpy as sc
 import scvelo as scv
-import scipy.sparse as sp
-# import dynamo as dyn
 from unit import find_cluster_column
-def add_velo(adata_New,adata_ori):
-    if not set(adata_New.obs_names).issubset(adata_ori.obs_names):
-        raise ValueError("adataA 包含 adataB 中不存在的细胞")
-
-    # 获取 adataA 细胞在 adataB 中的索引位置
-    cell_indices = [adata_ori.obs_names.get_loc(cell) for cell in adata_New.obs_names]
-
-    # 从 adataB 中提取对应的 velo 数据
-    velo_data = adata_ori.layers['ground_truth_velocity'][cell_indices, :]
-
-    # 处理基因维度对齐（如果两个对象的基因维度不同）
-    if adata_New.shape[1] != adata_ori.shape[1] or not np.array_equal(adata_New.var_names, adata_ori.var_names):
-        # 找到 adataA 基因在 adataB 中的位置
-        gene_indices = [adata_ori.var_names.get_loc(gene) for gene in adata_New.var_names]
-        # 按基因索引提取数据
-        if sp.issparse(velo_data):
-            velo_data = velo_data[:, gene_indices].tocoo()  # 保持稀疏格式
-        else:
-            velo_data = velo_data[:, gene_indices]
-    else:
-        # 如果基因顺序相同，直接使用
-        if sp.issparse(velo_data):
-            velo_data = velo_data.tocoo()  # 确保使用高效稀疏格式
-    # 将数据赋值给 adataA
-    adata_New.layers['ground_truth_velocity'] = velo_data
-    return adata_New
 def adata_to_df_with_embed(adata,
                            us_para=['unspliced', 'spliced'],
                            cell_type_para='cell_type',
@@ -55,12 +18,16 @@ def adata_to_df_with_embed(adata,
         data2 = data[:, data.var.index.isin([gene])].copy()
         n = len(data2)
         u0 = data2.layers[us_para[0]][:, 0].copy().astype(np.float32)
-        u0 = u0.tolist()
+        u0 = scipy.sparse.csr_matrix.todense(u0).tolist()
+        # u0 = u0.tolist()
         s0 = data2.layers[us_para[1]][:, 0].copy().astype(np.float32)
-        s0 = s0.tolist()
+        s0 = scipy.sparse.csr_matrix.todense(s0).tolist()
+        # s0 = s0.tolist()
         raw_data = pd.DataFrame({'gene_name': [gene] * n, 'unsplice': u0, 'splice': s0})
-        raw_data.splice = [i for i in raw_data.splice]
-        raw_data.unsplice = [i for i in raw_data.unsplice]
+        raw_data.splice = [i[0] for i in raw_data.splice]
+        raw_data.unsplice = [i[0] for i in raw_data.unsplice]
+        # raw_data.splice = [i for i in raw_data.splice]
+        # raw_data.unsplice = [i for i in raw_data.unsplice]
         return (raw_data)
 
     if gene_list is None: gene_list = list(adata.var.index)
@@ -90,38 +57,44 @@ def adata_to_df_with_embed(adata,
     return (raw_data)
 
 
-def main(data_dir,data_file,save_dir):
+def main(data_dir, data_file, save_dir, n_jobs=None, simulate=True):
 
     adata = scv.read(data_dir, cache=True)
-    if adata.shape[0]>=50000:
-        n_jobs=8
+    ID = os.path.basename(data_file).split('.')[0]
+    if n_jobs is None:
+        n_jobs = 3 if adata.shape[0] >= 50000 else 8
+
+    if simulate:
+        cluster = 'milestone'
+        if 'X_dimred' in adata.obsm and 'X_umap' not in adata.obsm:
+            adata.obsm['X_umap'] = adata.obsm['X_dimred']
+        if adata.n_vars < 10000:
+            top_gene = (adata.n_vars // 500) * 500
+            top_gene = min(top_gene, adata.n_vars, 500)
+            shared_counts = 20
+        else:
+            top_gene = 2000
+            shared_counts = 1
+        scv.pp.filter_and_normalize(adata, min_shared_counts=None, n_top_genes=top_gene)
+        sc.pp.pca(adata)
+        sc.pp.neighbors(adata, n_pcs=30, n_neighbors=30, method='umap')
+        scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
     else:
-        n_jobs=16
-    cluster = 'milestone'
-    adata.obsm['X_umap'] = adata.obsm['X_dimred']
-    if adata.n_vars < 10000:
-        top_gene = (adata.n_vars // 500) * 500
-        top_gene = min(top_gene, adata.n_vars, 500)
-        shared_counts = 20
-    else:
-        top_gene = 2000
-        shared_counts = 1
-    scv.pp.filter_and_normalize(adata, min_shared_counts=None, n_top_genes=top_gene)
-    sc.pp.pca(adata)
-    sc.pp.neighbors(adata, n_pcs=30, n_neighbors=30,method='umap')
-    scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
-    # sc.tl.umap(adata)
+        cluster = find_cluster_column(adata)
+        scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
+        scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
+    # # sc.tl.umap(adata)
     obsm_key = list(adata.obsm.keys())
-    #查看是否有外置umap的csv文件
-    # if any(item.lower().find('x_umap') != -1 for item in obsm_key):
-    #     print(f"Data: {data_file} seems to have been processed using UMAP.")
-    # else:
-    #     if os.path.exists(fr'/data_d/Velocity/Umap_backup/{data_file.split(".")[0]}_addUmap.csv'):
-    #         loaded_umap = pd.read_csv(f'/data_d/Velocity/Umap_backup/{data_file.split(".")[0]}_addUmap.csv',
-    #                                   index_col=0)
-    #         adata.obsm['X_umap'] = loaded_umap[['UMAP1', 'UMAP2']].values
-    #     else:
-    #         sc.tl.umap(adata)
+    # Check whether there is an external UMAP CSV and load it if present
+    if any(item.lower().find('x_umap') != -1 for item in obsm_key):
+        print(f"Data: {data_file} seems to have been processed using UMAP.")
+    else:
+        backup_path = fr'/data_d/Velocity/Umap_backup/{data_file.split(".")[0]}_addUmap.csv'
+        if os.path.exists(backup_path):
+            loaded_umap = pd.read_csv(backup_path, index_col=0)
+            adata.obsm['X_umap'] = loaded_umap[['UMAP1', 'UMAP2']].values
+        else:
+            sc.tl.umap(adata)
     adata.obs_names_make_unique()
     print('########## Processing Anndata to Dataframe ##########')
     cell_type_u_s = adata_to_df_with_embed(adata,\
@@ -129,9 +102,8 @@ def main(data_dir,data_file,save_dir):
                                   cell_type_para=cluster,\
                                   embed_para='X_umap') ##
     gene_list=list(set(cell_type_u_s.gene_name))
-    # del adata
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
+    del adata
+    os.makedirs(save_dir, exist_ok=True)
     print('########## Compute Cell Velocity in each gene ##########')
     loss_df, cellDancer_df=cd.velocity(cell_type_u_s,
                                        gene_list=gene_list,
@@ -141,14 +113,10 @@ def main(data_dir,data_file,save_dir):
     print('########## Compute Cell Velocity ##########')
     cellDancer_df=cd.compute_cell_velocity(cellDancer_df=cellDancer_df)
     print('########## Saving ##########')
-    cellDancer_df.to_csv(os.path.join(save_dir,'cell_velo.csv'))
+    cellDancer_df.to_csv(os.path.join(save_dir, 'cell_velo.csv'))
     adata_from_dancer = cdutil.to_dynamo(cellDancer_df)
-    if 'cell' in ID and 'gene' in ID:
-        adata_from_dancer = add_velo(adata_from_dancer,adata)
-    # data_out.ra["Gene"] = data_out.ra["var_names"]
     adata_from_dancer.write_h5ad(f'{save_dir}/{data_file.split(".")[0]}_velo.h5ad')
-
-    # # plot cell velocity
+    # plot cell velocity
     # color_library = [
     #     "#D2EBC8", "#3C77AF", "#7DBFA7", "#AECDE1", "#EE934E",
     #     "#D1352B", "#9B5B33", "#F5CFE4", "#B383B9", "#8FA4AE",
@@ -182,32 +150,15 @@ def main(data_dir,data_file,save_dir):
 
 
 if __name__ == '__main__':
-    datalist = pd.read_csv('/data_d/Velocity/data/simulation/simulation2/sim_data_forDocker_0924.csv')
-    # save_dir = '/data_d/Velocity/ZY_1/result/simdata/CD'
-    save_dir='/data_d/Velocity/data/simulation/simulation_result/zy_results/cd'
-    outlist = []
-    for i in range(len(datalist)):#range(len(datalist))
+    import argparse
 
-        ID = datalist.iloc[i]['ID']
-        # if ID.startswith('dis'):
-        #     continue
-        if i in outlist:
-            continue
-        data_file = datalist.iloc[i]['name']
-        data_dir = datalist.iloc[i]['path']
-        # import re
-        # cell_match = re.search(r'cell(\d+)', data_file)
-        # gene_match = re.search(r'gene(\d+)', data_file)
-        # cell_num = int(cell_match.group(1)) if cell_match else None
-        # gene_num = int(gene_match.group(1)) if gene_match else None
-        # if cell_num==1000 or gene_num==1000:
-        #     continue
+    parser = argparse.ArgumentParser(description='Run CellDancer workflow for one dataset')
+    parser.add_argument('--data_dir', required=True, help='Path to input .h5ad file')
+    parser.add_argument('--data_file', required=True, help='Input filename used for outputs')
+    parser.add_argument('--save_dir', required=True, help='Directory to save results')
+    parser.add_argument('--n_jobs', type=int, default=None, help='Number of parallel jobs (optional)')
+    args = parser.parse_args()
 
-        if not os.path.exists(f'{save_dir}/{ID}/killed'):
-            continue
-        # if ID.startswith('dis'):
-        #     continue
-        else:
-            print(f'{i}___{data_file}')
-            data_dir = data_dir.replace('/data/simulation','/data_d/Velocity/data/simulation')
-            main(data_dir,data_file,f'{save_dir}/{ID}')
+    out_dir = os.path.join(args.save_dir, args.data_file.split('.')[0])
+    os.makedirs(out_dir, exist_ok=True)
+    main(args.data_dir, args.data_file, out_dir, n_jobs=args.n_jobs)

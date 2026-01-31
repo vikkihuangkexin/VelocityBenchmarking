@@ -8,7 +8,7 @@ import scanpy as sc
 import matplotlib
 matplotlib.use("Agg")
 
-from velocycle import (
+from Simulate_generate.velocycle.velocycle import (
     preprocessing,
     utils,
     cycle,
@@ -133,6 +133,9 @@ def main(args):
     result = data_fit.copy()
     result.obs["velocycle_phase"] = model.phase_pyro.phis
 
+    if 'X_dimred' in result.obsm:
+        result.obsm['X_umap'] = result.obsm['X_dimred']
+
     os.makedirs(args.save_dir, exist_ok=True)
     out = os.path.join(args.save_dir, f"{file_id}_velocycle.h5ad")
     result.write_h5ad(out)
@@ -148,6 +151,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_steps", type=int, default=1000)
     parser.add_argument("--lr_start", type=float, default=0.03)
     parser.add_argument("--lr_end", type=float, default=0.005)
+    parser.add_argument("--simulate", action='store_true', help="Whether the data is simulation data")
 
     args = parser.parse_args()
     main(args)

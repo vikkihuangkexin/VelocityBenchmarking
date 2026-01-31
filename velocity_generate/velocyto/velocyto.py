@@ -2,17 +2,13 @@ import sys
 import numpy as np
 import os
 import pandas as pd
-import matplotlib
 import matplotlib.pyplot as plt
 import loompy
 import velocyto as vcy
 import logging
-from sklearn.svm import SVR
-from sklearn.linear_model import LinearRegression
-from statsmodels.nonparametric.smoothers_lowess import lowess
-from scipy.interpolate import interp1d
 import scvelo as scv
 import scanpy as sc
+import argparse
 # vcy.read()
 logging.basicConfig(stream=sys.stdout, format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 # %matplotlib inline
@@ -43,68 +39,62 @@ def minimal_yticks(start, end):
     ylims_tx[0], ylims_tx[-1] = f"{ylims[0]:.0f}", f"{ylims[-1]:.02f}"
     plt.yticks(ylims, ylims_tx)
 
-def main(data_dir,data_file,save_dir):
-    adata= sc.read(data_dir, cache=True)
-    cluster = find_cluster_column(adata)
-    if ID == '55-new':
-        cluster = 'cell_type'
+def main(data_dir, data_file, save_dir, simulate=True):
+    adata = sc.read(data_dir, cache=True)
+    data_file = os.path.basename(data_file)
+    ID = data_file.split('.')[0]
+    adata.obs_names_make_unique()
+    if simulate:
+        cluster = 'milestone'
+    else:
+        cluster = find_cluster_column(adata)
     obsm_key = list(adata.obsm.keys())
-    # layer_list = list(adata.layers.keys())
-    # for layer_name in layer_list:
-    #     # 如果是稀疏矩阵，转换为密集矩阵以检查所有值
-    #     layer_matrix = adata.layers[layer_name]
-    #     if sp.issparse(layer_matrix):
-    #         layer_dense = layer_matrix.toarray()
-    #     else:
-    #         layer_dense = layer_matrix
-    #     # 检测 INF 和 NaN
-    #     invalid_mask = np.isnan(layer_dense)
-    #     if invalid_mask.any():
-    #         print(layer_name)
-    #         del adata.layers[layer_name]
-    if not os.path.exists(fr'/data_d/Velocity/data/loom/{data_file.split(".")[0]}.loom'):
-        if any(item.lower().find('x_umap') != -1 for item in obsm_key):
-            print(f"Data: {data_file} seems to have been processed using UMAP.")
-            if data_file.startswith('48'):
+    # choose target loom path based on simulate flag
+    if simulate:
+        loom_path = fr'/data_d/Velocity/D/simdata/loom/{ID}.loom'
+    else:
+        loom_path = fr'/data_d/Velocity/data/loom/{ID}.loom'
+
+    if not os.path.exists(loom_path):
+        if simulate:
+            # simulation: map X_dimred to X_umap and write simulation loom
+            if 'X_dimred' in adata.obsm and 'X_umap' not in adata.obsm:
+                adata.obsm['X_umap'] = adata.obsm['X_dimred']
+            adata.write_loom(loom_path, write_obsm_varm=True)
+        else:
+            if any(item.lower().find('x_umap') != -1 for item in obsm_key):
+                print(f"Data: {data_file} seems to have been processed using UMAP.")          
                 adata = adata[~adata.to_df().duplicated(), :]
                 adata.obs_names_make_unique()
-            adata.write_loom(fr'/data_d/Velocity/data/loom/{data_file.split(".")[0]}.loom', write_obsm_varm=True)
-        else:
-            if os.path.exists(fr'/data_d/Velocity/Umap_backup/{data_file.split(".")[0]}_addUmap.csv'):
-                loaded_umap = pd.read_csv(f'/data_d/Velocity/Umap_backup/{data_file.split(".")[0]}_addUmap.csv',index_col=0)
-                adata.obsm['X_umap'] = loaded_umap[['UMAP1', 'UMAP2']].values
-                if data_file.startswith('48'):
-                    adata = adata[~adata.to_df().duplicated(), :]
-                    adata.obs_names_make_unique()
-                adata.write_loom(fr'/data_d/Velocity/data/loom/{data_file.split(".")[0]}.loom', write_obsm_varm=True)
+                adata.write_loom(loom_path, write_obsm_varm=True)
             else:
-                if data_file.startswith('48'):
-                    adata = adata[~adata.to_df().duplicated(), :]
-                    adata.obs_names_make_unique()
-                adata1 = adata.copy()
-                scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
-                # scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
-                sc.pp.pca(adata)
-                sc.pp.neighbors(adata, n_pcs=30, n_neighbors=30, method='umap')
-                scv.tl.umap(adata)
-                adata1.obsm['X_pca'] = adata.obsm['X_pca']
-                adata1.obsm['X_umap'] = adata.obsm['X_umap']
-                adata1.write_loom(fr'/data_d/Velocity/data/loom/{data_file.split(".")[0]}.loom', write_obsm_varm=True)
+                backup_csv = fr'/data_d/Velocity/Umap_backup/{ID}_addUmap.csv'
+                if os.path.exists(backup_csv):
+                    loaded_umap = pd.read_csv(backup_csv, index_col=0)
+                    adata.obsm['X_umap'] = loaded_umap[['UMAP1', 'UMAP2']].values
+                    if data_file.startswith('48'):
+                        adata = adata[~adata.to_df().duplicated(), :]
+                        adata.obs_names_make_unique()
+                    adata.write_loom(loom_path, write_obsm_varm=True)
+                else:
+                    if data_file.startswith('48'):
+                        adata = adata[~adata.to_df().duplicated(), :]
+                        adata.obs_names_make_unique()
+                    adata1 = adata.copy()
+                    scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
+                    sc.pp.pca(adata)
+                    sc.pp.neighbors(adata, n_pcs=30, n_neighbors=30, method='umap')
+                    scv.tl.umap(adata)
+                    adata1.obsm['X_pca'] = adata.obsm['X_pca']
+                    adata1.obsm['X_umap'] = adata.obsm['X_umap']
+                    adata1.write_loom(loom_path, write_obsm_varm=True)
     del adata
-    # Crate an analysis object
+    # Create an analysis object from the generated loom file
     if any(item.lower().find('ambiguous') != -1 for item in obsm_key):
-        vlm = vcy.VelocytoLoom(fr'/data_d/Velocity/data/loom/{data_file.split(".")[0]}.loom')
+        vlm = vcy.VelocytoLoom(loom_path)
     else:
-        vlm = VelocytoLoom(fr'/data_d/Velocity/data/loom/{data_file.split(".")[0]}.loom')
+        vlm = VelocytoLoom(loom_path)
 
-    # Read column attributes form the loom file and specify colors
-    # vlm.ts = np.column_stack([vlm.ca["TSNE1"], vlm.ca["TSNE2"]])
-    # colors_dict = {'RadialGlia': np.array([ 0.95,  0.6,  0.1]), 'RadialGlia2': np.array([ 0.85,  0.3,  0.1]), 'ImmAstro': np.array([ 0.8,  0.02,  0.1]),
-    #               'GlialProg': np.array([ 0.81,  0.43,  0.72352941]), 'OPC': np.array([ 0.61,  0.13,  0.72352941]), 'nIPC': np.array([ 0.9,  0.8 ,  0.3]),
-    #               'Nbl1': np.array([ 0.7,  0.82 ,  0.6]), 'Nbl2': np.array([ 0.448,  0.85490196,  0.95098039]),  'ImmGranule1': np.array([ 0.35,  0.4,  0.82]),
-    #               'ImmGranule2': np.array([ 0.23,  0.3,  0.7]), 'Granule': np.array([ 0.05,  0.11,  0.51]), 'CA': np.array([ 0.2,  0.53,  0.71]),
-    #                'CA1-Sub': np.array([ 0.1,  0.45,  0.3]), 'CA2-3-4': np.array([ 0.3,  0.35,  0.5])}\
-    # vlm.plot_fractions()
     vlm.set_clusters(vlm.ca[cluster])
 
     vlm.filter_cells(bool_array=vlm.initial_Ucell_size > np.percentile(vlm.initial_Ucell_size, 0.5))
@@ -124,9 +114,7 @@ def main(data_dir,data_file,save_dir):
                      target_size=np.mean(vlm.initial_Ucell_size))
 
     vlm.perform_PCA()
-    # plt.plot(np.cumsum(vlm.pca.explained_variance_ratio_)[:100])
     n_comps = np.where(np.diff(np.diff(np.cumsum(vlm.pca.explained_variance_ratio_))>0.002))[0][0]
-    # plt.axvline(n_comps, c="k")
     n_comps
     k = 500
     if vlm.ca['X_umap'].shape[0]<k*8:
@@ -167,17 +155,15 @@ def main(data_dir,data_file,save_dir):
     #vcy.load_velocyto_hdf5()
 
 if __name__ == '__main__':
-    datalist = pd.read_csv('/data_d/Velocity/ZY_1/data.csv')
-    save_dir = '/data_d/Velocity/D/velocyto'
-    retrain=[]
-    for i in [53]:
-        if i in retrain:
-            continue
-        ID = datalist.iloc[i]['ID']
-        data_file = datalist.iloc[i]['name']
-        data_dir = datalist.iloc[i]['path']
-        if os.path.exists(f'{save_dir}/{ID}'):
-            continue
-        else:
-            print(f'{i}__{data_file}')
-            main(data_dir,data_file,f'{save_dir}/{ID}')
+    parser = argparse.ArgumentParser(description='Run velocyto processing for one dataset')
+    parser.add_argument('--data_dir', required=True, help='Path to input .h5ad file')
+    parser.add_argument('--data_file', required=True, help='Input filename used for outputs')
+    parser.add_argument('--save_dir', required=True, help='Directory to save results')
+    parser.add_argument('--simulate', dest='simulate', action='store_true', help='Treat input as simulation (default)')
+    parser.add_argument('--no-simulate', dest='simulate', action='store_false', help='Treat input as real data')
+    parser.set_defaults(simulate=True)
+    args = parser.parse_args()
+
+    out_dir = os.path.join(args.save_dir, args.data_file.split('.')[0])
+    os.makedirs(out_dir, exist_ok=True)
+    main(args.data_dir, args.data_file, out_dir, simulate=args.simulate)

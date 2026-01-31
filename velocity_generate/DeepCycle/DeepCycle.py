@@ -2,7 +2,6 @@ import argparse
 
 import tensorflow as tf
 import tensorflow_probability as tfp
-import tensorflow_datasets as tfds
 
 import numpy as np
 import pandas as pd
@@ -43,6 +42,8 @@ parser.add_argument('--expression_threshold',type=float, required=True,help='Uns
 parser.add_argument('--gpu',const=True,default=False, nargs='?',help='Use GPUs.')
 parser.add_argument('--hotelling',const=True,default=False, nargs='?',help='Use Hotelling filter.')
 parser.add_argument('--output_adata',type=str, required=True,help='Anndata output file. ')
+parser.add_argument('--output_dir',type=str, default='.',help='Output directory for results.')
+parser.add_argument('--simulate', action='store_true', help='Whether the data is simulation data.')
 args = parser.parse_args()
 
 #REQUIRED INPUTS
@@ -53,11 +54,13 @@ base_gene = args.base_gene
 GPU = args.gpu
 HOTELLING = args.hotelling
 expression_threshold = args.expression_threshold
+output_dir = args.output_dir
+simulate = args.simulate
 
 cwd = os.getcwd()
 print("[Current working directory]:",cwd)
 
-CycleAE_dir = cwd+'/DeepCycle'
+CycleAE_dir = os.path.join(output_dir, 'DeepCycle')
 if not os.path.exists( CycleAE_dir ):
     os.makedirs( CycleAE_dir )
 
@@ -542,6 +545,8 @@ for cell in distances:
 
 t_closest_theta = t_closest_theta*-1+1
 adata.obs['cell_cycle_theta'] = t_closest_theta
+if simulate and 'X_dimred' in adata.obsm:
+    adata.obsm['X_umap'] = adata.obsm['X_dimred']
 adata.write_h5ad(output_anndata_file)
 print("[Output anndata]:", output_anndata_file)
 

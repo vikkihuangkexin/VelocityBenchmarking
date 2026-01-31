@@ -24,36 +24,25 @@ def data_type_tostr(adata, key):
 
 def preprocess(args):
     print('----------------------------------preprocess',args.dataset_name,'---------------------------------------------')
-    #if args.dataset_name == 'pancreas':
-        #adata = scv.datasets.pancreas() 
-    #    adata = ad.read_h5ad("/data_d/ZXL/RNA_Velocity/scvelo_notebooks-master/data/Pancreas/endocrinogenesis_day15.h5ad") 
-    #if args.dataset_name == 'test':
-    #    #adata = scv.datasets.pancreas() 
-    #    adata = ad.read_h5ad("/data_d/ZXL/RNA_Velocity/DeepCycle-main/data/adata_test.h5ad") 
-        
-    if args.dataset_name == '27_mouse_skin':
-        #adata = scv.datasets.pancreas() 
-        adata = ad.read_h5ad("/data_d/Velocity/ZXL/MultiVelo/GSE140203/adata_postpro.h5ad") 
-
+    if args.dataset_name == 'pancreas':
+        adata = scv.datasets.pancreas()
     elif args.dataset_name == 'gastrulation_erythroid':
         adata = scv.datasets.gastrulation_erythroid()   
-        adata.uns['clusters_colors'] = adata.uns['celltype_colors'].copy()
-        adata.obs['clusters'] = adata.obs['celltype'].copy()
-    elif args.dataset_name == 'hesc1':
-        expression = pd.read_table("data/hesc1/rpkm.txt", header=0, index_col=0, sep="\t").T 
-        adata = ad.AnnData(expression)
-        adata.obs_names = expression.index
-        adata.var_names = expression.columns
-        adata.obs['time_gt'] = 'Nan'
-        for ii, cell in enumerate(adata.obs_names):
-            adata.obs['time_gt'][ii] = cell.split('.')[0]
-        adata.obs['time_gt'] = adata.obs['time_gt'].astype('category') 
-        adata.obs['clusters'] = adata.obs['time_gt'].copy()
+        if args.simulate:
+            adata.obs['clusters'] = 'milestone'
+        else:
+            adata.uns['clusters_colors'] = adata.uns['celltype_colors'].copy()
+            adata.obs['clusters'] = adata.obs['celltype'].copy()
     elif args.dataset_name == '10x_mouse_brain':
         adata = ad.read_h5ad("data/10x_mouse_brain/adata_rna.h5ad") 
-        adata.uns['clusters_colors'] = np.array(['red', 'orange', 'yellow', 'green','skyblue', 'blue','purple', 'pink', '#8fbc8f', '#f4a460', '#fdbf6f', '#ff7f00', '#b2df8a', '#1f78b4',
-            '#6a3d9a', '#cab2d6'], dtype=object) 
-        adata.obs['clusters'] = adata.obs['celltype'].copy()   
+        if args.simulate:
+            adata.obs['clusters'] = 'milestone'
+        else:
+            adata.uns['clusters_colors'] = np.array(['red', 'orange', 'yellow', 'green','skyblue', 'blue','purple', 'pink', '#8fbc8f', '#f4a460', '#fdbf6f', '#ff7f00', '#b2df8a', '#1f78b4',
+                '#6a3d9a', '#cab2d6'], dtype=object) 
+            adata.obs['clusters'] = adata.obs['celltype'].copy()
+    else:
+        raise ValueError(f"Unknown dataset_name: {args.dataset_name}")   
 
     if not os.path.exists(args.result_path):
         os.makedirs(args.result_path)
@@ -74,11 +63,6 @@ def preprocess(args):
     adata.layers["total_raw"] = adata.layers["total"].copy()
     n_cells, n_genes = adata.X.shape
     
-    raw_top100_genes = adata.var_names[:min(100, n_genes)].tolist()
-    raw_top100_expr = adata.layers["total_raw"][:, adata.var_names.isin(raw_top100_genes)]
-    raw_top100_var = adata.var.loc[raw_top100_genes].copy()
-
-    
     sc.pp.filter_genes(adata, min_cells=int(n_cells/50))
     sc.pp.filter_cells(adata, min_genes=int(n_genes/50))
     #sc.pp.filter_genes(adata, min_cells=10)
@@ -86,38 +70,10 @@ def preprocess(args):
     
     TFv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000, log=True) #include the following steps
     adata.X = adata.layers["total"].copy()
-
-    missing_genes = [gene for gene in raw_top100_genes if gene not in adata.var_names]
-    
-    if missing_genes:
-
-        missing_expr = raw_top100_expr[:, [raw_top100_genes.index(gene) for gene in missing_genes]]
-
-        missing_var = raw_top100_var.loc[missing_genes].copy()
-        
-        from sklearn.preprocessing import normalize
-
-        missing_expr = np.log1p(missing_expr)
-
-        missing_expr = normalize(missing_expr, axis=0)
-        
-
-        temp_adata = ad.AnnData(
-            X=missing_expr,
-            obs=adata.obs.copy(), 
-            var=missing_var,
-            layers={"total": missing_expr}
-        )
-
-        adata = ad.concat(
-            [adata, temp_adata],
-            axis=1,  
-            merge="first"  
-        )
     
 
 
-    if not args.dataset_name in ['10x_mouse_brain']:
+    if not args.simulate and not args.dataset_name in ['10x_mouse_brain']:
         adata.uns['clusters_colors'] = np.array(['red', 'orange', 'yellow', 'green','skyblue', 'blue','purple', 'pink', '#8fbc8f', '#f4a460', '#fdbf6f', '#ff7f00', '#b2df8a', '#1f78b4',
             '#6a3d9a', '#cab2d6'], dtype=object)
 
@@ -133,6 +89,8 @@ def preprocess(args):
     TFv.pp.get_TFs(adata, databases=args.TF_databases)
     print(adata)
     adata.uns['genes_pp'] = np.array(adata.var_names)
+    if 'X_dimred' in adata.obsm:
+        adata.obsm['X_umap'] = adata.obsm['X_dimred']
     adata.write(args.result_path + 'pp.h5ad')
 
 
@@ -177,6 +135,7 @@ if __name__ == '__main__':
     parser.add_argument( '--save_name', type=str, default='_demo', help='save_name')
     parser.add_argument( '--use_raw', type=int, default=0, help='use_raw')
     parser.add_argument( '--basis', type=str, default='umap', help='umap')
+    parser.add_argument('--simulate', action='store_true', help='Whether the data is simulation data')
 
     args = parser.parse_args() 
     args.result_path = 'TFvelo_'+ args.dataset_name + args.save_name+ '/'

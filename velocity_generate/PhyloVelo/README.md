@@ -4,7 +4,7 @@
 Purpose
 - Compute phylogenetic velocity and pseudotime using the phylovelo package.
 
-Inputs
+Inputs 
 - AnnData `.h5ad` file provided via `--data_path`.
 - Required internals:
   - `layers['spliced']` and `layers['unspliced']` (used for count data).

@@ -48,23 +48,18 @@ ENV PATH=$CONDA_DIR/bin:$PATH
 
 RUN $CONDA_DIR/bin/conda init bash
 
-RUN echo 'echo "Env avaliable: velo"' >> /etc/bash.bashrc && \
+RUN echo 'echo "Env avaliable: k-velo"' >> /etc/bash.bashrc && \
     echo '' >> /etc/bash.bashrc
 RUN echo 'eval "$(mamba shell hook --shell bash)"' >> /root/.bashrc && \
     echo 'eval "$(mamba shell hook --shell bash)"' >> /home/${USERNAME}/.bashrc && \
     chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.bashrc
 
 
-RUN mamba create -n velo --yes python=3.9 && \
-    /bin/bash -c "source $CONDA_DIR/bin/activate velo && \
+RUN mamba create -n k-velo --yes python=3.9 && \
+    /bin/bash -c "source $CONDA_DIR/bin/activate k-velo && \
     git clone https://github.com/ValerieMarot/velocity_package && \
     cd velocity_package && \
     pip install -e ."
-
-
-
-
-RUN /bin/bash -c "source $CONDA_DIR/bin/activate velo && pip install sdevelo"
 
 COPY start.sh /start.sh
 RUN chmod +x /start.sh

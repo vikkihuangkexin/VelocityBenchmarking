@@ -1,4 +1,4 @@
-#cellDancer runner
+# cellDancer 
 
 This script converts an AnnData `.h5ad` to CellDancer inputs, computes gene-wise velocities,
 and aggregates to cell-level velocities. It writes a `*_velo.h5ad` file and a `cell_velo.csv`.

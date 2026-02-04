@@ -1,6 +1,4 @@
-# NeuroVelo Script
-
-This script performs velocity analysis using NeuroVelo on single-cell RNA sequencing data.
+# NeuroVelo
 
 ## Installation
 

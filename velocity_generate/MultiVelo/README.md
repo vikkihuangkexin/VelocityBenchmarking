@@ -1,6 +1,4 @@
-# MultiVelo Script
-
-This script performs multi-omics velocity analysis using MultiVelo on single-cell RNA and ATAC data.
+# MultiVelo
 
 ## Installation
 

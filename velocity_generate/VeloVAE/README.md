@@ -37,6 +37,12 @@ python run_velovae.py \
     --zero-threshold
 ```
 
+> **Two flags are required for simulated data:**
+> - `--dim-z 4`: reduces the latent cell state dimension from the default 5 to 4,
+>   appropriate for simulated datasets with ~10 cell types (close to 2⁴ = 16).
+> - `--zero-threshold`: sets `min_shared_counts = 0` and `min_shared_cells = 0`
+>   in preprocessing to prevent artificial gene filtering in synthetic data.
+
 ### Batch Mode
 
 ```bash
@@ -112,6 +118,21 @@ The output H5AD file contains:
 - `vae_alpha`, `vae_beta`, `vae_gamma` - Kinetic parameters
 
 ## Important Notes
+
+### Highly Variable Gene Selection
+
+The number of highly variable genes (`n_gene`) is determined automatically by
+`determine_preprocessing_params()` based on total gene count. The thresholds
+differ between data types in practice:
+
+| Data type | Rule |
+|-----------|------|
+| Real biological data | `n_vars < 1,500` → 500 HVGs; `n_vars ≥ 1,500` → 2,000 HVGs |
+| Simulated data (dyngen) | `n_vars < 1,500` → 500; `< 10,000` → 2,000; `< 50,000` → 4,000; `≥ 50,000` → 5,000 |
+
+The script implements the full four-tier rule in `determine_preprocessing_params()`;
+for real datasets, gene counts rarely exceed 10,000, so only the first two tiers
+are reached in practice.
 
 ### Dimensionality Reduction Basis
 

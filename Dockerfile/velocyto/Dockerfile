@@ -95,7 +95,8 @@ RUN echo 'display_resources() { \
 # =========================================================================
 # Create separate environments for tools
 # =========================================================================
-
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 # Velocyto
 RUN conda create -n velocyto -c conda-forge --yes python=3.8.0 && \
     /bin/bash -c "source $CONDA_DIR/bin/activate velocyto && pip install numpy GPUtil Cython && \

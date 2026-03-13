@@ -95,10 +95,11 @@ RUN echo 'display_resources() { \
 # =========================================================================
 # Create separate environments for tools
 # =========================================================================
-
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 # veloVI
 RUN conda create -n veloVI --yes python=3.8.0 && \
-    /bin/bash -c "source $CONDA_DIR/bin/activate velovi && \
+    /bin/bash -c "source $CONDA_DIR/bin/activate veloVI && \
     conda install --yes pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia && \
     conda install --yes -c conda-forge scvi-tools && \
     pip install velovi GPUtil scvelo==0.2.5"

@@ -95,10 +95,11 @@ RUN echo 'display_resources() { \
 # =========================================================================
 # Create separate environments for tools
 # =========================================================================
-
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 # CellDancer
 RUN conda create -n CellDancer -c conda-forge --yes python=3.7.6 && \
-    /bin/bash -c "source $CONDA_DIR/bin/activate CD && pip install celldancer GPUtil scvelo==0.2.5"
+    /bin/bash -c "source $CONDA_DIR/bin/activate CellDancer && pip install celldancer GPUtil scvelo==0.2.5"
 
 USER root
 # Ensure .bashrc exists and belongs to the specified user

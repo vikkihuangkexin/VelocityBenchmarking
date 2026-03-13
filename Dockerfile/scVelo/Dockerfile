@@ -95,10 +95,11 @@ RUN echo 'display_resources() { \
 # =========================================================================
 # Create separate environments for tools
 # =========================================================================
-
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 # scVelo
 RUN conda create -n scVelo -c conda-forge --yes python=3.8.0 && \
-    /bin/bash -c "source $CONDA_DIR/bin/activate scvelo && pip install scvelo==0.2.5 GPUtil"
+    /bin/bash -c "source $CONDA_DIR/bin/activate scVelo && pip install numpy==1.21.1scvelo==0.2.5 GPUtil"
 
 USER root
 # Ensure .bashrc exists and belongs to the specified user

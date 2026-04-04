@@ -15,7 +15,7 @@ pip install scanpy scvelo pandas numpy matplotlib scipy
 For real biological data with UMAP embeddings:
 
 ```bash
-python run_velovae.py \
+python VeloVAE.py \
     --input data.h5ad \
     --output-dir ./output \
     --fig-dir ./figures \
@@ -27,26 +27,32 @@ python run_velovae.py \
 For simulated single-cell trajectory data with `X_dimred` basis:
 
 ```bash
-python run_velovae.py \
+python VeloVAE.py \
     --input simulated.h5ad \
     --output-dir ./output \
     --fig-dir ./figures \
     --cluster-key milestone \
     --dimred-key X_dimred \
     --dim-z 4 \
-    --zero-threshold
+    --zero-threshold \
+    --hvg-scheme simulated
 ```
 
-> **Two flags are required for simulated data:**
+> **Simulated data should explicitly set the following options:**
+> - `--dimred-key X_dimred`: uses the pre-computed simulation coordinates.
 > - `--dim-z 4`: reduces the latent cell state dimension from the default 5 to 4,
->   appropriate for simulated datasets with ~10 cell types (close to 2⁴ = 16).
+>   reflecting the relatively simpler state complexity of these synthetic trajectories
+>   compared with real biological datasets.
 > - `--zero-threshold`: sets `min_shared_counts = 0` and `min_shared_cells = 0`
->   in preprocessing to prevent artificial gene filtering in synthetic data.
+>   because dyngen-generated simulated data often have low expression counts and the
+>   default VeloVAE filtering thresholds can otherwise be overly strict.
+> - `--hvg-scheme simulated`: uses the simulated-data HVG rule
+>   (`500 / 2000 / 4000 / 5000`) instead of the real-data rule (`500 / 2000`).
 
 ### Batch Mode
 
 ```bash
-python run_velovae.py \
+python VeloVAE.py \
     --metadata-file datasets.csv \
     --output-dir ./output \
     --fig-dir ./figures
@@ -64,6 +70,7 @@ python run_velovae.py \
 | `--dimred-key` | `X_umap` | Dimensionality reduction key in `adata.obsm`<br>Use `X_umap` for real data, `X_dimred` for simulated data |
 | `--dim-z` | `5` | Latent dimension<br>`5` for real data, `4` for simulated data |
 | `--zero-threshold` | `False` | Set `min_shared_counts/cells=0` in preprocessing<br>**REQUIRED** for simulated data |
+| `--hvg-scheme` | `real` | HVG selection rule<br>`real`: `500 / 2000`; `simulated`: `500 / 2000 / 4000 / 5000` |
 | `--device` | `cuda:0` | PyTorch device (`cuda:0`, `cpu`, etc.) |
 | `--n-jobs` | `1` | Number of parallel jobs for post-analysis |
 
@@ -75,14 +82,15 @@ Optional columns with defaults:
 - `dimred_key` → `X_umap`
 - `dim_z` → `5`
 - `zero_threshold` → `False`
+- `hvg_scheme` → `real`
 
 ### Example CSV
 
 ```csv
-dataset_name,file_path,cluster_key,dimred_key,dim_z,zero_threshold
-pancreas_real,/data/pancreas.h5ad,celltype,X_umap,5,False
-bifurcating_sim,/data/bifurcating_cell1000_gene1000_dataset.h5ad,milestone,X_dimred,4,True
-cycle_simple_sim,/data/cycle-simple_cell5000_gene1000_dataset.h5ad,milestone,X_dimred,4,True
+dataset_name,file_path,cluster_key,dimred_key,dim_z,zero_threshold,hvg_scheme
+pancreas_real,/data/pancreas.h5ad,celltype,X_umap,5,False,real
+bifurcating_sim,/data/bifurcating_cell1000_gene1000_dataset.h5ad,milestone,X_dimred,4,True,simulated
+cycle_simple_sim,/data/cycle-simple_cell5000_gene1000_dataset.h5ad,milestone,X_dimred,4,True,simulated
 ```
 
 ## Output
@@ -122,17 +130,18 @@ The output H5AD file contains:
 ### Highly Variable Gene Selection
 
 The number of highly variable genes (`n_gene`) is determined automatically by
-`determine_preprocessing_params()` based on total gene count. The thresholds
-differ between data types in practice:
+`determine_preprocessing_params()` based on the selected `--hvg-scheme` and the
+total gene count.
 
-| Data type | Rule |
-|-----------|------|
-| Real biological data | `n_vars < 1,500` → 500 HVGs; `n_vars ≥ 1,500` → 2,000 HVGs |
-| Simulated data (dyngen) | `n_vars < 1,500` → 500; `< 10,000` → 2,000; `< 50,000` → 4,000; `≥ 50,000` → 5,000 |
+| HVG scheme | Rule |
+|------------|------|
+| `real` | `n_vars < 1,500` → 500 HVGs; `n_vars ≥ 1,500` → 2,000 HVGs |
+| `simulated` | `n_vars < 1,500` → 500; `< 10,000` → 2,000; `< 50,000` → 4,000; `≥ 50,000` → 5,000 |
 
-The script implements the full four-tier rule in `determine_preprocessing_params()`;
-for real datasets, gene counts rarely exceed 10,000, so only the first two tiers
-are reached in practice.
+The `real` scheme reflects the conventional choice of 2,000 HVGs for most real
+datasets, with a reduced setting of 500 only when the input itself contains fewer
+than 1,500 genes. The `simulated` scheme is intended for synthetic datasets with
+much broader gene-count ranges.
 
 ### Dimensionality Reduction Basis
 

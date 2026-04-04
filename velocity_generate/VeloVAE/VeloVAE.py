@@ -9,13 +9,13 @@ INSTALLATION:
 
 USAGE:
     # For real data (default):
-    python run_velovae.py --input data.h5ad --output-dir ./output --fig-dir ./figures --cluster-key celltype
+    python VeloVAE.py --input data.h5ad --output-dir ./output --fig-dir ./figures --cluster-key celltype
 
     # For simulated data:
-    python run_velovae.py --input data.h5ad --output-dir ./output --fig-dir ./figures --cluster-key milestone --dimred-key X_dimred --dim-z 4 --zero-threshold
+    python VeloVAE.py --input data.h5ad --output-dir ./output --fig-dir ./figures --cluster-key milestone --dimred-key X_dimred --dim-z 4 --zero-threshold --hvg-scheme simulated
 
     # Batch mode:
-    python run_velovae.py --metadata-file datasets.csv --output-dir ./output --fig-dir ./figures
+    python VeloVAE.py --metadata-file datasets.csv --output-dir ./output --fig-dir ./figures
 """
 
 import argparse
@@ -149,19 +149,39 @@ def save_stream_plot_with_fallback(adata, save_path: Path, **plot_kwargs):
             sys.stderr = old_stderr
 
 
-def determine_preprocessing_params(adata):
-    """Determine preprocessing parameters based on data size."""
+def determine_preprocessing_params(adata, hvg_scheme='real'):
+    """Determine preprocessing parameters based on data size.
+
+    n_gene selection rationale:
+      - Real biological datasets use the conventional setting of 2,000 HVGs
+        for most inputs; when the input itself contains fewer than 1,500 genes,
+        500 HVGs are used instead.
+      - Simulated datasets (e.g., dyngen) can span a much wider gene-count range,
+        so a four-tier scheme is used:
+            n_vars < 1,500  -> 500
+            n_vars < 10,000 -> 2,000
+            n_vars < 50,000 -> 4,000
+            n_vars >= 50,000-> 5,000
+
+    npc and batch_size are shared across both data types and scale with cell count.
+    """
     n_obs, n_vars = adata.n_obs, adata.n_vars
 
-    if n_vars < 1500:
-        n_gene = 500
-    elif n_vars < 10000:
-        n_gene = 2000
-    elif n_vars < 50000:
-        n_gene = 4000
+    if hvg_scheme == 'real':
+        n_gene = 500 if n_vars < 1500 else 2000
+    elif hvg_scheme == 'simulated':
+        if n_vars < 1500:
+            n_gene = 500
+        elif n_vars < 10000:
+            n_gene = 2000
+        elif n_vars < 50000:
+            n_gene = 4000
+        else:
+            n_gene = 5000
     else:
-        n_gene = 5000
+        raise ValueError(f"Unsupported hvg_scheme: {hvg_scheme}")
 
+    # npc and batch_size: scale with cell count
     if n_obs < 1500:
         npc, batch_size = 30, 64
     elif n_obs < 15000:
@@ -195,6 +215,7 @@ def run_velovae_analysis(
     dimred_key: str = 'X_umap',
     dim_z: int = 5,
     zero_threshold: bool = False,
+    hvg_scheme: str = 'real',
     device: str = 'cuda:0',
     n_jobs: int = 1
 ) -> None:
@@ -221,7 +242,7 @@ def run_velovae_analysis(
         if cluster_key not in adata.obs.columns:
             raise ValueError(f"Cluster key '{cluster_key}' not found in adata.obs")
 
-        n_gene, npc, batch_size = determine_preprocessing_params(adata)
+        n_gene, npc, batch_size = determine_preprocessing_params(adata, hvg_scheme=hvg_scheme)
         check_or_compute_dimred(adata, dimred_key, npc)
 
         # Extract basis name for VeloVAE (e.g., 'X_dimred' -> 'dimred')
@@ -361,9 +382,12 @@ def load_metadata_file(metadata_path: Path) -> pd.DataFrame:
         df['dim_z'] = 5
     if 'zero_threshold' not in df.columns:
         df['zero_threshold'] = False
+    if 'hvg_scheme' not in df.columns:
+        df['hvg_scheme'] = 'real'
 
     df['dim_z'] = df['dim_z'].astype(int)
     df['zero_threshold'] = df['zero_threshold'].astype(bool)
+    df['hvg_scheme'] = df['hvg_scheme'].astype(str).str.lower()
 
     return df
 
@@ -396,6 +420,7 @@ def main(args):
                     dimred_key=row['dimred_key'],
                     dim_z=int(row['dim_z']),
                     zero_threshold=bool(row['zero_threshold']),
+                    hvg_scheme=row['hvg_scheme'],
                     device=args.device,
                     n_jobs=args.n_jobs
                 )
@@ -422,6 +447,7 @@ def main(args):
             dimred_key=args.dimred_key,
             dim_z=args.dim_z,
             zero_threshold=args.zero_threshold,
+            hvg_scheme=args.hvg_scheme,
             device=args.device,
             n_jobs=args.n_jobs
         )
@@ -449,6 +475,8 @@ if __name__ == "__main__":
                         help="Latent dimension (5 for real data, 4 for simulated data)")
     parser.add_argument("--zero-threshold", action="store_true", default=False,
                         help="Set min_shared_counts/cells to 0 in preprocessing (REQUIRED for simulated data)")
+    parser.add_argument("--hvg-scheme", choices=["real", "simulated"], default="real",
+                        help="HVG selection rule: use the real-data scheme (500/2000) or the simulated-data scheme (500/2000/4000/5000)")
     parser.add_argument("--device", default="cuda:0", help="PyTorch device")
     parser.add_argument("--n-jobs", type=int, default=1, help="Parallel jobs for post-analysis")
 

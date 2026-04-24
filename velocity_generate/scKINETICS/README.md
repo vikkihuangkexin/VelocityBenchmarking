@@ -1,127 +1,160 @@
-# scKINETICS Velocity Analysis
+# scKINETICS Velocity Generation
 
-It is recommended to install scKINETICS from GitHub.
+This directory provides the `scKINETICS.py` script used to run `scKINETICS` for velocity benchmarking with the maintained local fork and the fixed team plotting outputs.
+
+## Installation
+
+Use the maintained fork and environment instructions from:
+
+- `https://github.com/sd68515/scKINETICS_py311_r441.git`
+
+This benchmark script is intended to use that local fork only. A recommended setup is:
+
+```bash
+git clone https://github.com/sd68515/scKINETICS_py311_r441.git
+cd scKINETICS_py311_r441
+# create / activate the environment according to that repository
+pip install -e . --no-deps
+```
+
+After that, run the benchmark script from this repository.
 
 ## Usage
 
-### Basic Usage (No Visualization)
+Single-dataset mode:
 
 ```bash
-python run_sckinetics.py
+python scKINETICS.py \
+  --input-h5ad your_data.h5ad \
+  --peaks-bed your_peaks.bed \
+  --output-dir ./output \
+  --cluster-key celltype \
+  --genome mm10 \
+  --embedding-basis X_umap
 ```
 
-This uses default parameters:
-- Input: `24_mouse_brain.h5ad`
-- Peaks: `24_MouseBrain_peaks_for_sckinetics.bed`
-- Output: `scKINETICS_24_plot.h5ad`
-
-### With Visualization
+Batch mode:
 
 ```bash
-python run_sckinetics.py --fig-dir sckinetics_figures
+python scKINETICS.py \
+  --metadata-file datasets.csv \
+  --output-dir ./output \
+  --fig-dir ./figures
 ```
 
-This generates 4 types of plots (PNG + PDF):
-- UMAP scatter plot with velocity arrows
-- Velocity stream plot
-- Velocity grid plot
-- Pseudotime heatmap
+Example metadata columns:
 
-### Custom Parameters
+- `dataset_name`
+- `file_path`
+- `peaks_bed`
+- optional: `cluster_key`, `embedding_basis`, `genome`
 
-```bash
-python run_sckinetics.py \
-    --input-h5ad your_data.h5ad \
-    --peaks-bed your_peaks.bed \
-    --output-h5ad output.h5ad \
-    --genome mm10 \
-    --fig-dir figures \
-    --n-threads 16 \
-    --n-jobs 8
-```
+Example `datasets.csv`:
 
-## Input Requirements
-
-### H5AD File
-
-Must contain:
-- `X`: Gene expression matrix
-- `obs['celltype']`: Cell type annotations (will be converted to numeric `cluster`)
-- Optional: `obsm['X_umap']` (will be computed if not present)
-
-### BED File
-
-Must be a 3-column BED file (with or without header):
-- Column 1: Chromosome name
-- Column 2: Start position (integer)
-- Column 3: End position (integer)
-
-Example:
-```
-chrom   chromStart      chromEnd
-chr1    3292586 3292976
-chr1    3371598 3371961
-```
-
-Or without header:
-```
-chr1    3292586 3292976
-chr1    3371598 3371961
-```
-
-## Output
-
-### H5AD File
-
-The output file contains:
-- `layers['velocity']`: Velocity matrix from scKINETICS
-- `obsm['velocity_umap']`: Velocity embedding
-- scVelo computed: `velocity_graph`, `velocity_pseudotime`, etc.
-
-### Figures (if --fig-dir specified)
-
-```
-figures/
-├── png/
-│   ├── sckinetics_velocity_umap.png
-│   ├── sckinetics_velocity_stream.png
-│   ├── sckinetics_velocity_grid.png
-│   └── sckinetics_velocity_pseudotime.png
-└── pdf/
-    ├── sckinetics_velocity_umap.pdf
-    ├── sckinetics_velocity_stream.pdf
-    ├── sckinetics_velocity_grid.pdf
-    └── sckinetics_velocity_pseudotime.pdf
+```csv
+dataset_name,file_path,peaks_bed,cluster_key,embedding_basis,genome
+MouseBrain,/path/to/mouse_brain.h5ad,/path/to/mouse_brain_peaks.bed,celltype,X_umap,mm10
+Pancreas,/path/to/pancreas.h5ad,/path/to/pancreas_peaks.bed,celltype,X_umap,mm10
+HumanSample,/path/to/human_sample.h5ad,/path/to/human_sample_peaks.bed,celltype,X_umap,hg38
 ```
 
 ## Parameters
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `--input-h5ad` | `24_mouse_brain.h5ad` | Input scRNA-seq data |
-| `--peaks-bed` | `24_MouseBrain_peaks_for_sckinetics.bed` | Peaks BED file |
-| `--output-h5ad` | `scKINETICS_24_plot.h5ad` | Output file |
-| `--genome` | `mm10` | Genome assembly (mm10, hg38, etc.) |
-| `--motif-pvalue` | `1e-10` | P-value threshold for motif calling |
-| `--n-neighbors` | `15` | Neighbors for scanpy.pp.neighbors |
-| `--n-pcs` | `40` | PCs for scanpy.pp.neighbors |
-| `--n-threads` | `15` | Threads for EM algorithm |
-| `--maxiter` | `20` | Max iterations for EM |
-| `--knn` | `30` | Neighbors for velocity graph |
-| `--fig-dir` | `None` | Figure output directory (optional) |
-| `--n-jobs` | `1` | Parallel jobs for scVelo (-1=all cores) |
+| `--input-h5ad` | optional | Input AnnData file in single-dataset mode |
+| `--metadata-file` | optional | Metadata table for batch mode |
+| `--peaks-bed` | required in single mode | Peaks BED file |
+| `--output-dir` | required | Root output directory |
+| `--dataset-name` | input stem | Dataset name in single-dataset mode |
+| `--cluster-key` | `celltype` | Grouping column for scKINETICS |
+| `--embedding-basis` | `X_umap` | Basis used for final velocity embedding and plotting |
+| `--genome` | `mm10` | Genome assembly |
+| `--peak-width-max` | `2000` | Maximum peak width kept |
+| `--min-genes` | `200` | Basic cell filter threshold |
+| `--min-cells` | `3` | Basic gene filter threshold |
+| `--target-sum` | `1e4` | Normalization target sum |
+| `--skip-normalize` | off | Skip normalize_total |
+| `--skip-log1p` | off | Skip log1p |
+| `--pca-n-comps` | `50` | PCA dimensions if `X_pca` missing |
+| `--motif-pvalue` | `1e-10` | Motif calling p-value |
+| `--threads` | `1` | EM thread count; default kept conservative for shared servers |
+| `--maxiter` | `20` | EM max iterations |
+| `--tol` | `0.005` | EM tolerance |
+| `--model-knn` | `50` | kNN used inside EM |
+| `--graph-knn` | `30` | kNN used for VelocityGraph |
+| `--sigma` | `5.0` | EM sigma |
+| `--sigma-prior` | `1.0` | EM sigma prior |
+| `--fig-dir` | `None` | Optional root directory for the fixed benchmark figures |
+| `--n-jobs` | `1` | Jobs for scVelo graph-related plotting calculations |
+
+## Input requirements
+
+### AnnData
+
+Required:
+
+- `adata.X`: expression matrix
+- `adata.obs[cluster_key]`: fitting groups, default `obs['celltype']`
+
+Recommended:
+
+- `adata.obsm['X_umap']`: unified benchmark embedding used for final low-dimensional projection
+- `adata.obsm['X_pca']`: if absent, the script will compute PCA automatically
+- existing layers such as `spliced`, `unspliced`, `Ms`, `Mu` can be retained and will be subset together with the modeled genes
+
+The script performs:
+
+- `obs_names_make_unique()`
+- `var_names_make_unique()`
+- basic filtering:
+  - `filter_cells(min_genes=200)`
+  - `filter_genes(min_cells=3)`
+- `normalize_total(target_sum=1e4)` unless `--skip-normalize`
+- `log1p()` unless `--skip-log1p`
+
+### BED file
+
+The peaks file may be either:
+
+- a BED with header columns `chrom`, `chromStart`, `chromEnd`
+- or a plain 3-column BED without header
+
+Only the first three BED columns are used. Peak width is filtered by `--peak-width-max` (default `2000`).
+
+## Output
+
+The final exported `h5ad` contains at least:
+
+- `layers['velocity']`
+- `obsm['velocity_umap']` if `--embedding-basis X_umap`
+- `obsp['sckinetics_T']`
+- `obsp['sckinetics_T_backward']`
+- `obsp['sckinetics_knn_graph']`
+- `uns['sckinetics_params']`
+- `uns['sckinetics_velocity_genes']`
+- `uns['sckinetics_velocity_genes_upper']`
+
+The final output restores the original gene symbols as `var_names`, while preserving the internal uppercase gene list used by scKINETICS matching logic in `uns['sckinetics_velocity_genes_upper']`.
+
+Auxiliary files saved alongside the exported `h5ad`:
+
+- `sckinetics_model.pickle`
+- `sckinetics_runtime_adata.pickle`
+- `velocity_<basis>.npy`
+
+If `--fig-dir` is provided, the script additionally writes the fixed benchmark figures in both `png/` and `pdf/` subdirectories:
+
+- scatter
+- stream
+- grid
+- pseudotime
 
 ## Notes
 
-- BED file header is auto-detected
-- Stream plot PDF generation includes fallback to SVG conversion if needed
-
-## Troubleshooting
-
-### PDF stream plot is corrupted or missing
-
-Install one of the SVG→PDF conversion tools (cairosvg, svglib, or Inkscape).
-
-### Peak annotation fails
-
-Ensure the genome assembly matches your data (`--genome mm10` for mouse, `hg38` for human).
+- The official `sckinetics` PyPI package only contains the initial release and is not sufficient for the maintained workflow here.
+- `scKINETICS` internally uppercases gene symbols for TF/target matching; this script restores the original gene symbols in the final export.
+- The script does not run TF ablation by default because benchmark generation primarily needs velocity inference rather than downstream regulator perturbation analysis.
+- If your benchmark datasets already contain unified `X_umap`, it is recommended to keep using that as the exported visualization basis.
+- This workflow targets real datasets with an accompanying ATAC differential-accessibility peak BED file, so it is not applicable to standard simulated RNA velocity datasets that do not provide such peak inputs.
+- The core scKINETICS code does not expose a user-facing seed parameter. For practical reproducibility on shared compute, this script keeps `--threads 1` by default.

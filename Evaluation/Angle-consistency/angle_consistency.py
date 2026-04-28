@@ -16,7 +16,7 @@ Entry points:
 
 Reproducibility defaults:
 - Parallelism defaults to n_jobs=1 (user-overridable for scvelo.velocity_graph).
-- External real-UMAP CSV directory is optional; when absent, UMAP will be computed.
+- User-provided external UMAP CSV files are optional; when absent, UMAP will be computed.
 """
 
 from __future__ import annotations
@@ -46,8 +46,6 @@ from scipy.sparse import csr_matrix
 from scipy.spatial.distance import pdist
 from sklearn.cluster import KMeans
 
-
-DEFAULT_REAL_UMAP_DIRNAME = "real-umap"
 
 ANGLE_COLUMNS = [
   "0-30", "30-60", "60-80", "80-90", "60-90",
@@ -107,16 +105,13 @@ def _configure_runtime_defaults() -> None:
   scv.settings.verbosity = 0
 
 
-def resolve_real_umap_dir(umap_dir: Optional[str]) -> Optional[str]:
+def resolve_external_umap_dir(umap_dir: Optional[str]) -> Optional[str]:
   """
-  Resolve the external real-UMAP CSV directory.
+  Resolve an optional user-provided external UMAP CSV directory.
 
   Priority:
   1) Explicit --umap-dir / umap_dir argument
-  2) Env vars: REAL_ROSEPLOT_UMAP_DIR or ANGLE_CONSISTENCY_REAL_UMAP_DIR
-  3) A folder named DEFAULT_REAL_UMAP_DIRNAME in:
-     - current working directory
-     - next to this script
+  2) Env var: ANGLE_CONSISTENCY_UMAP_DIR
 
   Returns None if no directory is found. In that case, the real-data pipeline will
   fall back to computing UMAP from the input h5ad (if possible).
@@ -126,22 +121,20 @@ def resolve_real_umap_dir(umap_dir: Optional[str]) -> Optional[str]:
     if p.is_dir():
       return str(p)
     logging.error(
-      "Provided umap_dir does not exist or is not a directory: %s (falling back to auto-detection / compute UMAP)",
+      "Provided umap_dir does not exist or is not a directory: %s (falling back to compute UMAP)",
       umap_dir,
     )
     return None
 
-  env_dir = os.environ.get("REAL_ROSEPLOT_UMAP_DIR") or os.environ.get("ANGLE_CONSISTENCY_REAL_UMAP_DIR")
+  env_dir = os.environ.get("ANGLE_CONSISTENCY_UMAP_DIR")
   if env_dir:
-    return env_dir
-
-  candidates = [
-    os.path.join(os.getcwd(), DEFAULT_REAL_UMAP_DIRNAME),
-    os.path.join(os.path.dirname(__file__), DEFAULT_REAL_UMAP_DIRNAME),
-  ]
-  for candidate in candidates:
-    if os.path.isdir(candidate):
-      return candidate
+    p = Path(env_dir)
+    if p.is_dir():
+      return str(p)
+    logging.error(
+      "ANGLE_CONSISTENCY_UMAP_DIR does not exist or is not a directory: %s (falling back to compute UMAP)",
+      env_dir,
+    )
 
   return None
 
@@ -360,7 +353,7 @@ def run_unified_angle_consistency(
     return {"status": "error", "message": f"Failed to read h5ad: {e}"}
 
   if data_type_norm == "real":
-    resolved_umap_dir = resolve_real_umap_dir(umap_dir)
+    resolved_umap_dir = resolve_external_umap_dir(umap_dir)
 
     result = analyze_single_dataset(
       adata=adata,
@@ -560,7 +553,7 @@ def run_batch_from_csv(
   - milestone_key: milestone_key
   - topology_type: topology_type
   - cluster_key: cluster_key
-  - umap_dir: umap_dir
+  - umap_dir: umap_dir, external_umap_dir, real_umap_dir
   - npz_base_dir: npz_base_dir, gtkey_dir
   """
   output_dir_path = Path(output_dir)
@@ -670,7 +663,7 @@ def run_batch_from_csv(
     if path:
       path = _resolve_existing_path(path, csv_parent=csv_parent, expect_dir=False)
 
-    umap_dir = _pick_first_present(row, ["umap_dir", "real_umap_dir"]) or default_umap_dir
+    umap_dir = _pick_first_present(row, ["umap_dir", "external_umap_dir", "real_umap_dir"]) or default_umap_dir
     if umap_dir:
       umap_dir = _resolve_existing_path(umap_dir, csv_parent=csv_parent, expect_dir=True)
 
@@ -771,7 +764,7 @@ def main() -> int:
     "--umap-dir",
     help=(
       "Real data: external UMAP CSV directory (optional). "
-      "Default search: ./real-umap or next to this script; can also be set via env ANGLE_CONSISTENCY_REAL_UMAP_DIR."
+      "Can also be set via env ANGLE_CONSISTENCY_UMAP_DIR."
     ),
   )
   parser.add_argument("--differentiation-paths", help="Real data: JSON string or JSON file path for differentiation paths (optional).")
@@ -1350,38 +1343,26 @@ def load_external_umap(
     Load external UMAP coordinates from CSV file.
 
     Expected CSV format: index column with cell names, UMAP1, UMAP2 columns.
+    CSV files are matched by dataset id/name tokens in the filename.
     """
     if umap_dir is None or not os.path.isdir(umap_dir):
         return None
 
-    num_prefix = extract_numeric_prefix(dataset)
+    dataset_str = str(dataset)
+    dataset_token = dataset_str.lower()
+    num_prefix = extract_numeric_prefix(dataset_str)
+    csv_paths = sorted(Path(umap_dir).glob("*.csv"))
 
-    # Special handling for dataset 10
-    if num_prefix == "10":
-        filename = ("new_10_mouse_oldbrain_with_celltype_addUmap.csv"
-                   if "new" in h5ad_path.lower()
-                   else "10_mouse_oldbrain_GSE129788_with_celltype_addUmap.csv")
-        file_path = Path(umap_dir) / filename
-        if file_path.exists():
+    for file_path in csv_paths:
+        if dataset_token and dataset_token in file_path.stem.lower():
             return pd.read_csv(file_path, index_col=0)
 
-    # Special handling for dataset 36 (try two files)
-    if num_prefix == "36":
-        for filename in [
-            "36_new_GPT_mouse_spermary_cells_with_celltype_addUmap.csv",
-            "36_mouse_spermary_cells_with_celltype_addUmap.csv"
-        ]:
-            file_path = Path(umap_dir) / filename
-            if file_path.exists():
-                return pd.read_csv(file_path, index_col=0)
-        return None
-
-    # Generic search for matching UMAP file
-    for filename in os.listdir(umap_dir):
-        if filename.endswith("_addUmap.csv") and str(dataset) in filename:
-            parts = filename.replace("_addUmap.csv", "").split("_")
-            if str(dataset) in parts:
-                return pd.read_csv(Path(umap_dir) / filename, index_col=0)
+    if num_prefix:
+        num_prefix = num_prefix.lower()
+    for file_path in csv_paths:
+        stem_tokens = {t.lower() for t in re.split(r"[^A-Za-z0-9]+", file_path.stem) if t}
+        if num_prefix and num_prefix in stem_tokens:
+            return pd.read_csv(file_path, index_col=0)
 
     return None
 

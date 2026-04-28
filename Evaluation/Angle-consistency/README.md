@@ -4,7 +4,7 @@ Single-file RNA velocity angle-consistency metric (rose plot) for real and simul
 
 Copy to run elsewhere:
 - `angle_consistency.py`
-- Optional resource folders: `real-umap/` (real external UMAP) and `Simdata-GTkey/` (simulation GT npz)
+- Optional resource folder: `Simdata-GTkey/` (simulation GT npz)
 
 ## Evaluation
 
@@ -66,8 +66,10 @@ Optional columns (only used when relevant):
 
 Aliases accepted (legacy CSVs): `method`→`tool`, `dataset_id|id|dataset_name`→`dataset`, `h5ad_path|input`→`path`, `vkey`→`velocity_key`.
 
-## Notes on external real UMAP (real-umap/)
+## Optional external UMAP CSVs
 
-Real datasets can optionally use an external UMAP CSV folder (default search: `./real-umap` or next to `angle_consistency.py`).
-If you rename the folder after downloading from GitHub, pass `--umap-dir /path/to/your-folder` (or set env `ANGLE_CONSISTENCY_REAL_UMAP_DIR`).
-If no external folder is found/provided, the script will attempt to compute UMAP from the input `.h5ad`.
+Real datasets can optionally use user-provided UMAP CSV files. Pass a directory with `--umap-dir /path/to/umap-csvs`, set the Python API `umap_dir` argument, add a batch CSV column named `umap_dir` or `external_umap_dir`, or set env `ANGLE_CONSISTENCY_UMAP_DIR`. Existing batch CSVs that use `real_umap_dir` are still accepted.
+
+Each CSV should contain one index column with cell names and two coordinate columns named exactly `UMAP1` and `UMAP2`. Recommended filenames include the full dataset name or the dataset id as a separate token, for example `27_Hs_brain_UMAP.csv`, `dataset-27-umap.csv`, or `my_dataset_UMAP.csv`. Matching first tries the full dataset string, then the numeric dataset id token. When several CSV files match the same dataset, the script uses the first match in sorted filename order.
+
+If no external UMAP directory is provided, or no matching CSV can be used, the script will use `adata.obsm["X_umap"]`, then `adata.obsm["original_umap"]`, and finally attempt to compute UMAP from the input `.h5ad`.

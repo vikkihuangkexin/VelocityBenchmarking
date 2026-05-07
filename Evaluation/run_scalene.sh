@@ -9,6 +9,7 @@ TARGET_SCRIPT=""
 TARGET_METHOD=""
 SAVE_DIR=""
 ENABLE_GPU=0
+SHOW_PYTHON_LOGS=1
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -37,6 +38,14 @@ while [[ $# -gt 0 ]]; do
       ENABLE_GPU=1
       shift
       ;;
+    --show-logs)
+      SHOW_PYTHON_LOGS=1
+      shift
+      ;;
+    --scalene-args)
+      SCALENE_ARGS="$2"
+      shift 2
+      ;;
     *)
       echo "Unknown option: $1"
       exit 1
@@ -46,7 +55,7 @@ done
 
 # Check required parameters
 if [[ -z "$DATA_CSV" || -z "$RESULTS_CSV" || -z "$TARGET_SCRIPT" || -z "$TARGET_METHOD" || -z "$SAVE_DIR" ]]; then
-  echo "Usage: $0 --data-csv <path> --results-csv <path> --target-script <path> --target-method <method> --save-dir <path> [--enable-gpu]"
+  echo "Usage: $0 --data-csv <path> --results-csv <path> --target-script <path> --target-method <method> --save-dir <path> [--enable-gpu] [--show-logs] [--scalene-args <args>]"
   exit 1
 fi
 
@@ -56,38 +65,56 @@ mkdir -p "$METHOD_SAVE_DIR"
 
 INPUT_DATASETS=()
 
-# Core parameters (16MB sampling window)
-SCALENE_ARGS="--memory --malloc-threshold 16777216"
+# Default Scalene args if not provided
+SCALENE_ARGS="${SCALENE_ARGS:-"--memory --malloc-threshold 1048576 --profile-only unitvelo_sim,unitvelo,scvelo,scanpy,tensorflow"}"
 
 # ================= Load successful business records =================
 declare -A SUCCESSFUL_BUSINESS_TASKS
 
 if [ -f "$RESULTS_CSV" ]; then
     echo "Loading analysis success records ($RESULTS_CSV)..."
-    while IFS=',' read -r method id result_path; do
-        # Enhanced cleanup: remove leading/trailing spaces, all quotes, \r
-        method=$(echo "$method" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/"//g' -e 's/\r//g')
-        id=$(echo "$id" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/"//g' -e 's/\r//g')
-        result_path=$(echo "$result_path" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/"//g' -e 's/\r//g')
 
-        # If path is not empty after cleanup, consider successful
-        if [ -n "$result_path" ]; then
+    while IFS='|' read -r method id result_path; do
+        if [ -n "$result_path" ] && [ -n "$method" ] && [ -n "$id" ]; then
             SUCCESSFUL_BUSINESS_TASKS["${method}_${id}"]=1
         fi
-    done < <(tail -n +2 "$RESULTS_CSV" || true)
+    done < <(awk -F',' '
+        NR==1 {
+            for(i=1; i<=NF; i++) {
+                col=$i; gsub(/^[ \t"]+|[ \t"\r]+$/, "", col)
+                if(col == "method") method_idx=i
+                if(col == "ID") id_idx=i
+                if(col == "result_path") path_idx=i
+            }
+        }
+        NR>1 {
+            if(method_idx > 0 && id_idx > 0 && path_idx > 0) {
+                m_val=$method_idx; id_val=$id_idx; p_val=$path_idx
+                gsub(/^[ \t"]+|[ \t"\r]+$/, "", m_val)
+                gsub(/^[ \t"]+|[ \t"\r]+$/, "", id_val)
+                gsub(/^[ \t"]+|[ \t"\r]+$/, "", p_val)
+                if(p_val != "") print m_val "|" id_val "|" p_val
+            }
+        }
+    ' "$RESULTS_CSV")
+else
+    echo "Warning: Business result record not found ($RESULTS_CSV), will perform full analysis."
 fi
 
 # ================= Task execution and cleanup functions =================
 
 cleanup_processes() {
-    echo "   [Cleanup] Terminating remaining Python processes..."
+    if [ -n "${TAIL_PID:-}" ]; then
+        kill "$TAIL_PID" 2>/dev/null || true
+    fi
+
     if [ -n "${ACTIVE_SCALENE_PID:-}" ]; then
         kill -TERM "-$ACTIVE_SCALENE_PID" 2>/dev/null || kill -TERM "$ACTIVE_SCALENE_PID" 2>/dev/null || true
-        sleep 2
+        sleep 1
         kill -KILL "-$ACTIVE_SCALENE_PID" 2>/dev/null || kill -KILL "$ACTIVE_SCALENE_PID" 2>/dev/null || true
     fi
     pkill -9 python || true
-    sleep 2
+    sleep 1
 }
 trap cleanup_processes EXIT INT TERM
 
@@ -95,49 +122,67 @@ run_scalene_analysis() {
     local id="$1"
     local data_path="$2"
     local mode="$3"
-    
+
     local json_out="$METHOD_SAVE_DIR/${TARGET_METHOD}_${id}_${mode}.json"
     local html_out="$METHOD_SAVE_DIR/${TARGET_METHOD}_${id}_${mode}.html"
-    
-    # Keep these fixed intermediate parameters
+    local log_out="$METHOD_SAVE_DIR/${TARGET_METHOD}_${id}_${mode}.log"
+
     TEMP_JSON="$SAVE_DIR/scalene-profile.json"
     TEMP_HTML="$SAVE_DIR/scalene-profile.html"
-    
+
     mkdir -p "$METHOD_SAVE_DIR"
     rm -f "$TEMP_JSON" "$TEMP_HTML"
 
     echo "   -> [$mode] Capturing snapshot..."
-    
+
     local current_args="$SCALENE_ARGS"
+
     if [ "$mode" == "gpu" ]; then
         current_args="$current_args --gpu"
-    else
-        export CUDA_VISIBLE_DEVICES=""
+        export PYTHONMALLOC=malloc
+        export CUPTI_ERROR_IGNORE=1
     fi
+
+    export OMP_NUM_THREADS=1 NUMBA_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1
 
     cleanup_processes
 
-    # Run scalene
+    local cmd="python -m scalene run $current_args --outfile $TEMP_JSON $TARGET_SCRIPT $data_path"
+
+    > "$log_out"
+
     if command -v setsid >/dev/null 2>&1; then
-        setsid python3 -m scalene run $current_args --outfile "$TEMP_JSON" "$TARGET_SCRIPT" "$data_path" > /dev/null 2>&1 &
+        setsid $cmd > "$log_out" 2>&1 &
     else
-        python3 -m scalene run $current_args --outfile "$TEMP_JSON" "$TARGET_SCRIPT" "$data_path" > /dev/null 2>&1 &
+        $cmd > "$log_out" 2>&1 &
     fi
     ACTIVE_SCALENE_PID="$!"
+
+    if [ "$SHOW_PYTHON_LOGS" -eq 1 ]; then
+        echo "   [DEBUG CMD]: $cmd"
+        echo "   ==================== Real-time run logs ===================="
+        tail -f "$log_out" &
+        TAIL_PID=$!
+    fi
+
     wait "$ACTIVE_SCALENE_PID" || true
     ACTIVE_SCALENE_PID=""
 
-    # Verify if JSON was generated successfully
+    if [ "$SHOW_PYTHON_LOGS" -eq 1 ]; then
+        kill "$TAIL_PID" 2>/dev/null || true
+        wait "$TAIL_PID" 2>/dev/null || true
+        TAIL_PID=""
+        echo -e "\n   ======================================================"
+    fi
+
     if [ -f "$TEMP_JSON" ] && [ -s "$TEMP_JSON" ]; then
         echo "   -> [$mode] Generating offline web report..."
-        
-        # Core fix: Enter TEMP_JSON directory to generate HTML, avoid empty output redirection
+
         (
             cd "$SAVE_DIR"
             python3 -m scalene view --standalone scalene-profile.json > /dev/null 2>&1 || scalene view scalene-profile.json --standalone > /dev/null 2>&1
         )
 
-        # Check if HTML was generated in current directory
         if [ -f "$TEMP_HTML" ]; then
             mv "$TEMP_JSON" "$json_out"
             mv "$TEMP_HTML" "$html_out"
@@ -147,8 +192,12 @@ run_scalene_analysis() {
             mv "$TEMP_JSON" "$json_out"
         fi
     else
-        echo "   ❌ [$mode] Scalene capture failed or file is empty."
-        rm -f "$TEMP_JSON" 
+        echo "   ❌ [$mode] Scalene capture failed or file is empty. Check log file: $(basename "$log_out")"
+        if [ "$SHOW_PYTHON_LOGS" -eq 0 ]; then
+            echo "   --- Error log summary ---"
+            tail -n 10 "$log_out" | sed 's/^/   /'
+        fi
+        rm -f "$TEMP_JSON"
     fi
 }
 
@@ -163,17 +212,18 @@ process_item() {
         return
     fi
 
-    local NEED_CPU=1
+    local NEED_CPU=0
     local NEED_GPU=0
-
-    if [ -f "$METHOD_SAVE_DIR/${TARGET_METHOD}_${id}_cpu.json" ] && [ -f "$METHOD_SAVE_DIR/${TARGET_METHOD}_${id}_cpu.html" ]; then
-        NEED_CPU=0
-    fi
 
     if [ "$ENABLE_GPU" -eq 1 ]; then
         NEED_GPU=1
         if [ -f "$METHOD_SAVE_DIR/${TARGET_METHOD}_${id}_gpu.json" ] && [ -f "$METHOD_SAVE_DIR/${TARGET_METHOD}_${id}_gpu.html" ]; then
             NEED_GPU=0
+        fi
+    else
+        NEED_CPU=1
+        if [ -f "$METHOD_SAVE_DIR/${TARGET_METHOD}_${id}_cpu.json" ] && [ -f "$METHOD_SAVE_DIR/${TARGET_METHOD}_${id}_cpu.html" ]; then
+            NEED_CPU=0
         fi
     fi
 
@@ -185,14 +235,19 @@ process_item() {
     echo "========================================================"
     echo "▶️  Found incomplete analysis task | ID: $id"
 
-    if [ "$NEED_CPU" -eq 1 ]; then run_scalene_analysis "$id" "$data_path" "cpu"; else echo "   ⏭️  [CPU] Results exist, skipping."; fi
-    if [ "$NEED_GPU" -eq 1 ]; then run_scalene_analysis "$id" "$data_path" "gpu"; elif [ "$ENABLE_GPU" -eq 1 ]; then echo "   ⏭️  [GPU] Results exist, skipping."; fi
+    if [ "$NEED_CPU" -eq 1 ]; then
+        run_scalene_analysis "$id" "$data_path" "cpu"
+    fi
+
+    if [ "$NEED_GPU" -eq 1 ]; then
+        run_scalene_analysis "$id" "$data_path" "gpu"
+    fi
     
     echo "⏹️  Processing complete: ID=$id"
     echo ""
 }
 
-# Core judgment logic
+# ================= Read task data =================
 if [ ${#INPUT_DATASETS[@]} -gt 0 ]; then
     echo "INPUT_DATASETS not empty, ignoring CSV file, processing array data..."
     for data_path in "${INPUT_DATASETS[@]}"; do
@@ -206,13 +261,32 @@ else
         exit 1
     fi
     echo "Reading CSV file data for analysis..."
-    while IFS=',' read -r id data_path; do
-        id=$(echo "$id" | tr -d '\r')
-        data_path=$(echo "$data_path" | tr -d '\r')
-
-        if [ -z "$id" ] || [ -z "$data_path" ] || [ "$id" == "ID" ]; then continue; fi
+    
+    while IFS='|' read -r id data_path; do
+        
+        if [ -z "$id" ] || [ -z "$data_path" ]; then continue; fi
+        
         process_item "$id" "$data_path"
-    done < <(tail -n +2 "$DATA_CSV")
+        
+    done < <(awk -F',' '
+        NR==1 {
+            for(i=1; i<=NF; i++) {
+                col=$i; gsub(/^[ \t"]+|[ \t"\r]+$/, "", col)
+                if(col == "ID") id_idx=i
+                if(col == "path") path_idx=i
+            }
+        }
+        NR>1 {
+            if(id_idx > 0 && path_idx > 0) {
+                id_val=$id_idx
+                path_val=$path_idx
+                gsub(/^[ \t"]+|[ \t"\r]+$/, "", id_val)
+                gsub(/^[ \t"]+|[ \t"\r]+$/, "", path_val)
+                
+                if(id_val != "") print id_val "|" path_val
+            }
+        }
+    ' "$DATA_CSV")
 fi
 
 cleanup_processes

@@ -1,4 +1,4 @@
-# scMultiSim Bursting Benchmark Simulation Scripts
+# scMultiSim Transctriptional-Bursting Benchmark Simulation Scripts
 
 This repository provides three scripts to generate, export, and visualize simulated single-cell RNA velocity benchmark datasets with **scMultiSim**. The workflow creates a fixed B01–B10 bursting benchmark across different gene regulatory networks, cell counts, gene counts, and kinetic variation regimes, then exports each dataset to `h5ad` and produces tSNE-based diagnostic plots.
 

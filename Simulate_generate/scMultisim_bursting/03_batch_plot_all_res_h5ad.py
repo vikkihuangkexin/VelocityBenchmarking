@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import NearestNeighbors
 from matplotlib.lines import Line2D
 
-base_dir = "/data/khuang6/simulation/test/scmultisim/bursting_benchmark2"
+base_dir = "./bursting_benchmark"
 
 scv.settings.set_figure_params(
     "scvelo",

@@ -4,7 +4,7 @@ suppressPackageStartupMessages({
   library(Rtsne)
 })
 
-base_dir <- "/data/khuang6/simulation/test/scmultisim/bursting_benchmark2"
+base_dir <- "./bursting_benchmark"
 overwrite_h5ad <- TRUE
 
 export_one_rds_to_h5ad <- function(rds_path, overwrite = TRUE) {

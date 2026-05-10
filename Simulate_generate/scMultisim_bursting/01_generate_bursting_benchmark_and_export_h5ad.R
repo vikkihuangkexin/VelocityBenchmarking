@@ -11,7 +11,7 @@ suppressPackageStartupMessages({
 # =========================================================
 # 0. output dir
 # =========================================================
-OUTDIR <- "/data/khuang6/simulation/test/scmultisim/bursting_benchmark2"
+OUTDIR <- "./bursting_benchmark"
 dir.create(OUTDIR, showWarnings = FALSE, recursive = TRUE)
 
 # =========================================================

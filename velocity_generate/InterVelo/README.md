@@ -34,6 +34,36 @@ python InterVelo.py \
     --zero-threshold
 ```
 
+### Multi-omic or Auxiliary-layer Data
+
+InterVelo uses the same `train(adata, inputdata, configs)` entry point for
+RNA-only and multi-omic runs. The difference is the input matrix. RNA-only
+runs use `[Ms, Mu]`; runs with additional omic information use
+`[Ms, Mu, O]`.
+
+Use `--extra-layers` to append existing `adata.layers` matrices after `Ms`
+and `Mu`. For example, `Mc` is commonly used for a chromatin accessibility
+gene activity layer, and `Ma` appears in the InterVelo simulated multi-omic
+example:
+
+```bash
+python InterVelo.py \
+    --input multiome.h5ad \
+    --output-dir ./output \
+    --cluster-key celltype \
+    --extra-layers Mc
+```
+
+Multiple layers can be supplied as a comma-separated list:
+
+```bash
+python InterVelo.py \
+    --input multiome.h5ad \
+    --output-dir ./output \
+    --cluster-key celltype \
+    --extra-layers Mc,Ma
+```
+
 ### Batch Mode
 
 ```bash
@@ -76,6 +106,7 @@ InterVelo.run_batch_intervelo(
 | `--cluster-key` | Required in single-file mode | Column name in `adata.obs` used for labels and plots |
 | `--dimred-key` | `X_umap` | Embedding key in `adata.obsm` |
 | `--zero-threshold` | `False` | Set `min_shared_counts=0` and `min_shared_cells=0` during preprocessing |
+| `--extra-layers` | Empty | Comma-separated `adata.layers` keys for additional cell-aligned omic or reference matrices appended after `Ms` and `Mu` |
 | `--save-pdf` | `False` | Also save PDF figures in addition to PNG |
 | `--overwrite` | `False` | Overwrite existing outputs |
 | `--seed` | `2024` | Random seed |
@@ -92,15 +123,17 @@ Optional columns:
 
 - `dimred_key` → defaults to `X_umap`
 - `zero_threshold` → defaults to `False`
+- `extra_layers` → defaults to empty; use comma-separated layer names such as `Mc` or `Ma`
 
 ### Example CSV
 
 ```csv
-dataset_name,file_path,cluster_key,dimred_key,zero_threshold
-1,/data/real/pancreas.h5ad,celltype,X_umap,False
-2,/data/real/neuron.h5ad,celltype,X_umap,False
-bifurcation_sim,/data/sim/bifurcation_dataset.h5ad,milestone,X_dimred,True
-cycle_sim,/data/sim/cycle_dataset.h5ad,milestone,X_dimred,True
+dataset_name,file_path,cluster_key,dimred_key,zero_threshold,extra_layers
+1,/data/real/pancreas.h5ad,celltype,X_umap,False,
+2,/data/real/neuron.h5ad,celltype,X_umap,False,
+bifurcation_sim,/data/sim/bifurcation_dataset.h5ad,milestone,X_dimred,True,
+cycle_sim,/data/sim/cycle_dataset.h5ad,milestone,X_dimred,True,
+multiome_cortex,/data/multiome/cortex.h5ad,celltype,X_umap,False,Mc
 ```
 
 ## Expected Input
@@ -110,6 +143,25 @@ cycle_sim,/data/sim/cycle_dataset.h5ad,milestone,X_dimred,True
 - `adata.layers["spliced"]`
 - `adata.layers["unspliced"]`
 - `adata.obs[cluster_key]`
+
+The wrapper computes `adata.layers["Ms"]` and `adata.layers["Mu"]` during
+preprocessing and uses them as the required InterVelo RNA input.
+
+### Optional Auxiliary Layers
+
+When `--extra-layers` is set, each listed key must already exist in
+`adata.layers` before running the script. These layers are scaled together
+with `Ms` and `Mu`, then concatenated into the model input:
+
+```text
+inputdata = [Ms, Mu, extra_layer_1, extra_layer_2, ...]
+```
+
+This follows the InterVelo paper's formulation where the input can be
+`(S, U)` for RNA-only data or `(S, U, O)` when an additional omic matrix is
+available. `Mc` is a common chromatin accessibility gene activity example,
+but the wrapper does not require this exact name. The main velocity output
+is still RNA velocity in `adata.layers["velocity"]`.
 
 ### Real Data
 
@@ -174,4 +226,5 @@ The output H5AD file contains the standard InterVelo results together with plott
 
 - The public example script does not generate `ground_truth_velocity_graph` or `ground_truth_velocity_dimred`.
 - The batch metadata file is intended to be a public-facing CSV/TSV manifest; dataset IDs do not need any special filename parsing logic.
+- The `extra_layers` option is explicit by design. The wrapper does not automatically use `Mc` or other layers just because they are present, which keeps benchmark runs reproducible across datasets.
 - The script keeps the configuration surface intentionally small and does not expose the local runtime-only InterVelo patches that were used in private server workflows.

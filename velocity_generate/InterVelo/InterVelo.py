@@ -11,6 +11,7 @@ Installation:
 Usage:
     python InterVelo.py --input data.h5ad --output-dir ./output --cluster-key celltype
     python InterVelo.py --input sim.h5ad --output-dir ./output --cluster-key milestone --dimred-key X_dimred --zero-threshold
+    python InterVelo.py --input multiome.h5ad --output-dir ./output --cluster-key celltype --extra-layers Mc
     python InterVelo.py --metadata-file datasets.csv --output-dir ./output
 """
 
@@ -98,6 +99,16 @@ def parse_bool(value) -> bool:
     raise ValueError(f"Unsupported boolean value: {value}")
 
 
+def parse_layer_list(value) -> list[str]:
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return []
+    if isinstance(value, (list, tuple)):
+        values = value
+    else:
+        values = str(value).replace(";", ",").split(",")
+    return [str(layer).strip() for layer in values if str(layer).strip()]
+
+
 def cleanup_resources():
     gc.collect()
     plt.close("all")
@@ -138,20 +149,36 @@ def load_metadata_file(metadata_path: Path) -> pd.DataFrame:
         df["dimred_key"] = "X_umap"
     if "zero_threshold" not in df.columns:
         df["zero_threshold"] = False
+    if "extra_layers" not in df.columns:
+        df["extra_layers"] = ""
 
     df["dataset_name"] = df["dataset_name"].astype(str)
     df["file_path"] = df["file_path"].astype(str)
     df["cluster_key"] = df["cluster_key"].astype(str)
     df["dimred_key"] = df["dimred_key"].astype(str)
     df["zero_threshold"] = df["zero_threshold"].map(parse_bool)
+    df["extra_layers"] = df["extra_layers"].map(parse_layer_list)
 
     return df
 
 
-def ensure_required_layers(adata) -> None:
+def ensure_required_layers(adata, extra_layers: Optional[list[str]] = None) -> None:
     missing_layers = [layer for layer in ("spliced", "unspliced") if layer not in adata.layers]
     if missing_layers:
         raise ValueError(f"Missing required layers: {missing_layers}")
+
+    extra_layers = extra_layers or []
+    missing_extra_layers = [layer for layer in extra_layers if layer not in adata.layers]
+    if missing_extra_layers:
+        raise ValueError(f"Missing extra layers: {missing_extra_layers}")
+
+    for layer in extra_layers:
+        layer_shape = adata.layers[layer].shape
+        if layer_shape[0] != adata.n_obs:
+            raise ValueError(
+                f"Extra layer '{layer}' must have one row per cell; "
+                f"found {layer_shape[0]} rows for {adata.n_obs} cells."
+            )
 
 
 def determine_preprocessing_params(adata) -> tuple[int, int, int]:
@@ -178,10 +205,11 @@ def check_or_compute_dimred(adata, dimred_key: str) -> str:
     return basis_name
 
 
-def preprocess_adata(adata, dimred_key: str, zero_threshold: bool):
+def preprocess_adata(adata, dimred_key: str, zero_threshold: bool, extra_layers: Optional[list[str]] = None):
     _, _, preprocess_data, _, _ = load_intervelo_api()
 
-    ensure_required_layers(adata)
+    extra_layers = extra_layers or []
+    ensure_required_layers(adata, extra_layers=extra_layers)
     adata.obs_names_make_unique()
     adata.var_names_make_unique()
 
@@ -198,7 +226,7 @@ def preprocess_adata(adata, dimred_key: str, zero_threshold: bool):
     sc.pp.pca(adata, n_comps=n_pcs)
     sc.pp.neighbors(adata, n_pcs=n_pcs, n_neighbors=n_neighbors)
     scv.pp.moments(adata, n_pcs=n_pcs, n_neighbors=n_neighbors)
-    adata = preprocess_data(adata, layers=["Ms", "Mu"], filter_on_r2=False)
+    adata = preprocess_data(adata, layers=["Ms", "Mu", *extra_layers], filter_on_r2=False)
     basis_name = check_or_compute_dimred(adata, dimred_key)
 
     return adata, basis_name, batch_size
@@ -210,10 +238,10 @@ def to_dense_float32(layer) -> np.ndarray:
     return np.asarray(layer, dtype=np.float32)
 
 
-def build_inputdata(adata) -> torch.Tensor:
-    spliced = torch.from_numpy(to_dense_float32(adata.layers["Ms"]))
-    unspliced = torch.from_numpy(to_dense_float32(adata.layers["Mu"]))
-    return torch.cat([spliced, unspliced], dim=1)
+def build_inputdata(adata, extra_layers: Optional[list[str]] = None) -> torch.Tensor:
+    input_layers = ["Ms", "Mu", *(extra_layers or [])]
+    tensors = [torch.from_numpy(to_dense_float32(adata.layers[layer])) for layer in input_layers]
+    return torch.cat(tensors, dim=1)
 
 
 def build_configs(adata, method_name: str, saved_dir: Path, batch_size: int):
@@ -374,6 +402,7 @@ def run_intervelo_analysis(
     dataset_name: Optional[str] = None,
     dimred_key: str = "X_umap",
     zero_threshold: bool = False,
+    extra_layers: Optional[list[str] | str] = None,
     save_pdf: bool = False,
     overwrite: bool = False,
     seed: int = 2024,
@@ -382,6 +411,7 @@ def run_intervelo_analysis(
 
     input_path = Path(input_path)
     output_dir = Path(output_dir)
+    extra_layers = parse_layer_list(extra_layers)
     if not input_path.exists():
         raise FileNotFoundError(f"Input file not found: {input_path}")
 
@@ -418,10 +448,11 @@ def run_intervelo_analysis(
             adata=adata,
             dimred_key=dimred_key,
             zero_threshold=zero_threshold,
+            extra_layers=extra_layers,
         )
 
         print("  Building model input...")
-        inputdata = build_inputdata(adata)
+        inputdata = build_inputdata(adata, extra_layers=extra_layers)
         configs = build_configs(
             adata=adata,
             method_name=method_name,
@@ -452,6 +483,7 @@ def run_intervelo_analysis(
             "cluster_key": cluster_key,
             "dimred_key": dimred_key,
             "zero_threshold": bool(zero_threshold),
+            "extra_layers": list(extra_layers),
             "output_path": str(output_h5ad.resolve()),
         }
 
@@ -493,6 +525,7 @@ def run_batch_intervelo(
                 dataset_name=row["dataset_name"],
                 dimred_key=row["dimred_key"],
                 zero_threshold=bool(row["zero_threshold"]),
+                extra_layers=row["extra_layers"],
                 save_pdf=save_pdf,
                 overwrite=overwrite,
                 seed=seed,
@@ -533,6 +566,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Set min_shared_counts=0 and min_shared_cells=0 during preprocessing",
     )
     parser.add_argument(
+        "--extra-layers",
+        default="",
+        help=(
+            "Comma-separated adata.layers keys for additional cell-aligned omic or reference matrices "
+            "to append after Ms and Mu, for example Mc or Ma"
+        ),
+    )
+    parser.add_argument(
         "--save-pdf",
         action="store_true",
         default=False,
@@ -567,6 +608,7 @@ def main(args: Optional[argparse.Namespace] = None):
         dataset_name=args.dataset_name,
         dimred_key=args.dimred_key,
         zero_threshold=args.zero_threshold,
+        extra_layers=args.extra_layers,
         save_pdf=args.save_pdf,
         overwrite=args.overwrite,
         seed=args.seed,

@@ -22,22 +22,17 @@ RUN echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 # --- SSH ---
 
 
-RUN mkdir -p /var/run/sshd
-
-
 RUN mkdir -p /home/${USERNAME}/.ssh && \
     chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.ssh && \
     chmod 700 /home/${USERNAME}/.ssh
 
+RUN mkdir -p /var/run/sshd && \
+    sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/^#PubkeyAuthentication yes/PubkeyAuthentication no/' /etc/ssh/sshd_config && \
+    sed -i 's/^#AuthorizedKeysFile.*$/#AuthorizedKeysFile/' /etc/ssh/sshd_config && \
+    echo "${USERNAME}:password" | chpasswd
 
-COPY authorized_keys /home/${USERNAME}/.ssh/authorized_keys
-RUN chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.ssh/authorized_keys && \
-    chmod 600 /home/${USERNAME}/.ssh/authorized_keys
-RUN sed -i 's/^#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
-    sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && \
-    sed -i 's|^#AuthorizedKeysFile.*|AuthorizedKeysFile /home/'${USERNAME}'/.ssh/authorized_keys|' /etc/ssh/sshd_config
-
-EXPOSE 2222
+EXPOSE 8848
 
 
 RUN mkdir -p /data/simdata
@@ -45,8 +40,8 @@ RUN mkdir -p /data/simdata
 
 ENV CONDA_DIR=/opt/conda
 
-COPY Miniforge3-25.3.0-3-Linux-x86_64.sh /tmp/miniforge.sh
-RUN bash /tmp/miniforge.sh -b -p $CONDA_DIR && \
+RUN wget https://github.com/conda-forge/miniforge/releases/download/25.3.0-3/Miniforge3-Linux-x86_64.sh -O /tmp/miniforge.sh && \
+    bash /tmp/miniforge.sh -b -p $CONDA_DIR && \
     rm /tmp/miniforge.sh
 ENV PATH=$CONDA_DIR/bin:$PATH
 

@@ -25,7 +25,7 @@ The velocity results are stored in the 'velocity' layer of the output h5ad file.
 ## Usage
 
 ```bash
-python deeovelo.py --data_dir data.h5ad --save_dir results --simulate
+python DeepVelo.py --data_dir data.h5ad --save_dir results --simulate
 ```
 
 For more details, see https://github.com/bowang-lab/DeepVelo

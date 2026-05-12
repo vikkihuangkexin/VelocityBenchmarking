@@ -1,10 +1,17 @@
 # k-velo Script
-======
 
-Purpose
-- Preprocess data and compute velocities using the k-velo pipeline (`velocity` package).
+This script preprocesses data and computes velocities using the `k-velo` pipeline (`velocity` package).
 
-Inputs
+## Installation
+
+```bash
+git clone https://github.com/ValerieMarot/velocity_package && \
+cd velocity_package && \
+pip install -e ."
+```
+
+## Usage
+
 - AnnData `.h5ad` file passed via `--data_path`.
 - Required internals:
   - `layers['spliced']` and `layers['unspliced']`.

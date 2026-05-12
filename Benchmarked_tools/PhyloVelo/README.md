@@ -1,10 +1,24 @@
 # PhyloVelo Script
-=========
 
-Purpose
+## Installation
+
+```bash
+pip install scanpy scvelo
+git clone https://github.com/kunwang34/PhyloVelo /data/simdata/phylovelo
+cd /data/simdata/phylovelo
+python setup.py install
+```
+
+## Usage
+
+```bash
+python phylovelo.py --data_path data.h5ad --save_dir results --celltype_key cell_type --simulate
+```
+
+## Purpose
 - Compute phylogenetic velocity and pseudotime using the phylovelo package.
 
-Inputs 
+## Inputs 
 - AnnData `.h5ad` file provided via `--data_path`.
 - Required internals:
   - `layers['spliced']` and `layers['unspliced']` (used for count data).
@@ -12,7 +26,7 @@ Inputs
   - `obs` column for cell types (default key: `cell_type`) or provide `--celltype_key`.
   - Optional: `uns['top_genes']` (used in `--simulate` mode to set `n_top_genes`).
 
-Outputs
+## Outputs
 - Saved AnnData at `<save_dir>/adata.h5ad` containing velocity embeddings and pseudotime.
 
 CLI options

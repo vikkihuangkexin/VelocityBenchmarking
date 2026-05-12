@@ -1,4 +1,12 @@
-# Velocyto Runner
+# Velocyto Script
+
+## Installation
+
+```bash
+conda create -n velocyto -c conda-forge --yes python=3.8.0
+conda activate velocyto
+pip install numpy GPUtil Cython velocyto scvelo==0.2.5
+```
 
 ## Overview
 

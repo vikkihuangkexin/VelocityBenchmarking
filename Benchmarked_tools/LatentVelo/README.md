@@ -1,20 +1,37 @@
 # LatentVelo Script
-==========
 
-Purpose
-- Preprocess data and train LatentVelo model for velocity computation.
+This script preprocesses data and trains the LatentVelo model for velocity computation.
 
-Inputs
+## Installation
+
+```bash
+git clone https://github.com/Spencerfar/LatentVelo.git /data/simdata/latentvelo
+cd /data/simdata/latentvelo
+python setup.py install
+pip install scanpy scvelo numpy pandas
+pip install /tmp/torch-2.6.0-cp39-cp39-manylinux1_x86_64.whl
+```
+
+## Usage
+
+```bash
+python LatentVelo.py --data_path data.h5ad --save_dir results --celltype_key cell_type --simulate
+```
+
+## Inputs
+
 - AnnData `.h5ad` file provided via `--data_path`.
 - Required internals:
   - `layers['spliced']` and `layers['unspliced']`.
   - `obs` column for cell types (default key: `cell_type`) or provide `--celltype_key`.
   - Optional: `uns['top_genes']` (used in `--simulate` mode to set `n_top_genes`).
 
-Outputs
+## Outputs
+
 - Saved AnnData at `<save_dir>/latent_adata.h5ad` containing latent space and velocity results.
 
-CLI options
+## CLI options
+
 - `--data_path` (required): input `.h5ad` file
 - `--save_dir` (required): directory to save outputs
 - `--celltype_key`: obs key for cell/cluster labels (default: `cell_type`)
@@ -30,6 +47,7 @@ CLI options
 - `--grad_clip`: gradient clipping value (default: 100)
 - `--random_seed`: random seed for reproducibility (default: 521)
 
-Notes
+## Notes
+
 - The script no longer uses hardcoded local paths; provide `--data_path` and `--save_dir`.
 - In `--simulate` mode, preprocessing is relaxed to handle simulated data appropriately.

@@ -1,4 +1,14 @@
-# VeloVI Runner
+# VeloVI Script
+
+## Installation
+
+```bash
+conda create -n veloVI --yes python=3.8.0
+conda activate veloVI
+conda install --yes pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+conda install --yes -c conda-forge scvi-tools
+pip install velovi GPUtil scvelo==0.2.5
+```
 
 ## Overview
 

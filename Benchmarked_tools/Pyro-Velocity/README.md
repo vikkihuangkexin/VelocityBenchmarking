@@ -1,10 +1,20 @@
 # Pyro-Velocity Script
-=============
 
-Purpose
+## Installation
+
+```bash
+pip install pyrovelocity==0.2.0
+pip install scvi-tools==1.1.1
+pip install jax==0.5.3 jaxlib==0.5.3
+pip install scanpy==1.11.1 scvelo==0.3.3 anndata==0.10.5
+pip install numpy==1.26.4 pandas==2.2.3
+pip install flytekit dataclasses_json hydra_zen dulwich
+```
+
+## Purpose
 - Train PyroVelocity model and compute velocities using probabilistic modeling.
 
-Inputs
+## Inputs
 - AnnData `.h5ad` file provided via `--data_path`.
 - Required internals:
   - `layers['spliced']` and `layers['unspliced']`.

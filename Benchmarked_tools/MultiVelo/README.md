@@ -1,8 +1,10 @@
-# MultiVelo
+# MultiVelo Script
 
 ## Installation
 
+```bash
 pip install multivelo
+```
 
 For detailed information, see [MultiVelo GitHub](https://github.com/welch-lab/MultiVelo/) and [documentation](https://multivelo.readthedocs.io/en/latest/).
 

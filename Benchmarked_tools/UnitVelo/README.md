@@ -1,8 +1,16 @@
-Usage: UnitVelo runner
+# UnitVelo Script
+
+## Installation
+
+```bash
+conda create -n UnitVelo --yes python=3.9.0
+conda activate UnitVelo
+pip install unitvelo GPUtil pynvml
+```
 
 This script runs UnitVelo on a single AnnData `.h5ad` file and saves velocity outputs and plots.
 
-Basic usage:
+## Usage
 
 python unitvelo.py --data_dir path/to/data.h5ad --save_dir path/to/out
 

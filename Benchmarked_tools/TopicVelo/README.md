@@ -1,7 +1,15 @@
 # TopicVelo Script
-=========
 
-Purpose
+## Installation
+
+This pipeline requires Python packages for steps 1 and 3, and R with `fastTopics` for step 2.
+
+```bash
+git clone https://github.com/chengfgao/TopicVelo.git && \
+conda env create -f environment.yml"
+```
+
+## Purpose
 - Compute topic-based velocity using a three-step pipeline involving data preprocessing, topic modeling with fastTopics (R), and velocity inference.
 
 Workflow Overview

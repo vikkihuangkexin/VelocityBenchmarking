@@ -1,7 +1,19 @@
-# VeloAE wrapper
-==============
+# VeloAE Script
 
-Purpose
+## Installation
+
+```bash
+git clone https://github.com/qiaochen/VeloAE.git && \
+cd VeloAE && \
+conda install python=3.7 && \
+pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124 --retries 10 --timeout 300 && \
+pip install torch-scatter -f https://data.pyg.org/whl/torch-2.6.0+cu124.html && \
+pip install torch-sparse -f https://data.pyg.org/whl/torch-2.6.0+cu124.html && \
+pip install torch-geometric && \
+pip install .
+```
+
+## Purpose
 - Helper script to run the VeloAE `veloproj` command for training/projecting a VeloAE model on an AnnData dataset.
 
 Notes & Reference

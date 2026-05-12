@@ -1,13 +1,19 @@
-# ProtAccel Analysis
+# ProtAccel Script
 
 This script performs single-cell protein and RNA velocity analysis using ProtAccel, generating corresponding plots based on existing velocity data.
+
+## Installation
+
+```bash
+pip install matplotlib velocyto protaccel numpy
+```
 
 ## Required adata Internal Variables
 
 - **Loom file layers**: spliced, unspliced
 - **Protein matrix CSV**: Corresponding protein expression matrix
 
-## Output Variables/Content
+## Output
 
 - Various SVG plot files in `save_dir/fig/`, including phase portraits, velocity projections, grid arrows, and combined plots.
 

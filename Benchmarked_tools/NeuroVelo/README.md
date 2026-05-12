@@ -1,4 +1,4 @@
-# NeuroVelo
+# NeuroVelo Script
 
 ## Installation
 

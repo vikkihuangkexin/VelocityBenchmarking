@@ -1,9 +1,16 @@
 # SDEvelo Script
-======
+
+## Installation
+
+```bash
+conda create -n velo --yes python=3.9.0
+conda activate velo
+pip install sdevelo
+```
 
 ## Train SDEvelo model and save processed AnnData with velocity results.
 
-Inputs
+## Inputs
 - An AnnData `.h5ad` file provided to `--data_path`.
 - Required internals (recommended):
   - `layers['spliced']` and `layers['unspliced']` for velocity computation

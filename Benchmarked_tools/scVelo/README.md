@@ -1,4 +1,12 @@
-# scVelo Runner
+# scVelo Script
+
+## Installation
+
+```bash
+conda create -n scVelo -c conda-forge --yes python=3.8.0
+conda activate scVelo
+pip install numpy==1.21.1 scvelo==0.2.5 GPUtil
+```
 
 ## Overview
 

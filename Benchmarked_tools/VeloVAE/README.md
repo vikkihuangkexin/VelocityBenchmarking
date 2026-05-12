@@ -1,4 +1,4 @@
-# VeloVAE Velocity Analysis
+# VeloVAE Script
 
 ## Installation
 

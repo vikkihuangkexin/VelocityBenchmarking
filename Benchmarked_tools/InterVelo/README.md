@@ -1,4 +1,4 @@
-# InterVelo Velocity Analysis
+# InterVelo Script
 
 ## Installation
 

@@ -1,4 +1,4 @@
-# Cell2fate Script
+# cell2fate Script
 
 This script performs velocity analysis using Cell2fate on single-cell RNA sequencing data.
 

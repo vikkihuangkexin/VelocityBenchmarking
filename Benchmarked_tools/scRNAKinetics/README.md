@@ -1,10 +1,16 @@
 # scRNAKinetics Script
-=============
 
-Purpose
+## Installation
+
+```bash
+pip install scanpy==1.10.3 scvelo==0.3.3
+pip install RNAkinetics
+```
+
+## Purpose
 - Compute RNA kinetics and velocity using scRNAKinetics package with CytoTRACE pseudotime.
 
-Inputs
+## Inputs
 - AnnData `.h5ad` file provided via `--data_path`.
 - Required internals:
   - `layers['spliced']` and `layers['unspliced']`.

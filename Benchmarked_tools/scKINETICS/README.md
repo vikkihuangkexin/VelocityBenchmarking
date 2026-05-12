@@ -1,4 +1,4 @@
-# scKINETICS Velocity Generation
+# scKINETICS Script
 
 This directory provides the `scKINETICS.py` script used to run `scKINETICS` for velocity benchmarking with the maintained local fork and the fixed team plotting outputs.
 

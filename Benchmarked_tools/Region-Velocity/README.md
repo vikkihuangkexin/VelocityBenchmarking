@@ -1,4 +1,4 @@
-# Region-Velocity
+# Region-Velocity Script
 
 This directory contains scripts to run Region-Velocity analysis on single-cell RNA sequencing data. Region-Velocity is an R package for estimating region-specific velocities.
 

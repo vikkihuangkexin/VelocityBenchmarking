@@ -1,4 +1,4 @@
-# dyngen Batch Simulation Script
+# Dyngen Batch Simulation Script
 
 This repository provides a single R script (`simulate_dyngen.R`) to batch-generate simulated single-cell trajectory datasets with **dyngen** across multiple backbone topologies, cell counts, and gene counts. It also exports a simple 2D embedding and per-cell dominant milestone labels for convenient downstream use.
 

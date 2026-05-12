@@ -1,15 +1,28 @@
 #!/usr/bin/env python3
+import argparse
+from pathlib import Path
 import numpy as np
 import scanpy as sc
 import anndata as ad
 
 # ---------------------------
-# Config / filenames
+# Arguments
 # ---------------------------
-fn_tn5 = "DHS_tn5_CH.h5ad"
-fn_tnH = "DHS_tnH_CH.h5ad"
-fn_c_tn5 = "complDHS_tn5_CH.h5ad"
-fn_c_tnH = "complDHS_tnH_CH.h5ad"
+parser = argparse.ArgumentParser(description="Prepare chromatin velocity data.")
+parser.add_argument("--tn5", required=True, help="Path to DHS_tn5_CH.h5ad")
+parser.add_argument("--tnH", required=True, help="Path to DHS_tnH_CH.h5ad")
+parser.add_argument("--ctn5", required=True, help="Path to complDHS_tn5_CH.h5ad")
+parser.add_argument("--ctnH", required=True, help="Path to complDHS_tnH_CH.h5ad")
+parser.add_argument("--out-dir", default=".", help="Directory to save output files")
+args = parser.parse_args()
+
+out_dir = Path(args.out_dir)
+out_dir.mkdir(parents=True, exist_ok=True)
+
+fn_tn5 = Path(args.tn5)
+fn_tnH = Path(args.tnH)
+fn_c_tn5 = Path(args.ctn5)
+fn_c_tnH = Path(args.ctnH)
 
 # thresholds
 COMMONNESS_PCT = 95
@@ -107,10 +120,15 @@ cdata_tnH = preprocess(cdata_tnH)
 # ---------------------------
 # Save processed intermediate files
 # ---------------------------
-adata_tn5.write("adata_tn5_processed.h5ad")
-adata_tnH.write("adata_tnH_processed.h5ad")
-cdata_tn5.write("cdata_tn5_processed.h5ad")
-cdata_tnH.write("cdata_tnH_processed.h5ad")
+processed_tn5 = out_dir / "adata_tn5_processed.h5ad"
+processed_tnH = out_dir / "adata_tnH_processed.h5ad"
+processed_ctn5 = out_dir / "cdata_tn5_processed.h5ad"
+processed_ctnH = out_dir / "cdata_tnH_processed.h5ad"
+
+adata_tn5.write(processed_tn5)
+adata_tnH.write(processed_tnH)
+cdata_tn5.write(processed_ctn5)
+cdata_tnH.write(processed_ctnH)
 print("Processed files saved.")
 
 # ---------------------------
@@ -184,8 +202,9 @@ except Exception:
 # ---------------------------
 # Save fused data
 # ---------------------------
-fdata.write("Fused_data.h5ad")
-print("Fused_data.h5ad saved.")
+fused_file = out_dir / "Fused_data.h5ad"
+fdata.write(fused_file)
+print(f"{fused_file} saved.")
 
 # ---------------------------
 # Prepare for chromatin velocity (from step2)
@@ -194,9 +213,13 @@ import anndata
 import scvelo as scv
 
 print("Loading processed objects...")
-fdata = sc.read("Fused_data.h5ad")
-adata_tn5 = sc.read("adata_tn5_processed.h5ad")
-adata_tnH = sc.read("adata_tnH_processed.h5ad")
+fused_file = out_dir / "Fused_data.h5ad"
+processed_tn5 = out_dir / "adata_tn5_processed.h5ad"
+processed_tnH = out_dir / "adata_tnH_processed.h5ad"
+
+fdata = sc.read(fused_file)
+adata_tn5 = sc.read(processed_tn5)
+adata_tnH = sc.read(processed_tnH)
 
 # ---------------------------
 # Find intersecting features and cells
@@ -262,5 +285,6 @@ scv.pp.moments(adata, method="umap")
 # ---------------------------
 # Save velocity-ready AnnData
 # ---------------------------
-adata.write("ChromatinVelocity_ready.h5ad")
-print("Saved ChromatinVelocity_ready.h5ad. Done.")
+ready_file = out_dir / "ChromatinVelocity_ready.h5ad"
+adata.write(ready_file)
+print(f"{ready_file} saved. Done.")

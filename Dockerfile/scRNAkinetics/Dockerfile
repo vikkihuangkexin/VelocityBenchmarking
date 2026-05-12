@@ -4,6 +4,7 @@ FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 ARG USERNAME=user1
+ARG PASSWORD=user1
 ARG USER_UID=1000
 ARG USER_GID=1000
 
@@ -28,7 +29,7 @@ RUN mkdir -p /var/run/sshd && \
     sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
     sed -i 's/^#PubkeyAuthentication yes/PubkeyAuthentication no/' /etc/ssh/sshd_config && \
     sed -i 's/^#AuthorizedKeysFile.*$/#AuthorizedKeysFile/' /etc/ssh/sshd_config && \
-    echo "${USERNAME}:password" | chpasswd
+    echo "${USERNAME}:${PASSWORD}" | chpasswd
 
 EXPOSE 8848
 

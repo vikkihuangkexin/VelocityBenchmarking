@@ -4,6 +4,7 @@ FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 ARG USERNAME=user1
+ARG PASSWORD=user1
 ARG USER_UID=1000
 ARG USER_GID=1000
 
@@ -20,20 +21,17 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} && \
 RUN echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 
-RUN mkdir -p /var/run/sshd
-
 RUN mkdir -p /home/${USERNAME}/.ssh && \
     chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.ssh && \
     chmod 700 /home/${USERNAME}/.ssh
 
-COPY authorized_keys /home/${USERNAME}/.ssh/authorized_keys
-RUN chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.ssh/authorized_keys && \
-    chmod 600 /home/${USERNAME}/.ssh/authorized_keys
-RUN sed -i 's/^#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
-    sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && \
-    sed -i 's|^#AuthorizedKeysFile.*|AuthorizedKeysFile /home/'${USERNAME}'/.ssh/authorized_keys|' /etc/ssh/sshd_config
+RUN mkdir -p /var/run/sshd && \
+    sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/^#PubkeyAuthentication yes/PubkeyAuthentication no/' /etc/ssh/sshd_config && \
+    sed -i 's/^#AuthorizedKeysFile.*$/#AuthorizedKeysFile/' /etc/ssh/sshd_config && \
+    echo "${USERNAME}:${PASSWORD}" | chpasswd
 
-EXPOSE 2222
+EXPOSE 8848
 
 
 RUN mkdir -p /data/simdata

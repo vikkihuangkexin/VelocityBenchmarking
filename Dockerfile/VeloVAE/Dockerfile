@@ -4,6 +4,7 @@ FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 ARG USERNAME=user1
+ARG PASSWORD=user1
 ARG USER_UID=1000
 ARG USER_GID=1000
 
@@ -28,9 +29,9 @@ RUN mkdir -p /var/run/sshd && \
     sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
     sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
 # Uncomment and modify the next line to set a password:
-# RUN echo "${USERNAME}:your_password_here" | chpasswd
+RUN echo "${USERNAME}:${PASSWORD}" | chpasswd
 
-EXPOSE 22
+EXPOSE 8848
 
 # Install Miniforge (latest version)
 ENV CONDA_DIR=/opt/conda

@@ -90,7 +90,7 @@ dev.off()
 
 
 
-############After all metrics are available：########
+############After all metrics are available:########
 library(readxl)
 library(ggplot2)
 library(gridExtra)
@@ -188,7 +188,7 @@ pal_usability   <- colorRampPalette(c("#fff7bc", "#d95f0e"))(n_methods)  # Orang
 
 ## 4. Assign colors by metric magnitude: larger values use darker colors ----------------------
 make_metric_colors <- function(df, metric, base_cols) {
-  # df is already ordered by Overall，this order is used to arrange the bars
+  # df is already ordered by Overall, this order is used to arrange the bars
   ord_metric <- order(df[[metric]])      # metric order from low to high
   cols <- rep(NA_character_, nrow(df))
   cols[ord_metric] <- base_cols          # use light colors for low values and dark colors for high values

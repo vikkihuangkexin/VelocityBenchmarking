@@ -798,7 +798,7 @@ spd_df[[method_col]] <- NULL
 # for example:
 # spd_df <- spd_df[, c("1000x1000","1000x10000","1000x200000","10000x1000","200000x1000")]
 
-# convert seconds to minutes（(comment this out if already converted)）
+# convert seconds to minutes "(comment this out if already converted)"
 spd_mat <- as.matrix(spd_df) / 60
 
 # 2. reorder rows by method_levels ---------------------------------

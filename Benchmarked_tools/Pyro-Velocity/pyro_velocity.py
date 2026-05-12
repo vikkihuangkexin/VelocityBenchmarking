@@ -144,7 +144,7 @@ data = {
 _original_torch_load = torch.load
 
 def torch_load_patch(*args, **kwargs):
-    # 强制 weights_only=False
+    # Force weights_only=False
     kwargs['weights_only'] = False
     return _original_torch_load(*args, **kwargs)
 

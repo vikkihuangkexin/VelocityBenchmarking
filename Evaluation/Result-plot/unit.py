@@ -10,7 +10,7 @@ import seaborn as sns
 from typing import Optional, Tuple
 import re
 import anndata
-#coherence of the velocity vector field（velocity confidence）
+#coherence of the velocity vector field ("velocity confidence")
 import numpy as np
 
 def cosine_similarity_percentage(velocity_T, velocity_O, threshold=0.7):

@@ -107,7 +107,7 @@ def main(data_dir, figure_dir,method):
             arrow_size=1,
             linewidth=1,
             palette=palette_30_3,
-            title=method,    ####根据自己的工具设定
+            title=method,
             save=save_path
         )
 

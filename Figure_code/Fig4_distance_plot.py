@@ -40,44 +40,44 @@ def setup_plot_style():
         "axes.labelpad": 8,
         "xtick.major.pad": 5,
         "ytick.major.pad": 5,
-        "pdf.fonttype": 42,  # 确保PDF中的文字可编辑
-        "ps.fonttype": 42,   # 确保PostScript中的文字可编辑
-        "figure.dpi": 300,   # 统一DPI设置
+        "pdf.fonttype": 42,  # ensure text in PDF remains editable
+        "ps.fonttype": 42,   # ensure text in PostScript remains editable
+        "figure.dpi": 300,   # unify DPI setting
     })
 
 def plot_heatmap(heatmap_matrix, unique_cells, unique_genes):
     """Create and return heatmap figure and axis"""
     fig, ax = plt.subplots(figsize=(10, 8))
     
-    # 处理NaN值，设置为最小值或特定值以确保颜色一致性
+    # prepare data for plotting, preserving NaN positions
     data_for_plot = heatmap_matrix.values.copy()
     
-    # 使用固定的颜色范围以确保一致性
+    # use fixed color range for consistency
     #vmin = np.nanmin(data_for_plot)
     #vmax = np.nanmax(data_for_plot)
     vmin = 0
     vmax = 150
-    # 创建热图 - 使用pcolormesh而不是imshow以获得更好的PDF输出
+    # create heatmap using pcolormesh for better PDF rendering
     im = ax.pcolormesh(
         data_for_plot,
         cmap='viridis_r',
         vmin=vmin,
         vmax=vmax,
-        edgecolors='none',  # 确保没有边缘线
+        edgecolors='none',  # remove cell boundaries
         shading='auto'
     )
     
-    # 设置标签和刻度
+    # configure labels and ticks
     ax.set_xlabel("Number of genes", fontweight="bold")
     ax.set_ylabel("Number of cells", fontweight="bold")
     
-    # 设置刻度位置和标签
+    # set tick positions and labels
     ax.set_xticks(np.arange(len(unique_genes)) + 0.5)
     ax.set_xticklabels(unique_genes, rotation=45, ha="right")
     ax.set_yticks(np.arange(len(unique_cells)) + 0.5)
     ax.set_yticklabels(unique_cells)
     
-    # 添加值标注
+    # add annotations to each cell
     for i in range(len(unique_cells)):
         for j in range(len(unique_genes)):
             value = heatmap_matrix.iloc[i, j]
@@ -90,11 +90,11 @@ def plot_heatmap(heatmap_matrix, unique_cells, unique_genes):
                     fontsize=9
                 )
     
-    # 添加颜色条
+    # add color bar
     cbar = fig.colorbar(im, ax=ax, shrink=0.8)
     cbar.set_label("Mean Euclidean Distance", fontweight="bold", labelpad=10)
     
-    # 设置标题
+    # set title
     ax.set_title(
         "Mean Euclidean Distance of Velocycle Phase",
         fontweight="bold",
@@ -102,7 +102,7 @@ def plot_heatmap(heatmap_matrix, unique_cells, unique_genes):
         fontsize=12
     )
     
-    # 设置坐标轴范围
+    # set axis limits
     ax.set_xlim(0, len(unique_genes))
     ax.set_ylim(0, len(unique_cells))
     
@@ -111,17 +111,15 @@ def plot_heatmap(heatmap_matrix, unique_cells, unique_genes):
 
 def save_plots(fig, base_path):
     """Save plots in both PNG and PDF formats with consistent settings"""
-    # 保存PNG
     png_path = f"{base_path}.png"
     fig.savefig(png_path, dpi=300, bbox_inches="tight", 
                 facecolor='white', edgecolor='none')
     print(f"PNG heatmap saved to: {png_path}")
     
-    # 保存PDF - 使用与PNG相同的设置
     pdf_path = f"{base_path}.pdf"
     fig.savefig(pdf_path, bbox_inches="tight", format='pdf',
                 facecolor='white', edgecolor='none',
-                dpi=300)  # 即使PDF是矢量格式，也设置相同的DPI
+                dpi=300)  # set DPI for consistency even for vector formats
     print(f"PDF heatmap saved to: {pdf_path}")
 
 def main():

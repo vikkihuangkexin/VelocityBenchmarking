@@ -62,10 +62,8 @@ def main(data_dir, data_file, save_dir, simulate=True):
         if adata.n_vars < 10000:
             top_gene = (adata.n_vars // 500) * 500
             top_gene = min(top_gene, adata.n_vars, 500)
-            shared_counts = 20
         else:
             top_gene = 2000
-            shared_counts = 1
 
         scv.pp.filter_and_normalize(adata, min_shared_counts=None, n_top_genes=top_gene)
         sc.pp.pca(adata)

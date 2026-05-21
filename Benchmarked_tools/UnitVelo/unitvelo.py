@@ -35,10 +35,8 @@ def main(
         if adata.n_vars < 10000:
             top_gene = (adata.n_vars // 500) * 500
             top_gene = min(top_gene, adata.n_vars, 500)
-            shared_counts = 20
         else:
             top_gene = 2000
-            shared_counts = 1
         scv.pp.filter_and_normalize(adata, min_shared_counts=None, n_top_genes=top_gene)
         scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
         label = cluster
@@ -60,7 +58,7 @@ def main(
     velo_config = utv.config.Configuration()
     velo_config.R2_ADJUST = True
     velo_config.IROOT = None
-    velo_config.FIT_OPTION = "2"
+    velo_config.FIT_OPTION = "1"
     velo_config.GPU = 0
 
     adata = utv.run_model(os.path.join(save_dir, f"{ID}.h5ad"), label, config_file=velo_config, normalize=normalize)
@@ -81,7 +79,7 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", required=True, help="Path to input .h5ad file")
     parser.add_argument("--save_dir", required=True, help="Directory to write outputs")
     parser.add_argument("--gpu", default="1", help="CUDA_VISIBLE_DEVICES string (default: '1')")
-    parser.add_argument("--normalize", action="store_true", help="Pass normalize=True to run_model")
+    parser.add_argument("--normalize", default=False, action="store_true", help="Pass normalize=True to run_model")
     parser.add_argument('--simulate', dest='simulate', action='store_true', help='Treat input as simulation (default)')
     parser.add_argument('--no-simulate', dest='simulate', action='store_false', help='Treat input as real data')
     parser.set_defaults(simulate=True)

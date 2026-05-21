@@ -51,9 +51,9 @@ def main(data_dir, data_file, save_dir, simulate=True):
     obsm_key = list(adata.obsm.keys())
     # choose target loom path based on simulate flag
     if simulate:
-        loom_path = fr'/data_d/Velocity/D/simdata/loom/{ID}.loom'
+        loom_path = fr'.../simdata/loom/{ID}.loom'
     else:
-        loom_path = fr'/data_d/Velocity/data/loom/{ID}.loom'
+        loom_path = fr'.../data/loom/{ID}.loom'
 
     if not os.path.exists(loom_path):
         if simulate:
@@ -68,26 +68,14 @@ def main(data_dir, data_file, save_dir, simulate=True):
                 adata.obs_names_make_unique()
                 adata.write_loom(loom_path, write_obsm_varm=True)
             else:
-                backup_csv = fr'/data_d/Velocity/Umap_backup/{ID}_addUmap.csv'
-                if os.path.exists(backup_csv):
-                    loaded_umap = pd.read_csv(backup_csv, index_col=0)
-                    adata.obsm['X_umap'] = loaded_umap[['UMAP1', 'UMAP2']].values
-                    if data_file.startswith('48'):
-                        adata = adata[~adata.to_df().duplicated(), :]
-                        adata.obs_names_make_unique()
-                    adata.write_loom(loom_path, write_obsm_varm=True)
-                else:
-                    if data_file.startswith('48'):
-                        adata = adata[~adata.to_df().duplicated(), :]
-                        adata.obs_names_make_unique()
-                    adata1 = adata.copy()
-                    scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
-                    sc.pp.pca(adata)
-                    sc.pp.neighbors(adata, n_pcs=30, n_neighbors=30, method='umap')
-                    scv.tl.umap(adata)
-                    adata1.obsm['X_pca'] = adata.obsm['X_pca']
-                    adata1.obsm['X_umap'] = adata.obsm['X_umap']
-                    adata1.write_loom(loom_path, write_obsm_varm=True)
+                adata1 = adata.copy()
+                scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
+                sc.pp.pca(adata)
+                sc.pp.neighbors(adata, n_pcs=30, n_neighbors=30, method='umap')
+                scv.tl.umap(adata)
+                adata1.obsm['X_pca'] = adata.obsm['X_pca']
+                adata1.obsm['X_umap'] = adata.obsm['X_umap']
+                adata1.write_loom(loom_path, write_obsm_varm=True)
     del adata
     # Create an analysis object from the generated loom file
     if any(item.lower().find('ambiguous') != -1 for item in obsm_key):

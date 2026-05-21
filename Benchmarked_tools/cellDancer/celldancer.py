@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 import celldancer as cd
-import celldancer.cdplt as cdplt
 import celldancer.utilities as cdutil
 import scipy
 import numpy as np
@@ -71,10 +70,8 @@ def main(data_dir, data_file, save_dir, n_jobs=None, simulate=True):
         if adata.n_vars < 10000:
             top_gene = (adata.n_vars // 500) * 500
             top_gene = min(top_gene, adata.n_vars, 500)
-            shared_counts = 20
         else:
             top_gene = 2000
-            shared_counts = 1
         scv.pp.filter_and_normalize(adata, min_shared_counts=None, n_top_genes=top_gene)
         sc.pp.pca(adata)
         sc.pp.neighbors(adata, n_pcs=30, n_neighbors=30, method='umap')
@@ -116,37 +113,7 @@ def main(data_dir, data_file, save_dir, n_jobs=None, simulate=True):
     cellDancer_df.to_csv(os.path.join(save_dir, 'cell_velo.csv'))
     adata_from_dancer = cdutil.to_dynamo(cellDancer_df)
     adata_from_dancer.write_h5ad(f'{save_dir}/{data_file.split(".")[0]}_velo.h5ad')
-    # plot cell velocity
-    # color_library = [
-    #     "#D2EBC8", "#3C77AF", "#7DBFA7", "#AECDE1", "#EE934E",
-    #     "#D1352B", "#9B5B33", "#F5CFE4", "#B383B9", "#8FA4AE",
-    #     "#FCED82", "#F5D2A8", "#BBDD78",
-    #     "#FFB5E8", "#A8D1FF", "#FFCCF9", "#B28DFF", "#97E3FF",
-    #     "#6EB5FF", "#85E3C0", "#FFABAB", "#D4FFC3", "#809FFF",
-    #     "#FF9ED2", "#FFC9A7", "#C4FAF8", "#FFDA9E", "#C5A3FF",
-    #     "#FFA08E", "#DCD3FF", "#FFEBB9", "#B5EAD7", "#E7C7FF",
-    #     "#A5D8A7", "#FED4C4", "#B0E0E6", "#FFD8B1", "#C7CEEA",
-    #     "#FDD2B3", "#B4E4C6", "#FDDEBD", "#D3BBDD", "#FFC3D8",
-    #     "#A4E4B5", "#FFE4E1", "#B5C7E3", "#E6B0AA", "#D1EBD2",
-    #     "#F0C2D7", "#C2E0F4", "#ECD5E3", "#D7E8FA", "#F4D03F",
-    #     "#58D68D", "#EB984E", "#5DADE2", "#EC7063", "#52BE80",
-    #     "#F1948A", "#48C9B0", "#AF7AC5", "#F7DC6F", "#76D7C4"
-    # ]
-    # color_map = {}
-    # celltype = list(set(cellDancer_df['clusters']))
-    # for i in range(len(celltype)):
-    #     color_map[celltype[i]]=color_library[i]
-    # fig, ax = plt.subplots(figsize=(15,15))
-    # im = cdplt.scatter_cell(ax,cellDancer_df,
-    #                         colors=color_map,
-    #                         alpha=0.3,
-    #                         s=10,
-    #                         velocity=True,
-    #                         legend='on',
-    #                         min_mass=2,
-    #                         arrow_grid=(30,30))
-    # ax.axis('off')
-    # plt.savefig(os.path.join(save_dir,'grid_arrows.pdf'))
+
 
 
 if __name__ == '__main__':

@@ -55,7 +55,7 @@ def main_single(data_dir, save_dir, r, simulate=False):
     velo_config = utv.config.Configuration()
     velo_config.R2_ADJUST = True
     velo_config.IROOT = None
-    velo_config.FIT_OPTION = '2'
+    velo_config.FIT_OPTION = '1'
     velo_config.GPU = 0
     nor = True
     adata = utv.run_model(os.path.join(save_dir, f'{ID}.h5ad'), label, config_file=velo_config, normalize=False)

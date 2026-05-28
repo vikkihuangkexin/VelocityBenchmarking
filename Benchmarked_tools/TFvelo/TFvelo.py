@@ -113,6 +113,11 @@ def main(args):
         return adata, False
     if 'highly_variable_genes' in adata.var.keys():
         data_type_tostr(adata, key='highly_variable_genes')
+
+    adata.layers['velocity'] = adata.layers['velo_hat'] / np.expand_dims(adata.var['fit_scaling_y'], 0)
+    scv.tl.velocity_graph(adata, xkey='M_total', n_jobs=2)
+    valid_genes = ~adata.var['fit_scaling_y'].isna()
+    adata = adata[:, valid_genes].copy()
     adata.write(args.result_path + 'rc.h5ad')
     return
 

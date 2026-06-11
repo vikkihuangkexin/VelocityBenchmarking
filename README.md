@@ -108,7 +108,17 @@ GPU_DEVICE_VAL="device=0"
 The detailed results for the benchmarking and comparison are available on the https://relab.xidian.edu.cn/RNAVelocity/#/
 
 # Datasets
-Real datasets: https://zenodo.org/records/18205008
 
-Simulated datasets: https://zenodo.org/records/18276904
+All benchmarking datasets used in this study can be downloaded from our webserver at [https://relab.xidian.edu.cn/RNAVelocity/#/](https://relab.xidian.edu.cn/RNAVelocity/#/). You can use `wget` to download them via the command line:
+
+**Real datasets:**
+```bash
+wget https://ccsm.uth.edu/Benchmarking/VelocityBenchmarking/RealData.zip
+```
+
+**Simulated datasets:**
+```bash
+wget https://ccsm.uth.edu/Benchmarking/VelocityBenchmarking/SimulatedData.zip
+```
+
 

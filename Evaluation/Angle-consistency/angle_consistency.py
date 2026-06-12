@@ -5,10 +5,11 @@ Angle Consistency (Rose Plot) metric for RNA velocity.
 This module implements a reproducible metric that compares predicted RNA velocity
 directions against reference differentiation directions in a low-dimensional embedding.
 It supports both:
-- Real datasets: reference directions are derived from differentiation paths (cell types,
-  time, or phase) fitted on UMAP coordinates (external CSVs or computed from the input).
-- Simulated datasets: reference directions are derived from milestone-based trajectory
-  templates (topology-aware).
+- Real datasets: reference directions are derived from differentiation paths on
+  user-provided low-dimensional coordinates in the input h5ad.
+- Simulated datasets: reference directions are derived from milestone-based or
+  topology-specific trajectory templates, optionally aligned to a public reference
+  directory containing `*_reference_data.npz` files.
 
 Entry points:
 - Python API: run_unified_angle_consistency(), run_batch_from_csv()
@@ -16,7 +17,7 @@ Entry points:
 
 Reproducibility defaults:
 - Parallelism defaults to n_jobs=1 (user-overridable for scvelo.velocity_graph).
-- User-provided external UMAP CSV files are optional; when absent, UMAP will be computed.
+- The public script does not recompute low-dimensional coordinates.
 """
 
 from __future__ import annotations
@@ -42,16 +43,72 @@ import scvelo as scv
 from anndata import AnnData
 from matplotlib.patches import Wedge
 from scipy.interpolate import splprep, splev
+from scipy.interpolate import PchipInterpolator
 from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import dijkstra
 from scipy.spatial.distance import pdist
 from sklearn.cluster import KMeans
+from sklearn.neighbors import NearestNeighbors
 
 
-ANGLE_COLUMNS = [
+# ============================================================================
+# FILE MAP — search for a "SECTION N" banner to jump to that block.
+# (Line numbers are intentionally omitted; they drift as the file is edited.
+#  Use your editor's search on the section title or a function name instead.)
+#
+#   SECTION 1  — Shared infrastructure & output I/O
+#                logging, runtime defaults, data_type, differentiation-path
+#                parsing, benchmark long/wide CSV writers.
+#
+#   SECTION 2  — Unified entry points & CLI
+#                run_unified_angle_consistency(), run_batch_from_csv(), main().
+#
+#   SECTION 3  — Real data: utils, basis, cluster keys & reference directions
+#                cluster-key detection, basis/embedding prep, spline reference
+#                directions from differentiation paths, angle stats, rose plot,
+#                analyze_single_dataset(), AnalysisResult.
+#
+#   SECTION 4  — Simulated data: dataset/topology normalization & sim utils
+#                name/topology normalization, Bursting milestone helpers,
+#                sim embedding-basis utilities.
+#
+#   SECTION 5  — Simulated data: lineage-tracing reference curve & directions
+#                KNN/Dijkstra path reconstruction, spline reference model,
+#                calculate_reference_directions_for_lineage_tracing().
+#
+#   SECTION 6  — Simulated data: Bursting-tree reference curve & directions
+#                edge/time-ordered anchors, segment windows,
+#                calculate_reference_directions_for_bursting(), curve viz.
+#
+#   SECTION 7  — Simulated data: angle stats, topology inference & milestones
+#                sim angle distribution stats, topology inference from id,
+#                milestone resolution / validation / ordering, segments.
+#
+#   SECTION 8  — Simulated data: topology-specific guide points & trajectory
+#                per-topology guide-point builders (bifurcating-loop, cycle,
+#                disconnected, linear, arc, consecutive-bifurcating), spline
+#                degree/smoothing, calculate_reference_directions_from_trajectory().
+#
+#   SECTION 9  — Simulated data: plotting & dataset analysis
+#                rose diagrams, reference-curve viz,
+#                analyze_simulation_velocity_consistency().
+#
+#   SECTION 10 — Simulated data: reference NPZ loading & alignment
+#                npz location, cell-name matching, lineage/Bursting payload
+#                loading, gt_dimred/X_basis alignment into the AnnData.
+# ============================================================================
+
+
+# ============================================================================
+# SECTION 1 — SHARED INFRASTRUCTURE & OUTPUT I/O
+# ============================================================================
+
+COMMON_ANGLE_COLUMNS = [
   "0-30", "30-60", "60-80", "80-90", "60-90",
-  "90-100", "100-120", "90-120", "120-150", "150-180",
-  "valid_ratio", "cv_coefficient",
+  "90-100", "100-120", "90-120", "120-150", "150-180", "valid_ratio",
 ]
+REAL_ANGLE_COLUMNS = COMMON_ANGLE_COLUMNS
+SIM_ANGLE_COLUMNS = COMMON_ANGLE_COLUMNS + ["median_angle", "cv_coefficient"]
 
 
 def _setup_error_logging(error_log_path: Optional[str]) -> None:
@@ -105,40 +162,6 @@ def _configure_runtime_defaults() -> None:
   scv.settings.verbosity = 0
 
 
-def resolve_external_umap_dir(umap_dir: Optional[str]) -> Optional[str]:
-  """
-  Resolve an optional user-provided external UMAP CSV directory.
-
-  Priority:
-  1) Explicit --umap-dir / umap_dir argument
-  2) Env var: ANGLE_CONSISTENCY_UMAP_DIR
-
-  Returns None if no directory is found. In that case, the real-data pipeline will
-  fall back to computing UMAP from the input h5ad (if possible).
-  """
-  if umap_dir:
-    p = Path(str(umap_dir))
-    if p.is_dir():
-      return str(p)
-    logging.error(
-      "Provided umap_dir does not exist or is not a directory: %s (falling back to compute UMAP)",
-      umap_dir,
-    )
-    return None
-
-  env_dir = os.environ.get("ANGLE_CONSISTENCY_UMAP_DIR")
-  if env_dir:
-    p = Path(env_dir)
-    if p.is_dir():
-      return str(p)
-    logging.error(
-      "ANGLE_CONSISTENCY_UMAP_DIR does not exist or is not a directory: %s (falling back to compute UMAP)",
-      env_dir,
-    )
-
-  return None
-
-
 def _normalize_data_type(value: str) -> str:
   if value is None:
     raise ValueError("data_type is required (expected: 'real' or 'sim').")
@@ -150,26 +173,37 @@ def _normalize_data_type(value: str) -> str:
   raise ValueError(f"Unknown data_type '{value}'. Expected 'real' or 'sim'.")
 
 
-def _read_json_maybe_path(value: Optional[str]) -> Optional[Union[List[str], List[List[str]]]]:
-  if not value:
+def _parse_delimited_differentiation_paths(value: Optional[str]) -> Optional[List[List[str]]]:
+  """
+  Parse differentiation paths encoded as:
+  - multiple paths separated by ';'
+  - milestones / cell types within a path separated by '|'
+
+  Example:
+  A1|B1|C1;A2|B2|C2
+  """
+  if value is None:
     return None
-  maybe_path = Path(value)
-  raw = value
-  if maybe_path.exists() and maybe_path.is_file():
-    raw = maybe_path.read_text(encoding="utf-8")
-  try:
-    parsed = json.loads(raw)
-  except Exception as e:
-    raise ValueError(
-      "Failed to parse differentiation paths. Provide a JSON string or a JSON file path."
-    ) from e
+  raw = str(value).strip()
+  if raw == "":
+    return None
 
-  if isinstance(parsed, list) and (len(parsed) == 0 or isinstance(parsed[0], str)):
-    return [str(x) for x in parsed]
-  if isinstance(parsed, list) and isinstance(parsed[0], list):
-    return [[str(x) for x in path] for path in parsed]
+  paths: List[List[str]] = []
+  for path_raw in raw.split(";"):
+    path_clean = path_raw.strip()
+    if not path_clean:
+      continue
+    milestones = [item.strip() for item in path_clean.split("|") if item.strip()]
+    if len(milestones) < 2:
+      raise ValueError(
+        "Invalid differentiation_paths value. "
+        "Each path must contain at least two milestones/cell types separated by '|'."
+      )
+    paths.append(milestones)
 
-  raise ValueError("Invalid differentiation paths JSON. Expected a list[str] or list[list[str]].")
+  if not paths:
+    return None
+  return paths
 
 
 def _coerce_float(value: Any) -> float:
@@ -185,21 +219,22 @@ def _coerce_float(value: Any) -> float:
 
 def _build_benchmark_long_rows(
   data_type: str,
-  tool: str,
+  method: str,
   dataset: str,
   group_type: str,
   group_to_stats: Dict[str, Dict[str, Any]],
 ) -> pd.DataFrame:
+  angle_columns = REAL_ANGLE_COLUMNS if data_type == "real" else SIM_ANGLE_COLUMNS
   rows: List[Dict[str, Any]] = []
   for group_name, stats in group_to_stats.items():
     row: Dict[str, Any] = {
-      "tool": tool,
+      "method": method,
       "dataset": dataset,
       "data_type": data_type,
       "group_type": group_type,
       "group": group_name,
     }
-    for col in ANGLE_COLUMNS:
+    for col in angle_columns:
       row[col] = _coerce_float(stats.get(col))
     rows.append(row)
   return pd.DataFrame(rows)
@@ -212,7 +247,7 @@ def write_benchmark_long(
 ) -> None:
   """Upsert long-format benchmark rows into benchmark.csv."""
   if key_cols is None:
-    key_cols = ["tool", "dataset", "data_type", "group_type", "group"]
+    key_cols = ["method", "dataset", "data_type", "group_type", "group"]
 
   output_path = Path(benchmark_csv_path)
   output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -236,18 +271,13 @@ def write_benchmark_long(
 
 def update_benchmark_total_wide(
   benchmark_total_csv_path: str,
-  tool: str,
+  method: str,
   dataset: str,
   value_0_60: float,
-  rank_1_is_worst: bool = True,
 ) -> None:
   """
-  Upsert a single (tool, dataset) value into benchmark_total.csv (wide format),
-  then recompute Mean and Rank.
-
-  Rank behavior (default):
-  - Higher Mean is better, but Rank=1 is the worst (smallest Mean).
-    This is intentionally reversed compared to common "Rank=1 is best" conventions.
+  Upsert a single (method, dataset) value into benchmark_total.csv (wide format)
+  and sort rows alphabetically by Method.
   """
   out_path = Path(benchmark_total_csv_path)
   out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -255,45 +285,40 @@ def update_benchmark_total_wide(
   if out_path.exists():
     df = pd.read_csv(out_path)
   else:
-    df = pd.DataFrame(columns=["Tool"])
+    df = pd.DataFrame(columns=["Method"])
 
-  for col in ["Mean", "Rank"]:
-    if col in df.columns:
-      df = df.drop(columns=[col])
+  for stale_col in ["Tool", "Mean", "Rank", "Average", "AVG", "Reversed_rank"]:
+    if stale_col in df.columns and stale_col != "Method":
+      if stale_col == "Tool" and "Method" not in df.columns:
+        df = df.rename(columns={"Tool": "Method"})
+      else:
+        df = df.drop(columns=[stale_col])
 
-  if "Tool" not in df.columns:
-    df.insert(0, "Tool", "")
+  if "Method" not in df.columns:
+    df.insert(0, "Method", "")
 
   if dataset not in df.columns:
     df[dataset] = np.nan
 
-  if tool in df["Tool"].astype(str).values:
-    row_idx = df.index[df["Tool"].astype(str) == str(tool)][0]
+  if method in df["Method"].astype(str).values:
+    row_idx = df.index[df["Method"].astype(str) == str(method)][0]
     df.at[row_idx, dataset] = value_0_60
   else:
-    new_row: Dict[str, Any] = {"Tool": tool, dataset: value_0_60}
+    new_row: Dict[str, Any] = {"Method": method, dataset: value_0_60}
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
 
-  dataset_cols = [c for c in df.columns if c not in {"Tool", "Mean", "Rank"}]
+  dataset_cols = [c for c in df.columns if c != "Method"]
   for c in dataset_cols:
     df[c] = pd.to_numeric(df[c], errors="coerce")
+    df[c] = df[c].round(3)
 
-  df["Mean"] = df[dataset_cols].mean(axis=1, skipna=True)
-
-  if rank_1_is_worst:
-    df["Rank"] = df["Mean"].rank(method="min", ascending=True)
-    df = df.sort_values("Mean", ascending=False)
-  else:
-    df["Rank"] = df["Mean"].rank(method="min", ascending=False)
-    df = df.sort_values("Mean", ascending=False)
-
-  df["Rank"] = df["Rank"].where(~df["Mean"].isna(), np.nan)
-  df["Rank"] = df["Rank"].astype("Int64")
-
-  for c in dataset_cols + ["Mean"]:
-    df[c] = df[c].round(2)
-
+  df = df.sort_values("Method", ascending=True, na_position="last").reset_index(drop=True)
   df.to_csv(out_path, index=False)
+
+
+# ============================================================================
+# SECTION 2 — UNIFIED ENTRY POINTS & CLI
+# ============================================================================
 
 
 def run_unified_angle_consistency(
@@ -301,21 +326,22 @@ def run_unified_angle_consistency(
   data_type: str,
   input_h5ad: Union[str, Path],
   output_dir: Union[str, Path],
-  tool: str,
+  method: str,
   dataset: str,
   velocity_key: str = "velocity",
   n_jobs: int = 1,
+  save_detailed_csv: bool = False,
   benchmark_csv_path: Optional[str] = None,
   benchmark_total_csv_path: Optional[str] = None,
   error_log_path: Optional[str] = None,
+  basis_name: Optional[str] = None,
   # Real-only
   cluster_key: Optional[str] = None,
   differentiation_paths: Optional[Union[List[str], List[List[str]]]] = None,
-  umap_dir: Optional[str] = None,
   # Sim-only
   milestone_key: str = "milestone",
   topology_type: Optional[str] = None,
-  npz_base_dir: Optional[str] = None,
+  reference_dir: Optional[str] = None,
   plot_reference_curves: bool = False,
   reference_curves_dir: Optional[str] = None,
   gt_velocity_enhancement: Optional[bool] = None,
@@ -333,7 +359,7 @@ def run_unified_angle_consistency(
 
   data_type_norm = _normalize_data_type(data_type)
   output_dir = str(output_dir_path)
-  tool = str(tool)
+  method = str(method)
   dataset = str(dataset)
 
   try:
@@ -353,19 +379,17 @@ def run_unified_angle_consistency(
     return {"status": "error", "message": f"Failed to read h5ad: {e}"}
 
   if data_type_norm == "real":
-    resolved_umap_dir = resolve_external_umap_dir(umap_dir)
-
+    resolved_real_basis = basis_name or "umap"
     result = analyze_single_dataset(
       adata=adata,
       output_dir=output_dir,
-      tool=tool,
+      tool=method,
       dataset=dataset,
       velocity_key=velocity_key,
       n_jobs=n_jobs_int,
+      basis_name=resolved_real_basis,
       cluster_key=cluster_key,
       differentiation_paths=differentiation_paths,
-      umap_dir=resolved_umap_dir,
-      h5ad_path=str(input_path),
       benchmark_csv=None,
       benchmark_total_csv=None,
     )
@@ -376,10 +400,10 @@ def run_unified_angle_consistency(
     angle_stats = result.get("angle_distribution") or {}
     total_ratio = _coerce_float(result.get("total_ratio_0_60"))
 
-    if benchmark_csv_path:
+    if save_detailed_csv and benchmark_csv_path:
       df_long = _build_benchmark_long_rows(
         data_type="real",
-        tool=tool,
+        method=method,
         dataset=dataset,
         group_type="celltype",
         group_to_stats=angle_stats,
@@ -387,20 +411,21 @@ def run_unified_angle_consistency(
       write_benchmark_long(benchmark_csv_path, df_long)
 
     if benchmark_total_csv_path:
-      update_benchmark_total_wide(benchmark_total_csv_path, tool, dataset, total_ratio, rank_1_is_worst=True)
+      update_benchmark_total_wide(benchmark_total_csv_path, method, dataset, total_ratio)
 
     return {
       "status": "success",
       "data_type": "real",
-      "tool": tool,
+      "method": method,
       "dataset": dataset,
+      "basis_name": result.get("basis_name", resolved_real_basis),
       "pdf_path": result.get("pdf_path"),
       "png_path": result.get("png_path"),
       "total_ratio_0_60": total_ratio,
     }
 
   # sim
-  resolved_npz_base_dir = resolve_npz_base_dir(npz_base_dir)
+  resolved_reference_dir = resolve_reference_dir(reference_dir)
   if topology_type:
     try:
       topology_type = normalize_topology_type(topology_type)
@@ -411,30 +436,36 @@ def run_unified_angle_consistency(
       )
       return {"status": "error", "message": f"Invalid topology_type '{topology_type}': {e}.{hint}"}
 
-  if not preprocess_adata_for_method(adata, tool, velocity_key, dataset):
-    return {
-      "status": "error",
-      "message": f"Simulation preprocessing failed: {tool} | {dataset}. See error log for details.",
-    }
-
   gt_restore_ok = False
   try:
     gt_restore_ok, _ = add_ground_truth_velocity_dimred(
       adata=adata,
       dataset_id=dataset,
-      method_name=tool,
+      method_name=method,
       velocity_key=velocity_key,
       raise_on_failure=False,
-      npz_base_dir=resolved_npz_base_dir,
+      reference_dir=resolved_reference_dir,
     )
   except Exception:
     # add_ground_truth_velocity_dimred(raise_on_failure=False) should not raise, but keep it robust.
     gt_restore_ok = False
 
-  if not compute_velocity_embeddings_for_method(adata, tool, velocity_key, dataset, n_jobs=n_jobs_int):
+  resolved_milestone_key = milestone_key
+  normalized_dataset = normalize_dataset_name(dataset)
+  inferred_topology = topology_type
+  if inferred_topology is None:
+    inferred_topology = infer_topology_from_dataset_name(normalized_dataset, adata, milestone_key)
+  normalized_topology = normalize_topology_type(inferred_topology)
+  if normalized_topology == "lineage-tracing" and milestone_key == "milestone":
+    resolved_milestone_key = "synthetic_celllabel"
+  elif normalized_topology == "bursting-tree" and milestone_key == "milestone":
+    resolved_milestone_key = "pop"
+
+  sim_basis_name = "umap" if normalized_topology == "lineage-tracing" else (basis_name or "dimred")
+  if not compute_velocity_embeddings_generic(adata, velocity_key, sim_basis_name, n_jobs=n_jobs_int):
     return {
       "status": "error",
-      "message": f"Simulation velocity embedding computation failed: {tool} | {dataset}. See error log for details.",
+      "message": f"Simulation velocity embedding computation failed: {method} | {dataset}. See error log for details.",
     }
 
   # Default behavior (semantic match to sim_roseplot.py CLI):
@@ -449,17 +480,19 @@ def run_unified_angle_consistency(
     sim_result = analyze_simulation_velocity_consistency(
       adata=adata,
       base_dir=output_dir,
-      tool=tool,
+      tool=method,
       dataset=dataset,
       topology_type=topology_type,
       velocity_key=velocity_key,
-      milestone_key=milestone_key,
+      milestone_key=resolved_milestone_key,
       n_jobs=n_jobs_int,
+      basis_name=sim_basis_name,
       benchmark_csv_path=None,
-      npz_base_dir=resolved_npz_base_dir,
+      reference_dir=resolved_reference_dir,
       plot_reference_curves=plot_reference_curves,
       reference_curves_dir=reference_curves_dir,
       use_gt_velocity_enhancement=use_gt_enhance,
+      differentiation_paths=differentiation_paths,
     )
   except Exception as e:
     hint = ""
@@ -476,10 +509,10 @@ def run_unified_angle_consistency(
   angle_stats_sim = sim_result.get("angle_distribution_stats") or {}
   total_ratio_sim = _coerce_float(sim_result.get("total_ratio_0_60"))
 
-  if benchmark_csv_path:
+  if save_detailed_csv and benchmark_csv_path:
     df_long = _build_benchmark_long_rows(
       data_type="sim",
-      tool=tool,
+      method=method,
       dataset=str(sim_result.get("dataset_name", dataset)),
       group_type="milestone",
       group_to_stats=angle_stats_sim,
@@ -489,22 +522,21 @@ def run_unified_angle_consistency(
   if benchmark_total_csv_path:
     update_benchmark_total_wide(
       benchmark_total_csv_path,
-      tool,
+      method,
       str(sim_result.get("dataset_name", dataset)),
       total_ratio_sim,
-      rank_1_is_worst=True,
     )
 
   return {
     "status": "success",
     "data_type": "sim",
-    "tool": tool,
+    "method": method,
     "dataset": str(sim_result.get("dataset_name", dataset)),
     "pdf_path": sim_result.get("rose_pdf_path"),
     "png_path": sim_result.get("rose_png_path"),
     "total_ratio_0_60": total_ratio_sim,
     "topology_type": sim_result.get("topology_type"),
-    "embedding_basis": sim_result.get("embedding_basis"),
+    "basis_name": sim_result.get("embedding_basis"),
   }
 
 
@@ -524,37 +556,36 @@ def run_batch_from_csv(
   *,
   csv_path: Union[str, Path],
   output_dir: Union[str, Path],
-  benchmark_csv_path: str,
+  benchmark_csv_path: Optional[str],
   benchmark_total_csv_path: str,
   error_log_path: Optional[str] = None,
+  save_detailed_csv: bool = False,
   default_data_type: Optional[str] = None,
   default_velocity_key: str = "velocity",
   default_milestone_key: str = "milestone",
   default_n_jobs: int = 1,
-  default_umap_dir: Optional[str] = None,
-  default_npz_base_dir: Optional[str] = None,
+  default_basis_name: Optional[str] = None,
+  default_reference_dir: Optional[str] = None,
   plot_reference_curves: bool = False,
   default_gt_velocity_enhancement: Optional[bool] = None,
 ) -> Dict[str, Any]:
   """
   Batch runner from a unified CSV schema.
 
-  Required columns (canonical):
-  - data_type: real|sim (optional if default_data_type is provided)
-  - tool
-  - dataset
+  Required columns (base schema):
+  - method
+  - id
   - path
+  - vkey
 
-  Backward-compatible aliases accepted:
-  - tool: method
-  - dataset: dataset_id, id
-  - path: h5ad_path
-  - velocity_key: vkey, velocity_key
-  - milestone_key: milestone_key
-  - topology_type: topology_type
-  - cluster_key: cluster_key
-  - umap_dir: umap_dir, external_umap_dir, real_umap_dir
-  - npz_base_dir: npz_base_dir, gtkey_dir
+  Optional extension columns:
+  - data_type
+  - basis_name
+  - cluster_key
+  - differentiation_paths
+  - milestone_key
+  - topology_type
+  - reference_dir
   """
   output_dir_path = Path(output_dir)
   resolved_error_log_path = error_log_path or str(output_dir_path / "errors.log")
@@ -600,16 +631,6 @@ def run_batch_from_csv(
       raise ValueError(f"Invalid n_jobs value: '{raw}' (expected >= 1).")
     return v
 
-  def _read_json_paths_from_csv_cell(raw: Optional[str], csv_parent: Path) -> Optional[Union[List[str], List[List[str]]]]:
-    if not raw:
-      return None
-    maybe_path = Path(str(raw))
-    if not maybe_path.is_absolute():
-      candidate = (csv_parent / maybe_path).resolve()
-      if candidate.exists() and candidate.is_file():
-        return _read_json_maybe_path(str(candidate))
-    return _read_json_maybe_path(str(raw))
-
   def _resolve_existing_path(raw: str, *, csv_parent: Path, expect_dir: Optional[bool] = None) -> str:
     """
     Resolve relative paths in CSV against the CSV file directory when possible.
@@ -634,20 +655,20 @@ def run_batch_from_csv(
     return str(candidate)
 
   for idx, row in df.iterrows():
-    tool = _pick_first_present(row, ["tool", "method"])
-    dataset = _pick_first_present(row, ["dataset", "dataset_id", "id", "dataset_name"])
-    path = _pick_first_present(row, ["path", "h5ad_path", "input"])
-    data_type = _pick_first_present(row, ["data_type", "datatype", "type"]) or default_data_type
-    velocity_key = _pick_first_present(row, ["velocity_key", "vkey"]) or default_velocity_key
+    method = _pick_first_present(row, ["method"])
+    dataset = _pick_first_present(row, ["id"])
+    path = _pick_first_present(row, ["path"])
+    data_type = _pick_first_present(row, ["data_type"]) or default_data_type
+    velocity_key = _pick_first_present(row, ["vkey"]) or default_velocity_key
 
-    raw_n_jobs = _pick_first_present(row, ["n_jobs", "njobs", "num_workers"])
+    raw_n_jobs = _pick_first_present(row, ["n_jobs"])
     try:
       n_jobs = _parse_optional_int(raw_n_jobs, default=default_n_jobs)
     except Exception as e:
       bad.append(
         {
           "row": int(idx),
-          "tool": tool or "",
+          "method": method or "",
           "dataset": dataset or "",
           "error": f"Invalid n_jobs '{raw_n_jobs}': {e}",
         }
@@ -655,40 +676,37 @@ def run_batch_from_csv(
       continue
 
     milestone_key = _pick_first_present(row, ["milestone_key"]) or default_milestone_key
-    topology_type = _pick_first_present(row, ["topology_type", "topology"])
-    cluster_key = _pick_first_present(row, ["cluster_key", "cluster"])
-    differentiation_paths_raw = _pick_first_present(row, ["differentiation_paths", "differentiation_path", "paths"])
+    topology_type = _pick_first_present(row, ["topology_type"])
+    cluster_key = _pick_first_present(row, ["cluster_key"])
+    differentiation_paths_raw = _pick_first_present(row, ["differentiation_paths"])
+    basis_name = _pick_first_present(row, ["basis_name"]) or default_basis_name
 
     csv_parent = csv_path.parent
     if path:
       path = _resolve_existing_path(path, csv_parent=csv_parent, expect_dir=False)
 
-    umap_dir = _pick_first_present(row, ["umap_dir", "external_umap_dir", "real_umap_dir"]) or default_umap_dir
-    if umap_dir:
-      umap_dir = _resolve_existing_path(umap_dir, csv_parent=csv_parent, expect_dir=True)
+    reference_dir = _pick_first_present(row, ["reference_dir"]) or default_reference_dir
+    if reference_dir:
+      reference_dir = _resolve_existing_path(reference_dir, csv_parent=csv_parent, expect_dir=True)
 
-    npz_base_dir = _pick_first_present(row, ["npz_base_dir", "gtkey_dir"]) or default_npz_base_dir
-    if npz_base_dir:
-      npz_base_dir = _resolve_existing_path(npz_base_dir, csv_parent=csv_parent, expect_dir=True)
-
-    if not tool or not dataset or not path:
-      bad.append({"row": int(idx), "error": "Missing required columns: tool/method, dataset/dataset_id/id, path/h5ad_path"})
+    if not method or not dataset or not path:
+      bad.append({"row": int(idx), "error": "Missing required columns: method, id, path, vkey."})
       continue
     if not data_type:
-      bad.append({"row": int(idx), "tool": tool, "dataset": dataset, "error": "Missing data_type (real|sim)."})
+      bad.append({"row": int(idx), "method": method, "dataset": dataset, "error": "Missing data_type (real|sim)."})
       continue
 
-    plot_ref_raw = _pick_first_present(row, ["plot_reference_curves", "plot_ref_curves"])
-    reference_curves_dir = _pick_first_present(row, ["reference_curves_dir", "ref_curves_dir"])
-    gt_enhance_raw = _pick_first_present(row, ["gt_velocity_enhancement", "use_gt_velocity_enhancement"])
+    plot_ref_raw = _pick_first_present(row, ["plot_reference_curves"])
+    reference_curves_dir = _pick_first_present(row, ["reference_curves_dir"])
+    gt_enhance_raw = _pick_first_present(row, ["gt_velocity_enhancement"])
 
     try:
-      differentiation_paths = _read_json_paths_from_csv_cell(differentiation_paths_raw, csv_path.parent)
+      differentiation_paths = _parse_delimited_differentiation_paths(differentiation_paths_raw)
       plot_ref_opt = _parse_optional_bool(plot_ref_raw)
       plot_ref = bool(plot_reference_curves) if plot_ref_opt is None else bool(plot_ref_opt)
       gt_enhance = default_gt_velocity_enhancement if gt_enhance_raw is None else _parse_optional_bool(gt_enhance_raw)
     except Exception as e:
-      bad.append({"row": int(idx), "tool": tool, "dataset": dataset, "error": str(e)})
+      bad.append({"row": int(idx), "method": method, "dataset": dataset, "error": str(e)})
       continue
 
     try:
@@ -696,29 +714,30 @@ def run_batch_from_csv(
         data_type=data_type,
         input_h5ad=path,
         output_dir=output_dir,
-        tool=tool,
+        method=method,
         dataset=dataset,
         velocity_key=velocity_key,
         n_jobs=n_jobs,
+        save_detailed_csv=save_detailed_csv,
         benchmark_csv_path=benchmark_csv_path,
         benchmark_total_csv_path=benchmark_total_csv_path,
         error_log_path=resolved_error_log_path,
+        basis_name=basis_name,
         cluster_key=cluster_key,
         differentiation_paths=differentiation_paths,
-        umap_dir=umap_dir,
         milestone_key=milestone_key,
         topology_type=topology_type,
-        npz_base_dir=npz_base_dir,
+        reference_dir=reference_dir,
         plot_reference_curves=plot_ref,
         reference_curves_dir=reference_curves_dir,
         gt_velocity_enhancement=gt_enhance,
       )
       if res.get("status") == "success":
-        ok.append({"tool": tool, "dataset": res.get("dataset", dataset), "data_type": res.get("data_type", data_type)})
+        ok.append({"method": method, "dataset": res.get("dataset", dataset), "data_type": res.get("data_type", data_type)})
       else:
-        bad.append({"row": int(idx), "tool": tool, "dataset": dataset, "error": res.get("message", "Unknown error")})
+        bad.append({"row": int(idx), "method": method, "dataset": dataset, "error": res.get("message", "Unknown error")})
     except Exception as e:
-      bad.append({"row": int(idx), "tool": tool, "dataset": dataset, "error": str(e)})
+      bad.append({"row": int(idx), "method": method, "dataset": dataset, "error": str(e)})
 
   return {
     "status": "completed",
@@ -727,7 +746,7 @@ def run_batch_from_csv(
     "failed": int(len(bad)),
     "successful_details": ok,
     "failed_details": bad,
-    "benchmark_csv": str(benchmark_csv_path),
+    "benchmark_csv": str(benchmark_csv_path) if benchmark_csv_path else None,
     "benchmark_total_csv": str(benchmark_total_csv_path),
   }
 
@@ -742,7 +761,7 @@ def main() -> int:
   input_group.add_argument("--csv-file", help="Input CSV path (batch mode).")
 
   parser.add_argument("--data-type", help="Dataset type: real|sim (required for single mode; optional for CSV if CSV has a data_type column).")
-  parser.add_argument("--tool", help="Tool/method name (required for single mode).")
+  parser.add_argument("--method", help="Method name (required for single mode).")
   parser.add_argument("--dataset", help="Dataset name/id (required for single mode).")
   parser.add_argument("--output-dir", required=True, help="Output directory root for plots.")
 
@@ -754,25 +773,27 @@ def main() -> int:
     help="Parallel jobs for scvelo.velocity_graph (default: 1 for reproducibility).",
   )
 
-  parser.add_argument("--benchmark-csv", help="Output benchmark.csv path (default: <output-dir>/benchmark.csv).")
+  parser.add_argument("--save-detailed-csv", action="store_true", help="Save detailed benchmark.csv output (default: off).")
+  parser.add_argument("--benchmark-csv", help="Output benchmark.csv path (used only when --save-detailed-csv is enabled).")
   parser.add_argument("--benchmark-total-csv", help="Output benchmark_total.csv path (default: <output-dir>/benchmark_total.csv).")
   parser.add_argument("--error-log", help="Error-only log file path (optional).")
+  parser.add_argument(
+    "--basis-name",
+    default=None,
+    help="Low-dimensional basis name. Defaults: real=umap, sim=dimred, lineage-tracing=umap.",
+  )
 
   # Real-only options
   parser.add_argument("--cluster-key", help="Real data: cluster/celltype column name in adata.obs (optional).")
   parser.add_argument(
-    "--umap-dir",
-    help=(
-      "Real data: external UMAP CSV directory (optional). "
-      "Can also be set via env ANGLE_CONSISTENCY_UMAP_DIR."
-    ),
+    "--differentiation-paths",
+    help="Real data or unknown simulated topology: encode paths as A|B|C;D|E|F.",
   )
-  parser.add_argument("--differentiation-paths", help="Real data: JSON string or JSON file path for differentiation paths (optional).")
 
   # Sim-only options
   parser.add_argument("--milestone-key", default="milestone", help="Simulation: milestone column in adata.obs (default: milestone).")
   parser.add_argument("--topology-type", help="Simulation: topology type (optional; inferred if omitted).")
-  parser.add_argument("--npz-base-dir", help="Simulation: Simdata-GTkey root directory (optional; auto-resolved if omitted).")
+  parser.add_argument("--reference-dir", help="Simulation: directory containing *_reference_data.npz files.")
   parser.add_argument("--plot-reference-curves", action="store_true", help="Simulation: save reference-curve QA plot.")
   parser.add_argument("--reference-curves-dir", help="Simulation: output directory for reference-curve QA plot (optional).")
 
@@ -795,13 +816,16 @@ def main() -> int:
   args = parser.parse_args()
 
   output_dir = Path(args.output_dir)
-  benchmark_csv = args.benchmark_csv or str(output_dir / "benchmark.csv")
+  benchmark_csv = None
+  if args.save_detailed_csv:
+    benchmark_csv = args.benchmark_csv or str(output_dir / "benchmark.csv")
   benchmark_total = args.benchmark_total_csv or str(output_dir / "benchmark_total.csv")
 
   if args.csv_file:
     res = run_batch_from_csv(
       csv_path=args.csv_file,
       output_dir=output_dir,
+      save_detailed_csv=bool(args.save_detailed_csv),
       benchmark_csv_path=benchmark_csv,
       benchmark_total_csv_path=benchmark_total,
       error_log_path=args.error_log,
@@ -809,8 +833,8 @@ def main() -> int:
       default_velocity_key=args.velocity_key,
       default_milestone_key=args.milestone_key,
       default_n_jobs=args.n_jobs,
-      default_umap_dir=args.umap_dir,
-      default_npz_base_dir=args.npz_base_dir,
+      default_basis_name=args.basis_name,
+      default_reference_dir=args.reference_dir,
       plot_reference_curves=bool(args.plot_reference_curves),
       default_gt_velocity_enhancement=args.gt_velocity_enhancement,
     )
@@ -823,14 +847,15 @@ def main() -> int:
     if res["failed"] > 0:
       print(f"Failed: {res['failed']}")
       for item in res.get("failed_details", [])[:20]:
-        tool = item.get("tool", "")
+        method = item.get("method", "")
         dataset = item.get("dataset", "")
         err = item.get("error", "Unknown error")
-        print(f"- {tool} | {dataset} | {err}")
+        print(f"- {method} | {dataset} | {err}")
       if res["failed"] > 20:
         print("... (more failures omitted)")
 
-    print(f"benchmark.csv: {benchmark_csv}")
+    if benchmark_csv:
+      print(f"benchmark.csv: {benchmark_csv}")
     print(f"benchmark_total.csv: {benchmark_total}")
     return 0 if res["failed"] == 0 else 2
 
@@ -839,29 +864,30 @@ def main() -> int:
     print("Error: --input is required for single-dataset mode.")
     return 1
 
-  if not args.tool or not args.dataset or not args.data_type:
-    print("Error: --data-type, --tool, and --dataset are required for single-dataset mode.")
+  if not args.method or not args.dataset or not args.data_type:
+    print("Error: --data-type, --method, and --dataset are required for single-dataset mode.")
     return 1
 
-  differentiation_paths = _read_json_maybe_path(args.differentiation_paths)
+  differentiation_paths = _parse_delimited_differentiation_paths(args.differentiation_paths)
 
   res = run_unified_angle_consistency(
     data_type=args.data_type,
     input_h5ad=args.input,
     output_dir=output_dir,
-    tool=args.tool,
+    method=args.method,
     dataset=args.dataset,
     velocity_key=args.velocity_key,
     n_jobs=args.n_jobs,
+    save_detailed_csv=bool(args.save_detailed_csv),
     benchmark_csv_path=benchmark_csv,
     benchmark_total_csv_path=benchmark_total,
     error_log_path=args.error_log,
+    basis_name=args.basis_name,
     cluster_key=args.cluster_key,
     differentiation_paths=differentiation_paths,
-    umap_dir=args.umap_dir,
     milestone_key=args.milestone_key,
     topology_type=args.topology_type,
-    npz_base_dir=args.npz_base_dir,
+    reference_dir=args.reference_dir,
     plot_reference_curves=bool(args.plot_reference_curves),
     reference_curves_dir=args.reference_curves_dir,
     gt_velocity_enhancement=args.gt_velocity_enhancement,
@@ -871,12 +897,13 @@ def main() -> int:
     print(res.get("message", "Error"))
     return 1
 
-  print(f"Success: {res['tool']} | {res['dataset']} | 0-60: {res['total_ratio_0_60']:.2f}%")
+  print(f"Success: {res['method']} | {res['dataset']} | 0-60: {res['total_ratio_0_60']:.2f}%")
   if res.get("pdf_path"):
     print(f"PDF: {res['pdf_path']}")
   if res.get("png_path"):
     print(f"PNG: {res['png_path']}")
-  print(f"benchmark.csv: {benchmark_csv}")
+  if benchmark_csv:
+    print(f"benchmark.csv: {benchmark_csv}")
   print(f"benchmark_total.csv: {benchmark_total}")
   return 0
 
@@ -1047,6 +1074,10 @@ LABEL_FORMATTING: Dict[str, Dict[str, str]] = {
 }
 
 # Color palette for rose plots
+# ============================================================================
+# SECTION 3 — REAL DATA: UTILS, BASIS, CLUSTER KEYS & REFERENCE DIRECTIONS
+# ============================================================================
+
 PALETTE_34 = [
     "#d73027", "#fc8d59", "#fee090", "#91bfdb", "#4575b4", "#66c2a5",
     "#3288bd", "#abdda4", "#e6f598", "#fee08b", "#f46d43", "#e7298a",
@@ -1331,199 +1362,47 @@ def robust_velocity_graph_computation(
 
 
 # =============================================================================
-# UMAP Handling Functions
+# Basis Handling Functions
 # =============================================================================
 
-def load_external_umap(
-    dataset: str,
-    h5ad_path: str,
-    umap_dir: str
-) -> Optional[pd.DataFrame]:
-    """
-    Load external UMAP coordinates from CSV file.
-
-    Expected CSV format: index column with cell names, UMAP1, UMAP2 columns.
-    CSV files are matched by dataset id/name tokens in the filename.
-    """
-    if umap_dir is None or not os.path.isdir(umap_dir):
-        return None
-
-    dataset_str = str(dataset)
-    dataset_token = dataset_str.lower()
-    num_prefix = extract_numeric_prefix(dataset_str)
-    csv_paths = sorted(Path(umap_dir).glob("*.csv"))
-
-    for file_path in csv_paths:
-        if dataset_token and dataset_token in file_path.stem.lower():
-            return pd.read_csv(file_path, index_col=0)
-
-    if num_prefix:
-        num_prefix = num_prefix.lower()
-    for file_path in csv_paths:
-        stem_tokens = {t.lower() for t in re.split(r"[^A-Za-z0-9]+", file_path.stem) if t}
-        if num_prefix and num_prefix in stem_tokens:
-            return pd.read_csv(file_path, index_col=0)
-
-    return None
-
-
-def match_umap_coordinates(
+def ensure_real_basis(
     adata: sc.AnnData,
-    umap_df: pd.DataFrame,
-    min_match_rate: float = 0.99
-) -> Optional[sc.AnnData]:
+    basis_name: str,
+) -> Tuple[bool, Optional[str]]:
     """
-    Match and assign UMAP coordinates from external DataFrame.
+    Validate the basis used by the real-data pipeline.
 
-    Returns filtered AnnData with matched cells if match rate >= min_match_rate.
+    The public script does not compute low-dimensional coordinates on the fly.
     """
-    # Remove duplicate indices
-    if umap_df.index.duplicated().any():
-        umap_df = umap_df[~umap_df.index.duplicated(keep="first")]
+    basis_key = f"X_{basis_name}"
+    if basis_key in adata.obsm:
+        return True, basis_name
 
-    # Calculate match rate
-    common_cells = set(umap_df.index) & set(adata.obs_names)
-    match_rate = len(common_cells) / len(adata.obs_names)
+    if basis_name != "umap":
+        return False, f"Requested basis not found in adata.obsm: {basis_key}"
 
-    if match_rate < min_match_rate or not common_cells:
-        logging.error(
-            "External UMAP match failed "
-            f"(match_rate={match_rate:.4f}, min_match_rate={min_match_rate}, "
-            f"n_common={len(common_cells)}, n_adata={len(adata.obs_names)}, n_umap={len(umap_df.index)})"
-        )
-        return None
-
-    # Filter to common cells
-    common_list = list(common_cells)
-    adata_filtered = adata[common_list].copy()
-
-    # Align UMAP coordinates
-    umap_aligned = umap_df.reindex(adata_filtered.obs_names).dropna()
-    if len(umap_aligned) != adata_filtered.n_obs:
-        adata_filtered = adata_filtered[umap_aligned.index].copy()
-
-    # Assign coordinates
-    coords = umap_aligned[["UMAP1", "UMAP2"]].values
-    if coords.shape == (adata_filtered.n_obs, 2):
-        adata_filtered.obsm["X_umap"] = coords
-        return adata_filtered
-
-    logging.error(
-        "External UMAP assignment failed "
-        f"(coords_shape={coords.shape}, expected=({adata_filtered.n_obs}, 2))"
+    warning_msg = (
+        "WARNING: X_umap not found in the input h5ad. "
+        "The public script does not recompute low-dimensional coordinates."
     )
-    return None
-
-
-def ensure_umap(
-    adata: sc.AnnData,
-    dataset: str,
-    tool: str,
-    h5ad_path: str,
-    umap_dir: Optional[str] = None
-) -> Optional[sc.AnnData]:
-    """
-    Ensure AnnData has UMAP coordinates.
-
-    Priority:
-    1. Existing X_umap
-    2. original_umap in obsm
-    3. External UMAP file (if umap_dir provided)
-    4. Compute new UMAP
-    """
-    # Already has UMAP
-    if "X_umap" in adata.obsm:
-        return adata
-
-    # Use original_umap if available
-    if "original_umap" in adata.obsm:
-        orig = adata.obsm["original_umap"]
-        if orig.shape[0] == adata.n_obs and orig.shape[1] >= 2:
-            adata.obsm["X_umap"] = orig[:, :2]
-            return adata
-
-    # Try external UMAP file
-    if umap_dir:
-        umap_df = load_external_umap(dataset, h5ad_path, umap_dir)
-        if umap_df is not None:
-            result = match_umap_coordinates(adata, umap_df)
-            if result is not None:
-                return result
-
-    # Compute UMAP
-    try:
-        if "neighbors" not in adata.uns:
-            if adata.n_vars == 0:
-                logging.error(f"No genes for UMAP computation: {tool}_{dataset}")
-                return None
-            neighbors_adata = robust_neighbors_computation(adata)
-            if neighbors_adata is None:
-                return None
-            adata = neighbors_adata
-
-        sc.tl.umap(adata)
-        return adata
-    except Exception as e:
-        logging.error(f"UMAP computation failed: {tool}_{dataset}: {e}")
-        return None
-
-
-# =============================================================================
-# Velocity Preprocessing Functions
-# =============================================================================
-
-def preprocess_tfvelo(adata: sc.AnnData) -> Optional[sc.AnnData]:
-    """
-    Preprocess TFvelo data: compute velocity from velo_hat and fit_scaling_y.
-
-    velocity = velo_hat / fit_scaling_y
-    """
-    if "velocity" in adata.layers:
-        return adata
-
-    if "velo_hat" not in adata.layers or "fit_scaling_y" not in adata.var.columns:
-        logging.error("TFvelo requires 'velo_hat' layer and 'fit_scaling_y' in var")
-        return None
-
-    try:
-        n_cells = adata.shape[0]
-        scaling_y = np.array(adata.var["fit_scaling_y"])
-        expanded_scaling = np.expand_dims(scaling_y, 0).repeat(n_cells, axis=0)
-        adata.layers["velocity"] = adata.layers["velo_hat"] / expanded_scaling
-        return adata
-    except Exception as e:
-        logging.error(f"TFvelo preprocessing failed: {e}")
-        return None
-
-
-def preprocess_phylovelo(
-    adata: sc.AnnData,
-    vkey: str
-) -> sc.AnnData:
-    """
-    Preprocess PhyloVelo data: rename velocity embedding key.
-
-    PhyloVelo stores low-dimensional velocity directly in obsm.
-    """
-    velocity_dimred_key = f"{vkey}_umap"
-    if vkey in adata.obsm and velocity_dimred_key not in adata.obsm:
-        adata.obsm[velocity_dimred_key] = adata.obsm[vkey]
-    return adata
+    print(warning_msg)
+    return False, warning_msg
 
 
 def ensure_velocity_embedding(
     adata: sc.AnnData,
     dataset: str,
     tool: str,
+    basis_name: str,
     vkey: str = "velocity",
     n_jobs: int = 1,
 ) -> Tuple[bool, sc.AnnData]:
     """
-    Ensure velocity embedding exists in UMAP space.
+    Ensure velocity embedding exists in the requested low-dimensional basis.
 
     Computes velocity_graph and velocity_embedding if needed.
     """
-    velocity_dimred_key = f"{vkey}_umap"
+    velocity_dimred_key = f"{vkey}_{basis_name}"
 
     if velocity_dimred_key in adata.obsm:
         return True, adata
@@ -1565,7 +1444,7 @@ def ensure_velocity_embedding(
 
     # Compute velocity embedding
     try:
-        scv.tl.velocity_embedding(adata, basis="umap", vkey=vkey)
+        scv.tl.velocity_embedding(adata, basis=basis_name, vkey=vkey)
         return True, adata
     except Exception as e:
         logging.error(f"Velocity embedding failed: {tool}_{dataset}: {e}")
@@ -1731,7 +1610,8 @@ def validate_differentiation_paths(
 def calculate_reference_directions(
     adata: sc.AnnData,
     cluster_key: str,
-    differentiation_paths: Optional[List[List[str]]] = None
+    differentiation_paths: Optional[List[List[str]]] = None,
+    basis_name: str = "umap",
 ) -> np.ndarray:
     """
     Calculate reference directions from spline-fitted trajectories.
@@ -1739,7 +1619,11 @@ def calculate_reference_directions(
     For each cell, finds the closest point on the trajectory spline
     and returns the tangent direction at that point.
     """
-    X_umap = adata.obsm["X_umap"]
+    basis_key = f"X_{basis_name}"
+    if basis_key not in adata.obsm:
+        raise KeyError(f"Missing basis coordinates: adata.obsm['{basis_key}']")
+
+    x_basis = np.asarray(adata.obsm[basis_key])[:, :2]
     reference_dirs = np.zeros((adata.n_obs, 2))
 
     unique_clusters = adata.obs[cluster_key].unique().astype(str).tolist()
@@ -1780,7 +1664,7 @@ def calculate_reference_directions(
         for cluster in path:
             mask = adata.obs[cluster_key].astype(str) == cluster
             if mask.sum() > 0:
-                center = X_umap[mask].mean(axis=0)
+                center = x_basis[mask].mean(axis=0)
                 centers.append((cluster, center))
 
         if len(centers) < 2:
@@ -1814,7 +1698,7 @@ def calculate_reference_directions(
         path_mask = adata.obs[cluster_key].astype(str).isin(path)
 
         for i in np.where(path_mask)[0]:
-            point = X_umap[i]
+            point = x_basis[i]
 
             # Find closest point on spline
             min_dist = float("inf")
@@ -1827,6 +1711,62 @@ def calculate_reference_directions(
                     min_u = u_val
 
             # Get tangent direction
+            deriv = np.array(splev(min_u, tck, der=1))
+            norm = np.linalg.norm(deriv)
+            if norm > 0:
+                reference_dirs[i] = deriv / norm
+
+    return reference_dirs
+
+
+def calculate_reference_directions_from_basic_paths(
+    adata: AnnData,
+    milestone_key: str,
+    differentiation_paths: List[List[str]],
+    basis_name: str,
+) -> np.ndarray:
+    """
+    Fallback reference-direction construction for user-defined simulated data.
+
+    This path intentionally does not use topology-specific guide points or
+    smoothing heuristics from the built-in public topologies.
+    """
+    embedding_key = f"X_{basis_name}"
+    if embedding_key not in adata.obsm:
+        raise KeyError(f"Missing basis coordinates: adata.obsm['{embedding_key}']")
+
+    x_basis = np.asarray(adata.obsm[embedding_key])[:, :2]
+    reference_dirs = np.zeros((adata.n_obs, 2))
+
+    for path in differentiation_paths:
+        centers: List[np.ndarray] = []
+        valid_path: List[str] = []
+        for milestone in path:
+            mask = adata.obs[milestone_key].astype(str) == milestone
+            if np.sum(mask) == 0:
+                continue
+            centers.append(np.mean(x_basis[mask], axis=0))
+            valid_path.append(milestone)
+
+        if len(centers) < 2:
+            continue
+
+        center_array = np.asarray(centers)
+        k = min(3, len(center_array) - 1)
+        tck, _ = splprep([center_array[:, 0], center_array[:, 1]], s=0.0, k=k, per=False)
+
+        path_mask = adata.obs[milestone_key].astype(str).isin(valid_path)
+        for i in np.where(path_mask)[0]:
+            point = x_basis[i]
+            min_dist = float("inf")
+            min_u = 0.0
+            for u_val in np.linspace(0.0, 1.0, 200):
+                curve_point = np.array(splev(u_val, tck))
+                dist = np.linalg.norm(point - curve_point)
+                if dist < min_dist:
+                    min_dist = dist
+                    min_u = float(u_val)
+
             deriv = np.array(splev(min_u, tck, der=1))
             norm = np.linalg.norm(deriv)
             if norm > 0:
@@ -2052,10 +1992,9 @@ def analyze_single_dataset(
     dataset: str,
     velocity_key: str = "velocity",
     n_jobs: int = 1,
+    basis_name: str = "umap",
     cluster_key: Optional[str] = None,
     differentiation_paths: Optional[Union[List[str], List[List[str]]]] = None,
-    umap_dir: Optional[str] = None,
-    h5ad_path: Optional[str] = None,
     benchmark_csv: Optional[str] = None,
     benchmark_total_csv: Optional[str] = None
 ) -> Dict[str, Any]:
@@ -2078,10 +2017,6 @@ def analyze_single_dataset(
         Column name for cell type annotation. Auto-detected if None
     differentiation_paths : list, optional
         Custom differentiation paths. Uses built-in defaults if None
-    umap_dir : str, optional
-        Directory containing external UMAP CSV files
-    h5ad_path : str, optional
-        Path to h5ad file (used for UMAP file matching)
     benchmark_csv : str, optional
         Path for detailed benchmark CSV output
     benchmark_total_csv : str, optional
@@ -2102,20 +2037,12 @@ def analyze_single_dataset(
     png_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        # Preprocess based on method
-        if tool == "TFvelo":
-            adata = preprocess_tfvelo(adata)
-            if adata is None:
-                return {"status": "error", "message": "TFvelo preprocessing failed"}
-
-        if tool == "PhyloVelo":
-            adata = preprocess_phylovelo(adata, velocity_key)
-
-        # Ensure UMAP exists
-        adata = ensure_umap(adata, dataset, tool,
-                           h5ad_path or "", umap_dir)
-        if adata is None:
-            return {"status": "error", "message": "UMAP computation failed"}
+        # Validate the requested low-dimensional basis. The public script does not
+        # compute UMAP/tSNE/PCA coordinates on the fly.
+        basis_ok, basis_result = ensure_real_basis(adata, basis_name)
+        if not basis_ok:
+            return {"status": "error", "message": str(basis_result)}
+        resolved_basis_name = str(basis_result)
 
         # Remove duplicates
         adata.obs_names_make_unique()
@@ -2126,10 +2053,10 @@ def analyze_single_dataset(
                 pass
 
         # Ensure velocity embedding
-        velocity_dimred_key = f"{velocity_key}_umap"
+        velocity_dimred_key = f"{velocity_key}_{resolved_basis_name}"
         if velocity_dimred_key not in adata.obsm:
             success, adata = ensure_velocity_embedding(
-                adata, dataset, tool, velocity_key, n_jobs=n_jobs
+                adata, dataset, tool, resolved_basis_name, velocity_key, n_jobs=n_jobs
             )
             if not success:
                 return {"status": "error",
@@ -2186,7 +2113,10 @@ def analyze_single_dataset(
 
         # Calculate reference directions
         reference_dirs = calculate_reference_directions(
-            adata, resolved_cluster_key, validated_paths
+            adata,
+            resolved_cluster_key,
+            validated_paths,
+            basis_name=resolved_basis_name,
         )
 
         # Get predicted velocities
@@ -2222,7 +2152,7 @@ def analyze_single_dataset(
         if benchmark_csv:
             df_long = _build_benchmark_long_rows(
                 data_type="real",
-                tool=tool,
+                method=tool,
                 dataset=dataset,
                 group_type="celltype",
                 group_to_stats=angle_stats,
@@ -2234,7 +2164,6 @@ def analyze_single_dataset(
                 tool,
                 dataset,
                 float(total_ratio) if total_ratio == total_ratio else np.nan,
-                rank_1_is_worst=True,
             )
 
         # Generate rose plot
@@ -2260,6 +2189,7 @@ def analyze_single_dataset(
             "status": "success",
             "pdf_path": pdf_path,
             "png_path": png_path,
+            "basis_name": resolved_basis_name,
             "cluster_key": resolved_cluster_key,
             "n_paths": len(validated_paths),
             "cluster_consistency": cluster_consistency,
@@ -2340,6 +2270,11 @@ class AnalysisResult(TypedDict, total=False):
     reference_curve_png_path: str
 
 
+# ============================================================================
+# SECTION 4 — SIMULATED DATA: DATASET/TOPOLOGY NORMALIZATION & SIM UTILS
+# ============================================================================
+
+
 def normalize_dataset_name(dataset_name: str) -> str:
     """
     Normalize dataset name by converting topology keywords from underscore form to hyphen form.
@@ -2352,12 +2287,14 @@ def normalize_dataset_name(dataset_name: str) -> str:
         'bifurcating_loop': 'bifurcating-loop',
         'consecutive_bifurcating': 'consecutive-bifurcating',
         'cycle_simple': 'cycle-simple',
+        'lineage_tracing': 'lineage-tracing',
         'linear_simple': 'linear-simple',
         'linear_simple_subset': 'linear-simple',  # normalize subset to linear-simple for naming
         'genesub_bifurcating': 'genesub-bifurcating',
         'cellsub_bifurcating': 'cellsub-bifurcating',
         'linear_bifurcating': 'linear-bifurcating',
-        'linear_linear': 'linear-linear'
+        'linear_linear': 'linear-linear',
+        'bursting_tree': 'Bursting-tree',
     }
 
     normalized_name = dataset_name
@@ -2384,6 +2321,46 @@ def normalize_filename(tool: str, dataset: str) -> str:
     return f"{tool}_{normalized_dataset}"
 
 
+BURSTING_EDGE_SKELETON: Dict[str, List[List[str]]] = {
+    "Bursting-tree_vary-s_cells1000_genes500": [["edge01", "edge03", "edge07"], ["edge01", "edge03", "edge08"], ["edge01", "edge04", "edge05"], ["edge01", "edge04", "edge06"], ["edge02"]],
+    "Bursting-tree_vary-s_cells1200_genes800": [["edge01", "edge03", "edge07"], ["edge01", "edge03", "edge08"], ["edge01", "edge04", "edge05"], ["edge01", "edge04", "edge06"], ["edge02"]],
+    "Bursting-tree_vary-s_cells1500_genes1000": [["edge01", "edge03", "edge07"], ["edge01", "edge03", "edge08"], ["edge01", "edge04", "edge05"], ["edge01", "edge04", "edge06"], ["edge02"]],
+    "Bursting-tree_vary-s_cells1200_genes1500": [["edge01", "edge03", "edge05"], ["edge01", "edge03", "edge06"], ["edge01", "edge04", "edge07"], ["edge01", "edge04", "edge08"], ["edge02"]],
+    "Bursting-tree_vary-kon_cells1500_genes1500": [["edge01", "edge03", "edge07"], ["edge01", "edge03", "edge08"], ["edge01", "edge04", "edge05"], ["edge01", "edge04", "edge06"], ["edge02"]],
+    "Bursting-tree_vary-kon_cells1500_genes2000": [["edge01", "edge03", "edge05"], ["edge01", "edge03", "edge06"], ["edge01", "edge04", "edge07"], ["edge01", "edge04", "edge08"], ["edge02"]],
+    "Bursting-tree_vary-koff_cells1200_genes800": [["edge01", "edge03", "edge07"], ["edge01", "edge03", "edge08"], ["edge01", "edge04", "edge05"], ["edge01", "edge04", "edge06"], ["edge02"]],
+    "Bursting-tree_vary-koff_cells1500_genes1500": [["edge01", "edge03", "edge07"], ["edge01", "edge03", "edge08"], ["edge01", "edge04", "edge05"], ["edge01", "edge04", "edge06"], ["edge02"]],
+    "Bursting-tree_vary-all_cells1800_genes2000": [["edge01", "edge03", "edge07"], ["edge01", "edge03", "edge08"], ["edge01", "edge04", "edge05"], ["edge01", "edge04", "edge06"], ["edge02"]],
+    "Bursting-tree_vary-all_cells2200_genes2500": [["edge01", "edge03", "edge05"], ["edge01", "edge03", "edge06"], ["edge01", "edge04", "edge07"], ["edge01", "edge04", "edge08"], ["edge02"]],
+}
+
+BURSTING_MILESTONE_DIRECTED_PATHS: Dict[str, List[List[str]]] = {
+    "Bursting-tree_vary-s_cells1000_genes500": [["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge07_m1", "edge07_m2", "edge07_m3"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge08_m1", "edge08_m2", "edge08_m3"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge05_m1", "edge05_m2"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge06_m1", "edge06_m2"], ["edge02_m1", "edge02_m2", "edge02_m3"]],
+    "Bursting-tree_vary-s_cells1200_genes800": [["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge07_m1", "edge07_m2", "edge07_m3"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge08_m1", "edge08_m2", "edge08_m3"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge05_m1", "edge05_m2"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge06_m1", "edge06_m2"], ["edge02_m1", "edge02_m2", "edge02_m3"]],
+    "Bursting-tree_vary-s_cells1500_genes1000": [["edge01_m1", "edge02_m1", "edge02_m2", "edge02_m3"], ["edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge07_m1", "edge07_m2", "edge07_m3"], ["edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge08_m1", "edge08_m2", "edge08_m3"], ["edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge05_m1", "edge05_m2"], ["edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge06_m1", "edge06_m2"], ["edge02_m1", "edge02_m2", "edge02_m3"]],
+    "Bursting-tree_vary-s_cells1200_genes1500": [["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge05_m1", "edge05_m2"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge06_m1", "edge06_m2"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge07_m1", "edge07_m2", "edge07_m3"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge08_m1", "edge08_m2", "edge08_m3"], ["edge02_m1", "edge02_m2", "edge02_m3"]],
+    "Bursting-tree_vary-kon_cells1500_genes1500": [["edge01_m1", "edge02_m1", "edge02_m2", "edge02_m3"], ["edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge07_m1", "edge07_m2", "edge07_m3"], ["edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge08_m1", "edge08_m2", "edge08_m3"], ["edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge05_m1", "edge05_m2"], ["edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge06_m1", "edge06_m2"], ["edge02_m1", "edge02_m2", "edge02_m3"]],
+    "Bursting-tree_vary-kon_cells1500_genes2000": [["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge05_m1", "edge05_m2"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge06_m1", "edge06_m2"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge07_m1", "edge07_m2", "edge07_m3"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge08_m1", "edge08_m2", "edge08_m3"], ["edge02_m1", "edge02_m2", "edge02_m3"]],
+    "Bursting-tree_vary-koff_cells1200_genes800": [["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge07_m1", "edge07_m2", "edge07_m3"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge08_m1", "edge08_m2", "edge08_m3"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge05_m1", "edge05_m2"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge06_m1", "edge06_m2"], ["edge02_m1", "edge02_m2", "edge02_m3"]],
+    "Bursting-tree_vary-koff_cells1500_genes1500": [["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge07_m1", "edge07_m2", "edge07_m3"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge08_m1", "edge08_m2", "edge08_m3"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge05_m1", "edge05_m2"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge06_m1", "edge06_m2"], ["edge02_m1", "edge02_m2", "edge02_m3"]],
+    "Bursting-tree_vary-all_cells1800_genes2000": [["edge01_m1", "edge02_m1", "edge02_m2", "edge02_m3"], ["edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge07_m1", "edge07_m2", "edge07_m3"], ["edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge08_m1", "edge08_m2", "edge08_m3"], ["edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge05_m1", "edge05_m2"], ["edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge06_m1", "edge06_m2"], ["edge02_m1", "edge02_m2", "edge02_m3"]],
+    "Bursting-tree_vary-all_cells2200_genes2500": [["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge05_m1", "edge05_m2"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge03_m1", "edge03_m2", "edge03_m3", "edge06_m1", "edge06_m2"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge07_m1", "edge07_m2", "edge07_m3"], ["edge01_m1", "edge01_m2", "edge01_m3", "edge04_m1", "edge04_m2", "edge04_m3", "edge08_m1", "edge08_m2", "edge08_m3"], ["edge02_m1", "edge02_m2", "edge02_m3"]],
+}
+
+BURSTING_LOCAL_MATCHING_RULES: Dict[str, Dict[str, Any]] = {
+    "Bursting-tree_vary-s_cells1000_genes500": {"notes": ["edge02 is an independent trunk; edge03/04 downstream branches remain separated."]},
+    "Bursting-tree_vary-s_cells1200_genes800": {"terminal_edge_exclusions": [("edge05", "edge06")], "notes": ["edge01_m3 splits into a Y-shape towards edge03_m1 and edge04_m1.", "edge05/06 need stronger terminal separation than edge07/08."]},
+    "Bursting-tree_vary-s_cells1500_genes1000": {"milestone_overrides": {"edge01_m1": {"reference_edge": "edge02", "candidate_milestones": ["edge02_m1", "edge02_m2", "edge02_m3"], "use_source_time_refinement": False}}, "notes": ["edge01_m1 locally follows the edge02 trunk more closely."]},
+    "Bursting-tree_vary-kon_cells1500_genes1500": {"milestone_overrides": {"edge01_m1": {"reference_edge": "edge02", "candidate_milestones": ["edge02_m1", "edge02_m2", "edge02_m3"], "use_source_time_refinement": False}}, "notes": ["edge01_m1 locally follows edge02; edge05/06 remain short branches."]},
+    "Bursting-tree_vary-koff_cells1200_genes800": {"protected_crossings": [{"source_edge": "edge04", "neighbor_edges": ["edge05", "edge06"], "description": "edge04 terminal cells overlap with edge05/06 and need strict edge separation."}], "notes": ["edge07 stays far from edge04 and remains attached to edge03."]},
+    "Bursting-tree_vary-koff_cells1500_genes1500": {"notes": ["Long edge02_m2 -> edge02_m3 transitions are handled by cell_time_ref windows."]},
+    "Bursting-tree_vary-all_cells1800_genes2000": {"milestone_overrides": {"edge01_m1": {"reference_edge": "edge02", "candidate_milestones": ["edge02_m1", "edge02_m2", "edge02_m3"], "use_source_time_refinement": False}}, "protected_crossings": [{"source_edge": "edge01", "neighbor_edges": ["edge07"], "description": "edge07 crosses edge01_m2 -> edge01_m3 orthogonally."}, {"source_edge": "edge04", "neighbor_edges": ["edge02"], "description": "edge04 -> edge05/06 crosses a long edge02_m2 trajectory."}], "notes": ["edge01 heterogeneity coexists with strong edge04/edge02 crossing geometry."]},
+    "Bursting-tree_vary-s_cells1200_genes1500": {"notes": ["edge03/04 separate cleanly near the edge01_m3 branching point."]},
+    "Bursting-tree_vary-kon_cells1500_genes2000": {"protected_crossings": [{"source_edge": "edge03", "neighbor_edges": ["edge05", "edge06"], "description": "edge05/06 overlap with edge03_m3 and must remain separated."}], "notes": ["In this skeleton, edge05/06 are downstream of edge03."]},
+    "Bursting-tree_vary-all_cells2200_genes2500": {"protected_crossings": [{"source_edge": "edge01", "neighbor_edges": ["edge02"], "description": "edge02 loops back across edge01_m2 -> edge01_m3."}, {"source_edge": "edge08", "neighbor_edges": ["edge03"], "description": "edge08 wraps into the edge03 half-enclosure and needs separation."}], "notes": ["The dominant issues are edge01/edge02 and edge03/edge08 geometric crossings."]},
+}
+
+
 def normalize_topology_type(topology_type: str) -> str:
     """Normalize topology type name (underscore -> hyphen)."""
     standard_topologies = {
@@ -2408,7 +2385,11 @@ def normalize_topology_type(topology_type: str) -> str:
         "linear_bifurcating": "linear-bifurcating",
         "linear-bifurcating": "linear-bifurcating",
         "linear_linear": "linear-linear",
-        "linear-linear": "linear-linear"
+        "linear-linear": "linear-linear",
+        "lineage_tracing": "lineage-tracing",
+        "lineage-tracing": "lineage-tracing",
+        "bursting_tree": "bursting-tree",
+        "bursting-tree": "bursting-tree",
     }
     
     normalized = standard_topologies.get(topology_type.lower())
@@ -2416,6 +2397,94 @@ def normalize_topology_type(topology_type: str) -> str:
         raise ValueError(f"Unknown topology type: {topology_type}")
     
     return normalized
+
+
+def natural_edge_sort_key(label: str) -> Tuple[int, str]:
+    """Sort edgeXX / edgeXX_mY labels numerically, with lexicographic fallback."""
+    digits = "".join(ch for ch in label if ch.isdigit())
+    if digits:
+        return int(digits), label
+    return 10 ** 9, label
+
+
+def get_bursting_reference_key(adata: AnnData) -> str:
+    """Resolve the fine-grained Bursting-tree reference key."""
+    for candidate in ("milestone_id", "milestone"):
+        if candidate in adata.obs.columns:
+            return candidate
+    raise KeyError("Bursting-tree data is missing milestone_id/milestone required for reference directions.")
+
+
+def get_bursting_expected_display_milestones(
+    dataset_name: str,
+    observed_milestones: Optional[np.ndarray] = None,
+) -> List[str]:
+    """Return the expected edge display order for Bursting-tree datasets."""
+    normalized_name = normalize_dataset_name(dataset_name)
+    skeleton = BURSTING_EDGE_SKELETON.get(normalized_name)
+    if skeleton is not None:
+        ordered_edges: List[str] = []
+        for path in skeleton:
+            for edge_id in path:
+                if edge_id not in ordered_edges:
+                    ordered_edges.append(edge_id)
+        return ordered_edges
+
+    if observed_milestones is None:
+        return []
+
+    return sorted({str(x) for x in observed_milestones}, key=natural_edge_sort_key)
+
+
+def get_bursting_expected_reference_milestones(
+    dataset_name: str,
+    observed_milestones: Optional[np.ndarray] = None,
+) -> List[str]:
+    """Return the expected fine-grained milestone order for Bursting-tree datasets."""
+    normalized_name = normalize_dataset_name(dataset_name)
+    paths = BURSTING_MILESTONE_DIRECTED_PATHS.get(normalized_name)
+    if paths is not None:
+        ordered_milestones: List[str] = []
+        for path in paths:
+            for milestone in path:
+                if milestone not in ordered_milestones:
+                    ordered_milestones.append(milestone)
+        return ordered_milestones
+
+    if observed_milestones is None:
+        return []
+
+    return sorted({str(x) for x in observed_milestones}, key=natural_edge_sort_key)
+
+
+def get_bursting_local_rule(dataset_name: str) -> Dict[str, Any]:
+    """Return the local matching rule for a Bursting-tree dataset."""
+    normalized_name = normalize_dataset_name(dataset_name)
+    return BURSTING_LOCAL_MATCHING_RULES.get(normalized_name, {})
+
+
+def resolve_bursting_reference_targets(
+    dataset_name: str,
+    cell_edge: str,
+    milestone_id: str,
+) -> Dict[str, Any]:
+    """Resolve the target Bursting-tree reference edge and milestones for one cell."""
+    dataset_rule = get_bursting_local_rule(dataset_name)
+    milestone_overrides = dataset_rule.get("milestone_overrides", {})
+    override = milestone_overrides.get(milestone_id)
+
+    if override is None:
+        return {
+            "reference_edge": cell_edge,
+            "candidate_milestones": [milestone_id],
+            "use_source_time_refinement": True,
+        }
+
+    return {
+        "reference_edge": str(override.get("reference_edge", cell_edge)),
+        "candidate_milestones": [str(x) for x in override.get("candidate_milestones", [milestone_id])],
+        "use_source_time_refinement": bool(override.get("use_source_time_refinement", False)),
+    }
 
 
 def determine_embedding_basis(adata: AnnData, velocity_key: str) -> BasisType:
@@ -2475,6 +2544,646 @@ def ensure_velocity_embedding_sim(adata: AnnData, velocity_key: str, basis: Basi
                 raise ValueError(f"Failed to compute velocity graph: {str(e)}") from e
 
         scv.tl.velocity_embedding(adata, basis=basis, vkey=velocity_key)
+
+
+# ============================================================================
+# SECTION 5 — SIMULATED DATA: LINEAGE-TRACING REFERENCE CURVE & DIRECTIONS
+# ============================================================================
+
+
+def build_lineage_tracing_knn_graph(points: np.ndarray, n_neighbors: int = 12) -> csr_matrix:
+    """Build an undirected KNN distance graph for lineage-tracing coordinates."""
+    n_cells = len(points)
+    if n_cells < 2:
+        raise ValueError("lineage-tracing requires at least two points to build a KNN graph.")
+
+    n_neighbors = max(2, min(int(n_neighbors), n_cells - 1))
+    nn = NearestNeighbors(n_neighbors=n_neighbors + 1)
+    nn.fit(points)
+    distances, indices = nn.kneighbors(points)
+
+    rows: List[int] = []
+    cols: List[int] = []
+    data: List[float] = []
+    for i in range(n_cells):
+      for dist, j in zip(distances[i][1:], indices[i][1:]):
+        rows.append(i)
+        cols.append(int(j))
+        data.append(float(dist))
+
+    graph = csr_matrix((data, (rows, cols)), shape=(n_cells, n_cells))
+    return graph.maximum(graph.T)
+
+
+def reconstruct_lineage_tracing_path(predecessors: np.ndarray, start_idx: int, end_idx: int) -> np.ndarray:
+    """Reconstruct a shortest path from Dijkstra predecessors."""
+    path = [int(end_idx)]
+    current = int(end_idx)
+    while current != int(start_idx):
+      current = int(predecessors[current])
+      if current < 0:
+        return np.array([start_idx, end_idx], dtype=int)
+      path.append(current)
+    path.reverse()
+    return np.asarray(path, dtype=int)
+
+
+def densify_lineage_tracing_polyline(points: np.ndarray, points_per_segment: int = 20) -> np.ndarray:
+    """Densify a polyline by linear interpolation."""
+    if len(points) <= 1:
+      return points.copy()
+
+    chunks = []
+    for i in range(len(points) - 1):
+      start = points[i]
+      end = points[i + 1]
+      t = np.linspace(0.0, 1.0, points_per_segment, endpoint=(i == len(points) - 2))
+      chunks.append(start[None, :] + (end - start)[None, :] * t[:, None])
+    return np.vstack(chunks)
+
+
+def fit_lineage_tracing_spline(
+    guide_points: np.ndarray,
+    n_samples: int = 200,
+    smoothing: float = 0.05,
+) -> np.ndarray:
+    """Fit a smooth 2D spline through guide points."""
+    if len(guide_points) <= 2:
+      return densify_lineage_tracing_polyline(guide_points, points_per_segment=max(12, n_samples))
+
+    k = min(3, len(guide_points) - 1)
+    try:
+      tck, _ = splprep(
+        [guide_points[:, 0], guide_points[:, 1]],
+        s=float(max(smoothing, 0.0)) * len(guide_points),
+        k=k,
+        per=False,
+      )
+      u_dense = np.linspace(0.0, 1.0, n_samples)
+      return np.column_stack(splev(u_dense, tck))
+    except Exception:
+      return densify_lineage_tracing_polyline(
+        guide_points,
+        points_per_segment=max(12, n_samples // max(1, len(guide_points) - 1)),
+      )
+
+
+def compress_lineage_tracing_path_points(path_points: np.ndarray, n_anchors: int = 9) -> np.ndarray:
+    """Reduce a dense path to evenly spaced anchor points."""
+    if len(path_points) <= n_anchors:
+      return path_points.copy()
+    anchor_idx = np.linspace(0, len(path_points) - 1, n_anchors).round().astype(int)
+    return path_points[anchor_idx]
+
+
+def filter_lineage_tracing_core_points(
+    points: np.ndarray,
+    n_neighbors: int = 12,
+    keep_ratio: float = 0.9,
+) -> np.ndarray:
+    """Keep the densest subset of points to reduce outliers in lineage-tracing."""
+    if len(points) <= max(20, n_neighbors + 1):
+      return points
+
+    n_neighbors = max(2, min(int(n_neighbors), len(points) - 1))
+    nn = NearestNeighbors(n_neighbors=n_neighbors + 1)
+    nn.fit(points)
+    distances, _ = nn.kneighbors(points)
+    mean_neighbor_distance = distances[:, 1:].mean(axis=1)
+    keep_n = max(n_neighbors + 1, int(np.ceil(len(points) * keep_ratio)))
+    keep_idx = np.argsort(mean_neighbor_distance)[:keep_n]
+    return points[np.sort(keep_idx)]
+
+
+def nearest_lineage_tracing_point_to_set(points: np.ndarray, target_points: np.ndarray) -> Tuple[int, float]:
+    """Return the point index nearest to any target point."""
+    distances = np.linalg.norm(points[:, None, :] - target_points[None, :, :], axis=2)
+    flat_idx = int(np.argmin(distances))
+    point_idx, target_idx = np.unravel_index(flat_idx, distances.shape)
+    return int(point_idx), float(distances[point_idx, target_idx])
+
+
+def choose_best_lineage_tracing_graph(
+    points: np.ndarray,
+    neighbor_options: Tuple[int, ...] = (8, 10, 12, 16, 20, 24),
+) -> Dict[str, Any]:
+    """Choose the KNN graph with the best connectivity coverage."""
+    best_result = None
+    for neighbors in neighbor_options:
+      graph = build_lineage_tracing_knn_graph(points, n_neighbors=min(neighbors, len(points) - 1))
+      distances = dijkstra(graph, directed=False, indices=0, return_predecessors=False)
+      finite_ratio = float(np.mean(np.isfinite(distances)))
+      if best_result is None or finite_ratio > best_result["finite_ratio"]:
+        best_result = {"graph": graph, "neighbors": neighbors, "finite_ratio": finite_ratio}
+      if finite_ratio >= 0.98:
+        break
+    if best_result is None:
+      raise ValueError("Failed to build a usable KNN graph for lineage-tracing.")
+    return best_result
+
+
+def build_lineage_tracing_internal_curve(
+    points: np.ndarray,
+    near_target_points: np.ndarray,
+    n_anchors: int = 9,
+    n_samples: int = 240,
+    smoothing: float = 0.08,
+    start_from_near: bool = True,
+) -> Dict[str, Any]:
+    """Build one internal lineage-tracing curve segment from a point cloud."""
+    graph_info = choose_best_lineage_tracing_graph(points)
+    graph = graph_info["graph"]
+
+    near_idx, _ = nearest_lineage_tracing_point_to_set(points, near_target_points)
+    distances_from_near = dijkstra(graph, directed=False, indices=near_idx, return_predecessors=False)
+    finite_from_near = np.where(np.isfinite(distances_from_near))[0]
+    far_idx = int(finite_from_near[np.argmax(distances_from_near[finite_from_near])])
+
+    distances, predecessors = dijkstra(graph, directed=False, indices=near_idx, return_predecessors=True)
+    if not np.isfinite(distances[far_idx]):
+      path_points = np.vstack([points[near_idx], points[far_idx]])
+    else:
+      path_indices = reconstruct_lineage_tracing_path(predecessors, near_idx, far_idx)
+      path_points = points[path_indices]
+
+    if not start_from_near:
+      path_points = path_points[::-1]
+
+    guide_points = compress_lineage_tracing_path_points(path_points, n_anchors=n_anchors)
+    curve = fit_lineage_tracing_spline(guide_points, n_samples=n_samples, smoothing=smoothing)
+    return {
+      "start_point": path_points[0],
+      "end_point": path_points[-1],
+      "path_points": path_points,
+      "guide_points": guide_points,
+      "curve": curve,
+      "finite_ratio": float(graph_info["finite_ratio"]),
+      "neighbors": int(graph_info["neighbors"]),
+    }
+
+
+def build_lineage_tracing_bridge_curve(
+    points: np.ndarray,
+    start_target: np.ndarray,
+    end_target: np.ndarray,
+    n_samples: int = 90,
+) -> Dict[str, Any]:
+    """Build the bridge curve through cluster_9 for lineage-tracing."""
+    start_idx = int(np.argmin(np.linalg.norm(points - start_target, axis=1)))
+    end_idx = int(np.argmin(np.linalg.norm(points - end_target, axis=1)))
+    start_point = points[start_idx]
+    end_point = points[end_idx]
+    center_point = np.median(points, axis=0)
+
+    guide_points = np.vstack([start_point, center_point, end_point])
+    curve = densify_lineage_tracing_polyline(
+      guide_points,
+      points_per_segment=max(12, n_samples // max(1, len(guide_points) - 1)),
+    )
+    return {
+      "start_point": start_point,
+      "end_point": end_point,
+      "path_points": guide_points,
+      "guide_points": guide_points,
+      "curve": curve,
+    }
+
+
+def build_lineage_tracing_reference_model(
+    adata: AnnData,
+    milestone_key: str,
+    basis: BasisType = "umap",
+) -> Dict[str, Any]:
+    """Build the three-part lineage-tracing reference model using KNN + Dijkstra paths."""
+    embedding_key = f"X_{basis}"
+    if embedding_key not in adata.obsm:
+      raise ValueError(f"lineage-tracing is missing basis coordinates: {embedding_key}")
+
+    coords_2d = np.asarray(adata.obsm[embedding_key])[:, :2]
+    labels = adata.obs[milestone_key].astype(str).to_numpy()
+    path = ["cluster_13", "cluster_36", "cluster_9", "cluster_22"]
+    missing = [cluster for cluster in path if cluster not in set(labels)]
+    if missing:
+      raise ValueError(f"lineage-tracing is missing required clusters: {missing}")
+
+    cluster22_points = coords_2d[labels == "cluster_22"]
+    cluster9_points = coords_2d[labels == "cluster_9"]
+    cluster13_points = coords_2d[labels == "cluster_13"]
+    cluster36_points = coords_2d[labels == "cluster_36"]
+    cluster1336_points = np.vstack([cluster13_points, cluster36_points])
+
+    cluster1336_core_points = filter_lineage_tracing_core_points(cluster1336_points, n_neighbors=12, keep_ratio=0.90)
+    cluster9_core_points = filter_lineage_tracing_core_points(cluster9_points, n_neighbors=10, keep_ratio=0.88)
+
+    cluster1336_model = build_lineage_tracing_internal_curve(
+      cluster1336_core_points,
+      near_target_points=cluster9_points,
+      n_anchors=7,
+      n_samples=180,
+      smoothing=0.05,
+      start_from_near=False,
+    )
+    cluster22_model = build_lineage_tracing_internal_curve(
+      cluster22_points,
+      near_target_points=cluster9_core_points,
+      n_anchors=9,
+      n_samples=260,
+      smoothing=0.08,
+      start_from_near=True,
+    )
+    cluster9_model = build_lineage_tracing_bridge_curve(
+      cluster9_points,
+      start_target=cluster1336_model["end_point"],
+      end_target=cluster22_model["start_point"],
+      n_samples=90,
+    )
+    connector_1336_to_9 = densify_lineage_tracing_polyline(
+      np.vstack([cluster1336_model["curve"][-1], cluster9_model["curve"][0]]),
+      points_per_segment=18,
+    )
+    connector_9_to_22 = densify_lineage_tracing_polyline(
+      np.vstack([cluster9_model["curve"][-1], cluster22_model["curve"][0]]),
+      points_per_segment=18,
+    )
+
+    full_curve = np.vstack([
+      cluster1336_model["curve"],
+      connector_1336_to_9[1:],
+      cluster9_model["curve"][1:],
+      connector_9_to_22[1:],
+      cluster22_model["curve"][1:],
+    ])
+    return {"path": path, "full_curve": full_curve}
+
+
+def calculate_reference_directions_for_lineage_tracing(
+    adata: AnnData,
+    milestone_key: str,
+    basis: BasisType = "umap",
+) -> np.ndarray:
+    """Calculate lineage-tracing reference directions using the sampled KNN/Dijkstra reference curve."""
+    model = build_lineage_tracing_reference_model(adata, milestone_key, basis)
+    coords_2d = np.asarray(adata.obsm[f"X_{basis}"])[:, :2]
+    reference_directions = np.zeros((adata.n_obs, 2), dtype=float)
+    curve = model["full_curve"]
+    path_cells_mask = adata.obs[milestone_key].astype(str).isin(model["path"]).to_numpy()
+
+    for cell_idx in np.where(path_cells_mask)[0]:
+      point = coords_2d[cell_idx]
+      nearest_idx = int(np.argmin(np.linalg.norm(curve - point, axis=1)))
+      left_idx = max(nearest_idx - 1, 0)
+      right_idx = min(nearest_idx + 1, len(curve) - 1)
+      tangent = curve[right_idx] - curve[left_idx]
+      tangent_norm = float(np.linalg.norm(tangent))
+      if tangent_norm > 1e-8:
+        reference_directions[cell_idx] = tangent / tangent_norm
+    return reference_directions
+
+
+# ============================================================================
+# SECTION 6 — SIMULATED DATA: BURSTING-TREE REFERENCE CURVE & DIRECTIONS
+# ============================================================================
+
+
+def get_bursting_embedding(adata: AnnData, basis: BasisType) -> np.ndarray:
+    """Return Bursting-tree embedding coordinates, preferring X_{basis} and falling back to X_tsne."""
+    embedding_key = f"X_{basis}"
+    if embedding_key in adata.obsm:
+      return np.asarray(adata.obsm[embedding_key])
+    if basis == "dimred" and "X_tsne" in adata.obsm:
+      return np.asarray(adata.obsm["X_tsne"])
+    raise ValueError(f"Bursting-tree is missing basis coordinates: {embedding_key}")
+
+
+def choose_bursting_medoid_with_time(window_df: pd.DataFrame) -> np.ndarray:
+    """Choose a local medoid anchor and keep its pseudo-time."""
+    pts = window_df[["x", "y"]].to_numpy()
+    center = np.median(pts, axis=0)
+    idx = int(np.argmin(np.linalg.norm(pts - center, axis=1)))
+    row = window_df.iloc[idx]
+    return np.array([row["x"], row["y"], row["cell_time_ref"]], dtype=float)
+
+
+def extract_bursting_overlapping_anchors(chunk_df: pd.DataFrame) -> np.ndarray:
+    """Extract overlapping anchors along pseudo-time for one Bursting-tree chunk."""
+    ordered = chunk_df.sort_values("cell_time_ref").reset_index(drop=True)
+    n = len(ordered)
+    if n <= 2:
+      return ordered[["x", "y", "cell_time_ref"]].to_numpy(dtype=float)
+
+    n_centers = max(7, min(28, n // 18))
+    window = max(18, min(90, n // 6))
+    centers = np.linspace(0, n - 1, n_centers).round().astype(int)
+
+    anchors: List[np.ndarray] = [ordered.loc[0, ["x", "y", "cell_time_ref"]].to_numpy(dtype=float)]
+    for center_idx in centers:
+      left = max(0, center_idx - window // 2)
+      right = min(n, center_idx + window // 2 + 1)
+      anchors.append(choose_bursting_medoid_with_time(ordered.iloc[left:right]))
+    anchors.append(ordered.loc[n - 1, ["x", "y", "cell_time_ref"]].to_numpy(dtype=float))
+
+    deduped = [anchors[0]]
+    for anchor in anchors[1:]:
+      if np.linalg.norm(anchor[:2] - deduped[-1][:2]) > 1e-6:
+        deduped.append(anchor)
+    return np.asarray(deduped, dtype=float)
+
+
+def fit_bursting_curve(points: np.ndarray, n_samples: int = 220) -> np.ndarray:
+    """Fit a shape-preserving Bursting-tree curve through anchor points."""
+    if len(points) <= 1:
+      return points.copy()
+    if len(points) == 2:
+      t = np.linspace(0.0, 1.0, n_samples)
+      return points[0] + (points[1] - points[0]) * t[:, None]
+
+    deltas = np.linalg.norm(np.diff(points, axis=0), axis=1)
+    cumulative = np.concatenate([[0.0], np.cumsum(deltas)])
+    total = float(cumulative[-1])
+    if total < 1e-8:
+      return np.repeat(points[:1], n_samples, axis=0)
+
+    normalized_t = cumulative / total
+    dense_t = np.linspace(0.0, 1.0, n_samples)
+    x_interp = PchipInterpolator(normalized_t, points[:, 0])
+    y_interp = PchipInterpolator(normalized_t, points[:, 1])
+    return np.column_stack([x_interp(dense_t), y_interp(dense_t)])
+
+
+def split_bursting_ordered_cells(ordered_df: pd.DataFrame) -> List[pd.DataFrame]:
+    """Split one edge into local chunks when there are large geometric jumps."""
+    if len(ordered_df) <= 2:
+      return [ordered_df.reset_index(drop=True)]
+
+    pts = ordered_df[["x", "y"]].to_numpy()
+    steps = np.linalg.norm(np.diff(pts, axis=0), axis=1)
+    if len(steps) == 0:
+      return [ordered_df.reset_index(drop=True)]
+
+    median_step = float(np.median(steps))
+    q90 = float(np.quantile(steps, 0.90))
+    q99 = float(np.quantile(steps, 0.99))
+    threshold = max(max(median_step, 1e-6) * 6.0, q90 * 3.0, q99 * 1.8)
+    split_after = [idx for idx, dist in enumerate(steps) if dist > threshold]
+    if not split_after:
+      return [ordered_df.reset_index(drop=True)]
+
+    chunks: List[pd.DataFrame] = []
+    start = 0
+    for idx in split_after:
+      chunk = ordered_df.iloc[start:idx + 1].reset_index(drop=True)
+      if len(chunk) >= 2:
+        chunks.append(chunk)
+      start = idx + 1
+    tail = ordered_df.iloc[start:].reset_index(drop=True)
+    if len(tail) >= 2:
+      chunks.append(tail)
+    return chunks if chunks else [ordered_df.reset_index(drop=True)]
+
+
+def build_bursting_milestone_windows(chunk_df: pd.DataFrame) -> Dict[str, Tuple[float, float]]:
+    """Build non-overlapping pseudo-time windows for milestones within one Bursting edge chunk."""
+    grouped = (
+      chunk_df.groupby("milestone_id", sort=False, observed=False)["cell_time_ref"]
+      .agg(["min", "max", "median"])
+      .reset_index()
+      .sort_values(["median", "min"])
+      .reset_index(drop=True)
+    )
+
+    windows: Dict[str, Tuple[float, float]] = {}
+    if grouped.empty:
+      return windows
+
+    for idx, row in grouped.iterrows():
+      current_min = float(row["min"])
+      current_max = float(row["max"])
+      lower = current_min if idx == 0 else 0.5 * (float(grouped.loc[idx - 1, "max"]) + current_min)
+      upper = current_max if idx == len(grouped) - 1 else 0.5 * (current_max + float(grouped.loc[idx + 1, "min"]))
+      windows[str(row["milestone_id"])] = (lower, upper)
+    return windows
+
+
+def build_bursting_reference_segments(
+    adata: AnnData,
+    basis: BasisType,
+    reference_key: str,
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Build per-edge Bursting-tree reference segments."""
+    embedding = get_bursting_embedding(adata, basis)
+    obs_df = adata.obs.copy()
+    obs_df["x"] = embedding[:, 0]
+    obs_df["y"] = embedding[:, 1]
+    obs_df["obs_index"] = np.arange(adata.n_obs)
+    obs_df["milestone_id"] = adata.obs[reference_key].astype(str).values
+
+    segments_by_edge: Dict[str, List[Dict[str, Any]]] = {}
+    for edge_id, sub in obs_df.groupby("edge_id", sort=False, observed=False):
+      ordered = sub.sort_values("cell_time_ref").reset_index(drop=True)
+      edge_segments: List[Dict[str, Any]] = []
+      for chunk_id, chunk_df in enumerate(split_bursting_ordered_cells(ordered)):
+        anchors = extract_bursting_overlapping_anchors(chunk_df)
+        curve = fit_bursting_curve(anchors[:, :2], n_samples=max(160, min(360, len(chunk_df) * 3)))
+        dense_time = np.linspace(float(anchors[0, 2]), float(anchors[-1, 2]), len(curve))
+        edge_segments.append({
+          "edge_id": str(edge_id),
+          "chunk_id": chunk_id,
+          "curve": curve,
+          "dense_time": dense_time,
+          "obs_indices": chunk_df["obs_index"].to_numpy(dtype=int),
+          "milestone_windows": build_bursting_milestone_windows(chunk_df),
+          "label_position": np.array([float(chunk_df["x"].median()), float(chunk_df["y"].median())]),
+          "anchors": anchors[:, :2],
+        })
+      segments_by_edge[str(edge_id)] = edge_segments
+    return segments_by_edge
+
+
+def get_bursting_candidate_indices_for_segment(
+    segment: Dict[str, Any],
+    candidate_milestones: List[str],
+) -> np.ndarray:
+    """Select candidate indices on one Bursting reference segment for the target milestones."""
+    curve = segment["curve"]
+    dense_time = segment["dense_time"]
+    windows = segment["milestone_windows"]
+
+    index_groups: List[np.ndarray] = []
+    for milestone_id in candidate_milestones:
+      window = windows.get(milestone_id)
+      if window is None:
+        continue
+      lower, upper = window
+      indices = np.where((dense_time >= lower) & (dense_time <= upper))[0]
+      if len(indices) >= 1:
+        index_groups.append(indices)
+
+    if not index_groups:
+      return np.array([], dtype=int)
+
+    candidate_indices = np.unique(np.concatenate(index_groups))
+    if len(candidate_indices) < 2:
+      center = int(candidate_indices[0])
+      left = max(0, center - 2)
+      right = min(len(curve), center + 3)
+      candidate_indices = np.arange(left, right, dtype=int)
+    return candidate_indices
+
+
+def refine_bursting_indices_by_time(
+    candidate_indices: np.ndarray,
+    segment: Dict[str, Any],
+    milestone_id: str,
+    cell_time_ref: float,
+) -> np.ndarray:
+    """Refine local Bursting candidate indices using the cell pseudo-time within one milestone window."""
+    if len(candidate_indices) < 12:
+      return candidate_indices
+
+    window = segment["milestone_windows"].get(milestone_id)
+    if window is None:
+      return candidate_indices
+    lower, upper = window
+    if upper - lower < 1e-8:
+      return candidate_indices
+
+    alpha = float(np.clip((cell_time_ref - lower) / (upper - lower), 0.0, 1.0))
+    center = int(round(alpha * (len(candidate_indices) - 1)))
+    half_span = max(6, len(candidate_indices) // 5)
+    left = max(0, center - half_span)
+    right = min(len(candidate_indices), center + half_span + 1)
+    refined = candidate_indices[left:right]
+    return refined if len(refined) >= 2 else candidate_indices
+
+
+def calculate_reference_directions_for_bursting(
+    adata: AnnData,
+    dataset_name: str,
+    basis: BasisType = "dimred",
+    reference_key: str = "milestone_id",
+) -> np.ndarray:
+    """Calculate Bursting-tree reference directions using edge-local reference curves."""
+    required_columns = {"edge_id", "cell_time_ref", reference_key}
+    missing = required_columns - set(adata.obs.columns)
+    if missing:
+      raise ValueError(f"Bursting-tree is missing required columns: {sorted(missing)}")
+
+    embedding = get_bursting_embedding(adata, basis)
+    reference_directions = np.zeros((adata.n_obs, 2))
+    segments_by_edge = build_bursting_reference_segments(adata, basis, reference_key)
+    edge_series = adata.obs["edge_id"].astype(str)
+    milestone_series = adata.obs[reference_key].astype(str)
+
+    for obs_idx in range(adata.n_obs):
+      point = embedding[obs_idx]
+      milestone_id = str(milestone_series.iloc[obs_idx])
+      cell_edge = str(edge_series.iloc[obs_idx])
+      cell_time_ref = float(adata.obs.iloc[obs_idx]["cell_time_ref"])
+
+      target_rule = resolve_bursting_reference_targets(
+        dataset_name=dataset_name,
+        cell_edge=cell_edge,
+        milestone_id=milestone_id,
+      )
+      reference_edge = str(target_rule["reference_edge"])
+      candidate_milestones = [str(x) for x in target_rule["candidate_milestones"]]
+      use_source_time_refinement = bool(target_rule["use_source_time_refinement"])
+
+      best_tangent = None
+      best_dist = float("inf")
+      for segment in segments_by_edge.get(reference_edge, []):
+        curve = segment["curve"]
+        if len(curve) < 2:
+          continue
+        candidate_indices = get_bursting_candidate_indices_for_segment(segment, candidate_milestones)
+        if len(candidate_indices) == 0:
+          continue
+        if use_source_time_refinement:
+          candidate_indices = refine_bursting_indices_by_time(candidate_indices, segment, milestone_id, cell_time_ref)
+
+        local_curve = curve[candidate_indices]
+        best_local = int(np.argmin(np.linalg.norm(local_curve - point, axis=1)))
+        best_idx = int(candidate_indices[best_local])
+        dist = float(np.linalg.norm(curve[best_idx] - point))
+        left_idx = max(best_idx - 1, 0)
+        right_idx = min(best_idx + 1, len(curve) - 1)
+        tangent = curve[right_idx] - curve[left_idx]
+        tangent_norm = np.linalg.norm(tangent)
+        if tangent_norm < 1e-8:
+          continue
+        if dist < best_dist:
+          best_dist = dist
+          best_tangent = tangent / tangent_norm
+
+      if best_tangent is not None:
+        reference_directions[obs_idx] = best_tangent
+    return reference_directions
+
+
+def plot_bursting_reference_curves_visualization(
+    adata: AnnData,
+    display_key: str,
+    reference_key: str,
+    basis: BasisType,
+    png_path: str,
+    method_name: str,
+    dataset_name: str,
+) -> None:
+    """Plot an edge-level QA figure for Bursting-tree reference curves."""
+    del reference_key
+    palette_30_4 = [
+      "#d73027", "#fc8d59", "#fee090", "#91bfdb", "#4575b4", "#66c2a5",
+      "#3288bd", "#abdda4", "#e6f598", "#fee08b", "#f46d43", "#e7298a",
+      "#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c",
+      "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a", "#ffff99", "#b15928",
+      "#8dd3c7", "#bc80bd", "#ccebc5", "#ffed6f", "#999999", "#8B0000",
+      "#006400", "#FF69B4", "#00CED1", "#FFD700",
+    ]
+
+    embedding = get_bursting_embedding(adata, basis)
+    segments_by_edge = build_bursting_reference_segments(adata, basis, get_bursting_reference_key(adata))
+    obs_df = adata.obs.copy()
+    obs_df["x"] = embedding[:, 0]
+    obs_df["y"] = embedding[:, 1]
+
+    expected_edges = get_bursting_expected_display_milestones(dataset_name, adata.obs[display_key].astype(str).unique())
+    observed_edges = [str(x) for x in adata.obs[display_key].astype(str).unique()]
+    ordered_edges = [edge for edge in expected_edges if edge in observed_edges]
+    ordered_edges.extend(edge for edge in sorted(observed_edges, key=natural_edge_sort_key) if edge not in ordered_edges)
+    edge_colors = {edge_id: palette_30_4[idx % len(palette_30_4)] for idx, edge_id in enumerate(ordered_edges)}
+
+    _, ax = plt.subplots(figsize=(10, 10))
+    for edge_id in ordered_edges:
+      sub = obs_df.loc[obs_df[display_key].astype(str) == edge_id]
+      if sub.empty:
+        continue
+      ax.scatter(sub["x"], sub["y"], s=10, alpha=0.5, c=edge_colors[edge_id], label=edge_id, edgecolors="none", zorder=1)
+
+    for edge_id, segments in segments_by_edge.items():
+      for segment in segments:
+        curve = segment["curve"]
+        anchors = segment["anchors"]
+        ax.plot(curve[:, 0], curve[:, 1], color="black", linewidth=2.2, alpha=0.95, zorder=3)
+        ax.scatter(anchors[:, 0], anchors[:, 1], s=14, c="black", alpha=0.85, zorder=4)
+      label_pos = np.median(np.vstack([segment["label_position"] for segment in segments]), axis=0)
+      ax.text(label_pos[0], label_pos[1], edge_id, fontsize=11, fontweight="bold", ha="center", va="center", color="black", zorder=5)
+
+    ax.set_title(f"{method_name} {dataset_name} Bursting reference curves", fontsize=14)
+    ax.set_aspect("equal", adjustable="datalim")
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles, labels, loc="center left", bbox_to_anchor=(1.02, 0.5), fontsize=9, framealpha=0.9)
+    plt.tight_layout()
+    plt.savefig(png_path, format="png", dpi=300, bbox_inches="tight")
+    plt.close()
+
+
+# ============================================================================
+# SECTION 7 — SIMULATED DATA: ANGLE STATS, TOPOLOGY INFERENCE & MILESTONES
+# ============================================================================
 
 
 def calculate_angle_distribution_stats_simulation(
@@ -2647,6 +3356,10 @@ def infer_topology_from_dataset_name(
 
     if normalized_name.startswith('cellsub') or normalized_name.startswith('genesub'):
         return 'bifurcating'
+    if 'lineage-tracing' in normalized_name or 'lineage_tracing' in normalized_name:
+        return 'lineage-tracing'
+    if 'bursting-tree' in normalized_name or 'bursting_tree' in normalized_name:
+        return 'bursting-tree'
 
     topology_keywords = [
         'consecutive-bifurcating', 'consecutive_bifurcating',
@@ -2709,11 +3422,18 @@ def infer_topology_from_dataset_name(
         if available_milestones == bifurcating_milestones:
             return 'bifurcating'
 
+        if {'cluster_13', 'cluster_36', 'cluster_9', 'cluster_22'}.issubset(available_milestones):
+            return 'lineage-tracing'
+
+        if {'edge01', 'edge02'}.issubset(available_milestones) or 'milestone_id' in adata.obs.columns:
+            return 'bursting-tree'
+
     raise ValueError(
         f"Failed to infer topology type from dataset_name '{dataset_name}'.\n"
         f"Please specify --topology-type explicitly, or ensure dataset_name contains a topology keyword.\n"
         f"Supported: bifurcating, linear-simple, cycle-simple, trifurcating, "
-        f"consecutive-bifurcating, bifurcating-loop, disconnected, linear-bifurcating, linear-linear.\n"
+        f"consecutive-bifurcating, bifurcating-loop, disconnected, linear-bifurcating, linear-linear, "
+        f"lineage-tracing, Bursting-tree.\n"
         f"Subsampled datasets: names starting with cellsub_* or genesub_* (treated as bifurcating)."
     )
 
@@ -2888,6 +3608,53 @@ def standardize_milestone_column(adata: AnnData, milestone_key: str) -> None:
     adata.obs[milestone_key] = normalized_milestones
 
 
+def resolve_simulation_milestone_key(
+    adata: AnnData,
+    dataset_name: str,
+    topology_type: str,
+    requested_milestone_key: str = "milestone",
+) -> str:
+    """Resolve a usable milestone column for ordinary simulated datasets."""
+    if requested_milestone_key in adata.obs.columns:
+        return requested_milestone_key
+
+    expected_milestones = {
+        normalize_milestone_names(ms)
+        for ms in get_expected_milestones_for_topology(topology_type, dataset_name)
+    }
+
+    preferred_candidates = [
+        "synthetic_celllabel",
+        "cell_type",
+        "celltype",
+        "celltypes",
+        "clusters",
+        "cluster",
+        "milestones",
+        "state",
+        "pop",
+    ]
+    candidate_columns = [
+        col for col in preferred_candidates if col in adata.obs.columns and col != requested_milestone_key
+    ]
+    candidate_columns.extend(
+        col for col in adata.obs.columns if col not in candidate_columns and col != requested_milestone_key
+    )
+
+    for column in candidate_columns:
+        normalized_values = {
+            normalize_milestone_names(value)
+            for value in adata.obs[column].astype(str).unique()
+        }
+        if expected_milestones.issubset(normalized_values):
+            return column
+
+    raise KeyError(
+        f"Milestone key '{requested_milestone_key}' was not found, and no alternative obs column "
+        f"fully covered the expected milestones: {sorted(expected_milestones)}"
+    )
+
+
 def validate_milestones_for_simulation(
     expected_milestones: List[str],
     available_milestones: np.ndarray,
@@ -2927,6 +3694,11 @@ def ensure_milestone_order(adata: AnnData, milestone_key: str, expected_mileston
         categories=ordered_categories,
         ordered=True
     )
+
+
+# ============================================================================
+# SECTION 8 — SIMULATED DATA: TOPOLOGY-SPECIFIC GUIDE POINTS & TRAJECTORY
+# ============================================================================
 
 
 def get_spline_degree_for_segment(
@@ -4654,6 +5426,11 @@ def calculate_reference_directions_from_trajectory(
     return reference_directions
 
 
+# ============================================================================
+# SECTION 9 — SIMULATED DATA: PLOTTING & DATASET ANALYSIS
+# ============================================================================
+
+
 def plot_angle_rose_diagrams_simulation(
     adata: AnnData,
     angles: np.ndarray,
@@ -5224,12 +6001,14 @@ def analyze_simulation_velocity_consistency(
     velocity_key: str = "velocity",
     milestone_key: str = "milestone",
     n_jobs: int = 1,
+    basis_name: str = "dimred",
     ground_truth_velocity_key: str = "ground_truth_velocity",
     benchmark_csv_path: Optional[str] = None,
     use_gt_velocity_enhancement: bool = False,
     plot_reference_curves: bool = False,
     reference_curves_dir: Optional[str] = None,
-    npz_base_dir: Optional[str] = None
+    reference_dir: Optional[str] = None,
+    differentiation_paths: Optional[List[List[str]]] = None,
 ) -> AnalysisResult:
     """
     Analyze velocity direction consistency for a simulated dataset.
@@ -5254,7 +6033,8 @@ def analyze_simulation_velocity_consistency(
         use_gt_velocity_enhancement: Whether to apply optional GT-velocity-based guide-point tweaks.
         plot_reference_curves: Whether to save a reference-curve QA plot.
         reference_curves_dir: Output directory for reference-curve plot.
-        npz_base_dir: GT npz base directory (passed through; used by GT restoration helpers).
+        reference_dir: Optional reference directory used by special simulated topologies.
+        differentiation_paths: Optional fallback paths for unknown user-defined topologies.
     """
 
     dataset_name = normalize_dataset_name(dataset)
@@ -5267,9 +6047,6 @@ def analyze_simulation_velocity_consistency(
     os.makedirs(png_dir, exist_ok=True)
 
     try:
-        if milestone_key not in adata.obs.columns:
-            raise KeyError(f"Milestone key '{milestone_key}' not found in adata.obs")
-
         has_high_dim_velocity = velocity_key in adata.layers
         has_low_dim_velocity = f"{velocity_key}_dimred" in adata.obsm or f"{velocity_key}_umap" in adata.obsm
 
@@ -5286,10 +6063,51 @@ def analyze_simulation_velocity_consistency(
                 milestone_key=milestone_key
             )
 
-        if 'X_dimred' not in adata.obsm and 'X_umap' not in adata.obsm:
-            raise ValueError("Neither X_dimred nor X_umap is available in adata.obsm")
+        normalized_topology = normalize_topology_type(topology_type)
+        is_bursting = normalized_topology == "bursting-tree"
+        is_lineage = normalized_topology == "lineage-tracing"
 
-        basis = determine_embedding_basis(adata, velocity_key)
+        if is_lineage:
+            if "synthetic_celllabel" not in adata.obs.columns:
+                warning_msg = (
+                    f"WARNING: lineage-tracing requires reference-provided synthetic_celllabel/X_basis. "
+                    f"Please provide a valid --reference-dir for dataset '{dataset_name}'."
+                )
+                print(warning_msg)
+                raise ValueError(warning_msg)
+            analysis_milestone_key = "synthetic_celllabel"
+            reference_milestone_key = "synthetic_celllabel"
+            basis = "umap"
+            if "X_umap" not in adata.obsm:
+                raise ValueError("lineage-tracing requires X_umap from the reference alignment step.")
+        elif is_bursting:
+            required_columns = {"edge_id", "cell_time_ref", "lineage_id", "milestone_id"}
+            missing_required = [col for col in sorted(required_columns) if col not in adata.obs.columns]
+            if missing_required:
+                warning_msg = (
+                    f"WARNING: Bursting-tree requires reference metadata {missing_required}. "
+                    f"Please provide a valid --reference-dir for dataset '{dataset_name}'."
+                )
+                print(warning_msg)
+                raise ValueError(warning_msg)
+            analysis_milestone_key = "edge_id"
+            reference_milestone_key = get_bursting_reference_key(adata)
+            basis = basis_name
+        else:
+            if milestone_key not in adata.obs.columns:
+                raise KeyError(f"Milestone key '{milestone_key}' not found in adata.obs")
+            analysis_milestone_key = resolve_simulation_milestone_key(
+                adata=adata,
+                dataset_name=dataset_name,
+                topology_type=normalized_topology,
+                requested_milestone_key=milestone_key,
+            )
+            reference_milestone_key = analysis_milestone_key
+            basis = basis_name
+
+        basis_key = f"X_{basis}"
+        if basis_key not in adata.obsm:
+            raise ValueError(f"Missing low-dimensional basis coordinates: adata.obsm['{basis_key}']")
 
         if has_high_dim_velocity:
             ensure_velocity_embedding_sim(adata, velocity_key, basis, n_jobs=n_jobs)
@@ -5313,36 +6131,92 @@ def analyze_simulation_velocity_consistency(
                 # No GT velocity available (neither low-dim nor high-dim); disable enhancement.
                 use_gt_velocity_enhancement = False
 
-        # Normalize milestone names
-        standardize_milestone_column(adata, milestone_key)
+        if is_bursting:
+            available_display_milestones = adata.obs[analysis_milestone_key].astype(str).unique()
+            expected_display_milestones = get_bursting_expected_display_milestones(
+                dataset_name,
+                available_display_milestones,
+            )
+            validated_milestones = validate_milestones_for_simulation(
+                expected_display_milestones,
+                available_display_milestones,
+                dataset_name,
+            )
+            ensure_milestone_order(adata, analysis_milestone_key, validated_milestones)
+            ordered_valid_milestones_for_plot = [
+                milestone for milestone in expected_display_milestones
+                if milestone in validated_milestones
+            ]
 
-        # Expected milestone list for this topology
-        expected_milestones = get_expected_milestones_for_topology(topology_type, dataset_name)
+            expected_reference_milestones = get_bursting_expected_reference_milestones(
+                dataset_name,
+                adata.obs[reference_milestone_key].astype(str).unique(),
+            )
+            missing_reference = (
+                set(expected_reference_milestones) -
+                set(adata.obs[reference_milestone_key].astype(str).unique())
+            )
+            if missing_reference:
+                raise ValueError(
+                    f"Bursting-tree dataset '{dataset_name}' is missing required reference milestones: "
+                    f"{sorted(missing_reference)}"
+                )
 
-        # Available milestones in data
-        available_milestones = adata.obs[milestone_key].unique()
+            reference_directions = calculate_reference_directions_for_bursting(
+                adata=adata,
+                dataset_name=dataset_name,
+                basis=basis,
+                reference_key=reference_milestone_key,
+            )
+        elif is_lineage:
+            ordered_valid_milestones_for_plot = [
+                cluster for cluster in ["cluster_13", "cluster_36", "cluster_9", "cluster_22"]
+                if cluster in set(adata.obs[analysis_milestone_key].astype(str).unique())
+            ]
+            reference_directions = calculate_reference_directions_for_lineage_tracing(
+                adata=adata,
+                milestone_key=analysis_milestone_key,
+                basis=basis,
+            )
+        else:
+            standardize_milestone_column(adata, analysis_milestone_key)
+            available_milestones = adata.obs[analysis_milestone_key].unique()
 
-        # Validate required milestones
-        validated_milestones = validate_milestones_for_simulation(
-            expected_milestones, available_milestones, dataset_name
-        )
-
-        # Ensure milestone order (categorical)
-        ensure_milestone_order(adata, milestone_key, validated_milestones)
-
-        # Re-order for stable coloring/plotting
-        ordered_valid_milestones_for_plot = [ms for ms in expected_milestones if ms in validated_milestones]
-
-        # ===== Core: reference directions from fitted trajectory curve(s) =====
-        reference_directions = calculate_reference_directions_from_trajectory(
-            adata=adata,
-            milestone_key=milestone_key,
-            topology_type=topology_type,
-            dataset_name=dataset_name,
-            basis=basis,
-            use_gt_velocity_enhancement=use_gt_velocity_enhancement,
-            ground_truth_velocity_key=ground_truth_velocity_key
-        )
+            try:
+                expected_milestones = get_expected_milestones_for_topology(normalized_topology, dataset_name)
+                validated_milestones = validate_milestones_for_simulation(
+                    expected_milestones, available_milestones, dataset_name
+                )
+                ensure_milestone_order(adata, analysis_milestone_key, validated_milestones)
+                ordered_valid_milestones_for_plot = [ms for ms in expected_milestones if ms in validated_milestones]
+                reference_directions = calculate_reference_directions_from_trajectory(
+                    adata=adata,
+                    milestone_key=reference_milestone_key,
+                    topology_type=normalized_topology,
+                    dataset_name=dataset_name,
+                    basis=basis,
+                    use_gt_velocity_enhancement=use_gt_velocity_enhancement,
+                    ground_truth_velocity_key=ground_truth_velocity_key,
+                )
+            except Exception:
+                if not differentiation_paths:
+                    raise ValueError(
+                        "Unknown or unsupported simulated topology. "
+                        "Please provide differentiation_paths for user-defined simulated data."
+                    )
+                validated_milestones = validate_milestones_for_simulation(
+                    [milestone for path in differentiation_paths for milestone in path],
+                    available_milestones,
+                    dataset_name,
+                )
+                ensure_milestone_order(adata, analysis_milestone_key, validated_milestones)
+                ordered_valid_milestones_for_plot = [ms for path in differentiation_paths for ms in path if ms in validated_milestones]
+                reference_directions = calculate_reference_directions_from_basic_paths(
+                    adata=adata,
+                    differentiation_paths=differentiation_paths,
+                    basis_name=basis,
+                    milestone_key=analysis_milestone_key,
+                )
 
         # Predicted velocity in the chosen embedding
         predicted_velocity_embedding_key = f"{velocity_key}_{basis}"
@@ -5353,7 +6227,7 @@ def analyze_simulation_velocity_consistency(
         predicted_velocities_embedding = adata.obsm[predicted_velocity_embedding_key]
 
         # Compute angles (in embedding space) against the reference tangent directions.
-        valid_cells_mask_series = adata.obs[milestone_key].astype(str).isin(ordered_valid_milestones_for_plot)
+        valid_cells_mask_series = adata.obs[analysis_milestone_key].astype(str).isin(ordered_valid_milestones_for_plot)
         valid_cells_mask = valid_cells_mask_series.values
         angles = np.full(adata.n_obs, np.nan)
         cosine_similarities = np.full(adata.n_obs, np.nan)
@@ -5381,7 +6255,7 @@ def analyze_simulation_velocity_consistency(
         
         # Angle distribution stats (always computed for reproducibility; writing is optional)
         angle_stats = calculate_angle_distribution_stats_simulation(
-            angles, adata, milestone_key, ordered_valid_milestones_for_plot, valid_cells_mask
+            angles, adata, analysis_milestone_key, ordered_valid_milestones_for_plot, valid_cells_mask
         )
 
         # Overall 0-60 degree percentage (always computed; writing is optional)
@@ -5392,7 +6266,7 @@ def analyze_simulation_velocity_consistency(
         if benchmark_csv_path:
             df_long = _build_benchmark_long_rows(
                 data_type="sim",
-                tool=tool,
+                method=tool,
                 dataset=dataset_name,
                 group_type="milestone",
                 group_to_stats=angle_stats,
@@ -5408,7 +6282,7 @@ def analyze_simulation_velocity_consistency(
         
         # Rose plot
         plot_angle_rose_diagrams_simulation(
-            adata, angles, milestone_key, ordered_valid_milestones_for_plot,
+            adata, angles, analysis_milestone_key, ordered_valid_milestones_for_plot,
             pdf_path, png_path, tool
         )
 
@@ -5428,23 +6302,34 @@ def analyze_simulation_velocity_consistency(
                 f"{normalized_filename}_reference_curves.png"
             )
 
-            plot_reference_curves_visualization(
-                adata=adata,
-                milestone_key=milestone_key,
-                topology_type=topology_type,
-                dataset_name=dataset_name,
-                basis=basis,
-                png_path=reference_curve_png_path,
-                method_name=tool,
-                use_gt_velocity_enhancement=use_gt_velocity_enhancement
-            )
+            if is_bursting:
+                plot_bursting_reference_curves_visualization(
+                    adata=adata,
+                    display_key=analysis_milestone_key,
+                    reference_key=reference_milestone_key,
+                    basis=basis,
+                    png_path=reference_curve_png_path,
+                    method_name=tool,
+                    dataset_name=dataset_name,
+                )
+            else:
+                plot_reference_curves_visualization(
+                    adata=adata,
+                    milestone_key=analysis_milestone_key,
+                    topology_type=normalized_topology,
+                    dataset_name=dataset_name,
+                    basis=basis,
+                    png_path=reference_curve_png_path,
+                    method_name=tool,
+                    use_gt_velocity_enhancement=use_gt_velocity_enhancement
+                )
 
         # Per-milestone summary stats
         milestone_consistency: Dict[str, float] = {}
         milestone_mean_angle: Dict[str, float] = {}
         
         for milestone in ordered_valid_milestones_for_plot:
-            mask = (adata.obs[milestone_key].astype(str) == milestone) & valid_cells_mask
+            mask = (adata.obs[analysis_milestone_key].astype(str) == milestone) & valid_cells_mask
             if np.sum(mask) > 0:
                 milestone_consistency[milestone] = float(np.nanmean(cosine_similarities[mask]))
                 milestone_mean_angle[milestone] = float(np.nanmean(angles[mask]))
@@ -5478,38 +6363,32 @@ def analyze_simulation_velocity_consistency(
 # Ground Truth Velocity Helper Functions
 # ============================================================================
 
-# Ground-truth npz base directory resolution.
-#
-# Recommended (most explicit) ways to configure:
-# - CLI flag: --npz-base-dir /path/to/Simdata-GTkey
-# - Env var: SIM_ROSEPLOT_NPZ_BASE_DIR=/path/to/Simdata-GTkey
-#
-# Convenience default for GitHub reproducibility:
-# If neither is provided, we will look for a folder named "Simdata-GTkey"
-# in the current working directory and next to this script file.
-DEFAULT_GTKEY_DIRNAME = "Simdata-GTkey"
+# ============================================================================
+# SECTION 10 — SIMULATED DATA: REFERENCE NPZ LOADING & ALIGNMENT
+# ============================================================================
+
+DEFAULT_REFERENCE_DIRNAME = "simdata_reference"
 
 
-def resolve_npz_base_dir(npz_base_dir: Optional[str]) -> Optional[str]:
-    """Resolve the root directory that contains <topology>/*_gt_data.npz files."""
-    if npz_base_dir:
-        return npz_base_dir
-
-    env_dir = os.environ.get("SIM_ROSEPLOT_NPZ_BASE_DIR") or os.environ.get("SIM_ROSEPLOT_GTKEY_DIR")
-    if env_dir:
-        return env_dir
+def resolve_reference_dir(reference_dir: Optional[str]) -> Optional[str]:
+    """Resolve the root directory containing <topology>/*_reference_data.npz files."""
+    if reference_dir:
+        return reference_dir
 
     candidates = [
-        os.path.join(os.getcwd(), DEFAULT_GTKEY_DIRNAME),
-        os.path.join(os.path.dirname(__file__), DEFAULT_GTKEY_DIRNAME),
+        os.path.join(os.path.dirname(__file__), DEFAULT_REFERENCE_DIRNAME),
+        os.path.join(os.path.dirname(__file__), "..", "Groundtruth-correlation", DEFAULT_REFERENCE_DIRNAME),
+        os.path.join(os.getcwd(), DEFAULT_REFERENCE_DIRNAME),
     ]
     for candidate in candidates:
         if os.path.isdir(candidate):
-            return candidate
-
+            return os.path.abspath(candidate)
     return None
 
 _unified_logger = None
+_bursting_meta_cache: Dict[str, pd.DataFrame] = {}
+_bursting_reference_cache: Dict[str, Dict[str, Any]] = {}
+_lineage_tracing_reference_cache: Dict[str, Dict[str, Any]] = {}
 
 
 def get_unified_logger(log_file: Optional[str] = None) -> logging.Logger:
@@ -5583,8 +6462,12 @@ def infer_topology_from_dataset(dataset: str) -> Optional[str]:
         ('genesub_bifurcating', 'genesub-bifurcating'),
         ('cellsub-bifurcating', 'cellsub-bifurcating'),
         ('cellsub_bifurcating', 'cellsub-bifurcating'),
+        ('bursting-tree', 'Bursting-tree'),
+        ('bursting_tree', 'Bursting-tree'),
         ('bifurcating-loop', 'bifurcating-loop'),
         ('bifurcating_loop', 'bifurcating-loop'),
+        ('lineage-tracing', 'lineage-tracing'),
+        ('lineage_tracing', 'lineage-tracing'),
         ('linear-simple', 'linear-simple'),
         ('linear_simple', 'linear-simple'),
         ('cycle-simple', 'cycle-simple'),
@@ -5605,26 +6488,26 @@ def infer_topology_from_dataset(dataset: str) -> Optional[str]:
     return None
 
 
-def locate_npz_file(dataset: str, npz_base_dir: str) -> Optional[str]:
-    """Locate the GT npz file path for a given dataset."""
+def locate_npz_file(dataset: str, reference_dir: str) -> Optional[str]:
+    """Locate the reference npz file path for a given dataset."""
     topology = infer_topology_from_dataset(dataset)
     if topology is None:
         return None
 
     # Try the original dataset
-    npz_path = os.path.join(npz_base_dir, topology, f"{dataset}_gt_data.npz")
+    npz_path = os.path.join(reference_dir, topology, f"{dataset}_reference_data.npz")
     if os.path.exists(npz_path):
         return npz_path
 
     # Try underscore -> hyphen
     alt_id = dataset.replace('_', '-')
-    alt_path = os.path.join(npz_base_dir, topology, f"{alt_id}_gt_data.npz")
+    alt_path = os.path.join(reference_dir, topology, f"{alt_id}_reference_data.npz")
     if os.path.exists(alt_path):
         return alt_path
 
     # Try hyphen -> underscore
     alt_id2 = dataset.replace('-', '_')
-    alt_path2 = os.path.join(npz_base_dir, topology, f"{alt_id2}_gt_data.npz")
+    alt_path2 = os.path.join(reference_dir, topology, f"{alt_id2}_reference_data.npz")
     if os.path.exists(alt_path2):
         return alt_path2
 
@@ -5650,7 +6533,7 @@ def match_cell_indices(
     method_name: Optional[str] = None
 ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], str]:
     """Match adata cell names to npz cell indices."""
-    adjust_numeric_index = method_name == 'STT'
+    adjust_numeric_index = False
 
     normalized_adata_names = np.array([
         normalize_cell_name(str(n), adjust_numeric_index=adjust_numeric_index)
@@ -5714,6 +6597,225 @@ def match_cell_indices(
     return None, None, "No matching cell names"
 
 
+def add_lineage_tracing_reference_umap(
+    adata: AnnData,
+    dataset_id: str,
+    method_name: Optional[str] = None,
+    velocity_key: str = "velocity",
+    raise_on_failure: bool = True,
+    allow_partial_match: bool = True,
+    min_match_ratio: float = 0.95,
+    reference_dir: Optional[str] = None,
+) -> Tuple[bool, str]:
+    """Align lineage-tracing to the shared reference basis and synthetic cell labels."""
+    method_prefix = f"{method_name}_" if method_name else ""
+    normalized_id = normalize_dataset_name(dataset_id)
+
+    try:
+        payload = load_lineage_tracing_reference_payload(normalized_id, reference_dir)
+        source_cell_names = payload["cell_names"]
+        source_cell_names_unique = payload["cell_names_unique"]
+        source_basis = payload["X_basis"]
+        source_celltype = payload["celltype"]
+
+        for col in adata.obs.columns:
+            if isinstance(adata.obs[col].dtype, pd.CategoricalDtype):
+                adata.obs[col] = adata.obs[col].astype(str)
+        if isinstance(adata.obs.index.dtype, pd.CategoricalDtype):
+            adata.obs.index = adata.obs.index.astype(str)
+        adata.obs_names_make_unique()
+
+        adata_cell_names = np.asarray(adata.obs_names).astype(str)
+        adata_indices, source_indices, match_msg = match_cell_indices(
+            adata_cell_names=adata_cell_names,
+            npz_cell_names=source_cell_names,
+            npz_cell_names_unique=source_cell_names_unique,
+            allow_partial=allow_partial_match,
+            min_match_ratio=min_match_ratio,
+            method_name=method_name,
+        )
+
+        if adata_indices is None:
+            if len(adata_cell_names) == len(source_cell_names):
+                existing_umap = adata.obsm.get("X_umap")
+                if existing_umap is None and "X_dimred" in adata.obsm:
+                    existing_umap = adata.obsm["X_dimred"]
+                if existing_umap is not None and check_dimred_consistency(existing_umap, source_basis):
+                    adata_indices = np.arange(len(adata_cell_names))
+                    source_indices = np.arange(len(source_cell_names))
+                    match_msg = "position fallback after name match failure"
+                else:
+                    raise ValueError(
+                        f"{method_prefix}{normalized_id}: lineage-tracing cell matching failed. "
+                        "Please provide a valid reference_dir."
+                    )
+            else:
+                raise ValueError(
+                    f"{method_prefix}{normalized_id}: lineage-tracing cell matching failed. "
+                    "Please provide a valid reference_dir."
+                )
+
+        if len(adata_indices) < len(adata_cell_names):
+            adata._inplace_subset_obs(adata_indices)
+
+        source_basis_subset = source_basis[source_indices]
+        celltype_subset = None if source_celltype is None else source_celltype[source_indices]
+
+        if celltype_subset is not None:
+            adata.obs["celltype"] = celltype_subset
+            adata.obs["synthetic_celllabel"] = celltype_subset
+            adata.obs["milestone"] = celltype_subset
+
+        for stale_key in [f"{velocity_key}_umap", f"{velocity_key}_dimred", f"{velocity_key}_tsne"]:
+            if stale_key in adata.obsm and velocity_key in adata.layers:
+                del adata.obsm[stale_key]
+
+        adata.obsm["X_umap"] = source_basis_subset.copy()
+        adata.obsm["X_dimred"] = source_basis_subset.copy()
+        return True, f"{method_prefix}{normalized_id}: aligned lineage-tracing X_basis and synthetic_celllabel ({match_msg})"
+
+    except Exception as e:
+        msg = str(e)
+        if raise_on_failure:
+            raise ValueError(msg) from e
+        return False, msg
+
+
+def get_bursting_cell_name_candidates(adata: AnnData) -> List[Tuple[str, np.ndarray]]:
+    """Provide candidate cell-name sources for Bursting-tree matching."""
+    candidates: List[Tuple[str, np.ndarray]] = []
+    for column_name in ("cell_id", "cellID", "CellID"):
+        if column_name in adata.obs.columns:
+            candidates.append((column_name, adata.obs[column_name].astype(str).to_numpy()))
+    candidates.append(("obs_index", np.asarray(adata.obs_names).astype(str)))
+    return candidates
+
+
+def match_bursting_cells(
+    adata: AnnData,
+    dataset_id: str,
+    reference_dir: Optional[str],
+    method_name: Optional[str] = None,
+    min_match_ratio: float = 0.95,
+) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], str]:
+    """Match Bursting-tree result cells to the reference metadata table."""
+    reference_payload = load_bursting_reference_payload(dataset_id, reference_dir)
+    meta_cell_ids = reference_payload["cell_id"]
+
+    best_result: Optional[Tuple[np.ndarray, np.ndarray, str]] = None
+    best_match_count = -1
+    for source_label, candidate_names in get_bursting_cell_name_candidates(adata):
+        adata_indices, meta_indices, match_msg = match_cell_indices(
+            adata_cell_names=np.asarray(candidate_names).astype(str),
+            npz_cell_names=meta_cell_ids,
+            npz_cell_names_unique=None,
+            allow_partial=True,
+            min_match_ratio=min_match_ratio,
+            method_name=method_name,
+        )
+        if adata_indices is None:
+            continue
+        if len(adata_indices) > best_match_count:
+            best_result = (
+                np.asarray(adata_indices, dtype=int),
+                np.asarray(meta_indices, dtype=int),
+                f"{source_label}: {match_msg}",
+            )
+            best_match_count = len(adata_indices)
+        if len(adata_indices) == adata.n_obs:
+            break
+
+    if best_result is not None:
+        return best_result
+
+    if adata.n_obs == len(meta_cell_ids):
+        existing_dimred = None
+        for key in ("X_dimred", "X_tsne"):
+            if key in adata.obsm:
+                existing_dimred = np.asarray(adata.obsm[key])[:, :2]
+                break
+        source_dimred = np.asarray(reference_payload["X_basis"])[:, :2]
+        if existing_dimred is not None and check_dimred_consistency(existing_dimred, source_dimred):
+            return (
+                np.arange(adata.n_obs, dtype=int),
+                np.arange(len(meta_cell_ids), dtype=int),
+                "position fallback after name match failure",
+            )
+
+    return None, None, "failed to align Bursting-tree cells to reference metadata"
+
+
+def add_bursting_metadata(
+    adata: AnnData,
+    dataset_id: str,
+    method_name: Optional[str] = None,
+    velocity_key: str = "velocity",
+    raise_on_failure: bool = True,
+    min_match_ratio: float = 0.95,
+    reference_dir: Optional[str] = None,
+) -> Tuple[bool, str]:
+    """Inject Bursting-tree metadata, shared basis coordinates, and GT low-dimensional vectors."""
+    method_prefix = f"{method_name}_" if method_name else ""
+    normalized_id = normalize_dataset_name(dataset_id)
+
+    if not is_bursting_dataset(normalized_id):
+        msg = f"{method_prefix}{normalized_id}: not a Bursting-tree dataset"
+        if raise_on_failure:
+            raise ValueError(msg)
+        return False, msg
+
+    try:
+        meta_df = load_bursting_meta_table(normalized_id, reference_dir)
+        reference_payload = load_bursting_reference_payload(normalized_id, reference_dir)
+        adata_indices, meta_indices, match_msg = match_bursting_cells(
+            adata=adata,
+            dataset_id=normalized_id,
+            reference_dir=reference_dir,
+            method_name=method_name,
+            min_match_ratio=min_match_ratio,
+        )
+        if adata_indices is None or meta_indices is None:
+            raise ValueError(
+                f"{method_prefix}{normalized_id}: Bursting-tree metadata matching failed. "
+                "Please provide a valid reference_dir."
+            )
+
+        if len(adata_indices) < adata.n_obs:
+            adata._inplace_subset_obs(adata_indices)
+
+        matched_cell_ids = meta_df["cell_id"].to_numpy()[meta_indices]
+        aligned_meta = meta_df.loc[matched_cell_ids]
+        ref_indices = np.asarray(meta_indices, dtype=int)
+
+        adata.obs["cell_id"] = aligned_meta["cell_id"].to_numpy()
+        adata.obs["edge_id"] = aligned_meta["edge_id"].to_numpy()
+        adata.obs["cell_time_ref"] = aligned_meta["cell_time_ref"].to_numpy(dtype=float)
+        adata.obs["milestone_id"] = aligned_meta["milestone_id"].to_numpy()
+        adata.obs["lineage_id"] = aligned_meta["lineage_id"].to_numpy()
+        adata.obs["milestone"] = aligned_meta["milestone"].to_numpy()
+        adata.obs["celltype"] = aligned_meta["pop_raw"].to_numpy()
+        adata.obs["pop_raw"] = aligned_meta["pop_raw"].to_numpy()
+        adata.obs["pop"] = aligned_meta["pop_raw"].to_numpy()
+
+        x_dimred_ref = reference_payload["X_basis"][ref_indices]
+        gt_dimred_ref = reference_payload["ground_truth_velocity_dimred"]
+        adata.obsm["ground_truth_velocity_dimred"] = gt_dimred_ref[ref_indices]
+
+        for key in [f"{velocity_key}_dimred", f"{velocity_key}_tsne", f"{velocity_key}_umap"]:
+            if key in adata.obsm and velocity_key in adata.layers:
+                del adata.obsm[key]
+
+        adata.obsm["X_dimred"] = x_dimred_ref.copy()
+        adata.obsm["X_tsne"] = x_dimred_ref.copy()
+        return True, f"{method_prefix}{normalized_id}: aligned Bursting-tree metadata and X_basis ({match_msg})"
+
+    except Exception as e:
+        msg = str(e)
+        if raise_on_failure:
+            raise ValueError(msg) from e
+        return False, msg
+
+
 def check_dimred_consistency(
     adata_dimred: np.ndarray,
     npz_dimred_subset: np.ndarray,
@@ -5726,6 +6828,126 @@ def check_dimred_consistency(
     return np.allclose(adata_dimred, npz_dimred_subset, rtol=rtol, atol=atol)
 
 
+def load_lineage_tracing_reference_payload(
+    dataset_id: str,
+    reference_dir: Optional[str],
+) -> Dict[str, Any]:
+    """Load and cache the lineage-tracing reference payload."""
+    normalized_id = normalize_dataset_name(dataset_id)
+    cached = _lineage_tracing_reference_cache.get(normalized_id)
+    if cached is not None:
+        return {
+            "cell_names": cached["cell_names"].copy(),
+            "cell_names_unique": None if cached["cell_names_unique"] is None else cached["cell_names_unique"].copy(),
+            "X_basis": cached["X_basis"].copy(),
+            "celltype": None if cached["celltype"] is None else cached["celltype"].copy(),
+        }
+
+    npz_path = locate_npz_file(normalized_id, reference_dir or "")
+    if npz_path is None:
+        raise ValueError(
+            f"{normalized_id}: lineage-tracing requires a valid reference npz file. "
+            "Please provide --reference-dir."
+        )
+
+    npz_data = np.load(npz_path, allow_pickle=True)
+    if "X_basis" not in npz_data or "cell_names" not in npz_data:
+        raise ValueError(f"{normalized_id}: lineage-tracing reference is missing X_basis/cell_names")
+
+    payload = {
+        "cell_names": np.asarray(npz_data["cell_names"]).astype(str),
+        "cell_names_unique": (
+            None if "cell_names_unique" not in npz_data
+            else np.asarray(npz_data["cell_names_unique"]).astype(str)
+        ),
+        "X_basis": np.asarray(npz_data["X_basis"])[:, :2].copy(),
+        "celltype": (
+            None if "celltype" not in npz_data
+            else np.asarray(npz_data["celltype"]).astype(str)
+        ),
+    }
+    _lineage_tracing_reference_cache[normalized_id] = payload
+    return {
+        "cell_names": payload["cell_names"].copy(),
+        "cell_names_unique": None if payload["cell_names_unique"] is None else payload["cell_names_unique"].copy(),
+        "X_basis": payload["X_basis"].copy(),
+        "celltype": None if payload["celltype"] is None else payload["celltype"].copy(),
+    }
+
+
+def is_bursting_dataset(dataset_id: str) -> bool:
+    """Return True if the dataset is a Bursting-tree topology."""
+    return "bursting-tree" in str(dataset_id).lower()
+
+
+def load_bursting_reference_payload(
+    dataset_id: str,
+    reference_dir: Optional[str],
+) -> Dict[str, Any]:
+    """Load and cache the Bursting-tree reference payload."""
+    normalized_id = normalize_dataset_name(dataset_id)
+    cached = _bursting_reference_cache.get(normalized_id)
+    if cached is not None:
+        return {key: (value.copy() if hasattr(value, "copy") else value) for key, value in cached.items()}
+
+    npz_path = locate_npz_file(normalized_id, reference_dir or "")
+    if npz_path is None:
+        raise ValueError(
+            f"{normalized_id}: Bursting-tree requires a valid reference npz file. "
+            "Please provide --reference-dir."
+        )
+
+    npz_data = np.load(npz_path, allow_pickle=True)
+    required_keys = [
+        "X_basis", "gt_dimred", "cell_id", "edge_id", "cell_time_ref",
+        "milestone_id", "lineage_id", "pop_raw", "milestone",
+    ]
+    missing_keys = [key for key in required_keys if key not in npz_data]
+    if missing_keys:
+        raise ValueError(
+            f"{normalized_id}: Bursting-tree reference is missing required fields: {missing_keys}"
+        )
+
+    payload = {
+        "cell_id": np.asarray(npz_data["cell_id"]).astype(str),
+        "edge_id": np.asarray(npz_data["edge_id"]).astype(str),
+        "cell_time_ref": np.asarray(npz_data["cell_time_ref"], dtype=float),
+        "milestone_id": np.asarray(npz_data["milestone_id"]).astype(str),
+        "lineage_id": np.asarray(npz_data["lineage_id"]).astype(str),
+        "pop_raw": np.asarray(npz_data["pop_raw"]).astype(str),
+        "milestone": np.asarray(npz_data["milestone"]).astype(str),
+        "X_basis": np.asarray(npz_data["X_basis"])[:, :2].copy(),
+        "ground_truth_velocity_dimred": np.asarray(npz_data["gt_dimred"])[:, :2].copy(),
+    }
+    _bursting_reference_cache[normalized_id] = payload
+    return {key: (value.copy() if hasattr(value, "copy") else value) for key, value in payload.items()}
+
+
+def load_bursting_meta_table(
+    dataset_id: str,
+    reference_dir: Optional[str],
+) -> pd.DataFrame:
+    """Load and cache the Bursting-tree metadata table."""
+    normalized_id = normalize_dataset_name(dataset_id)
+    cached = _bursting_meta_cache.get(normalized_id)
+    if cached is not None:
+        return cached.copy()
+
+    payload = load_bursting_reference_payload(normalized_id, reference_dir)
+    meta_df = pd.DataFrame({
+        "cell_id": payload["cell_id"],
+        "edge_id": payload["edge_id"],
+        "cell_time_ref": payload["cell_time_ref"],
+        "milestone_id": payload["milestone_id"],
+        "lineage_id": payload["lineage_id"],
+        "pop_raw": payload["pop_raw"],
+        "milestone": payload["milestone"],
+    })
+    meta_df = meta_df.set_index("cell_id", drop=False)
+    _bursting_meta_cache[normalized_id] = meta_df.copy()
+    return meta_df.copy()
+
+
 def add_ground_truth_velocity_dimred(
     adata,
     dataset_id: str,
@@ -5734,36 +6956,53 @@ def add_ground_truth_velocity_dimred(
     raise_on_failure: bool = True,
     allow_partial_match: bool = True,
     min_match_ratio: float = 0.95,
-    npz_base_dir: Optional[str] = None
+    reference_dir: Optional[str] = None
 ) -> Tuple[bool, str]:
     """
-    Restore unified ground-truth (GT) velocity embedding from a *_gt_data.npz file.
+    Restore shared reference information from a *_reference_data.npz file.
 
     Steps:
-    1) Locate and load the npz file.
-    2) Match cell indices between AnnData and npz.
-    3) Add gt_dimred into adata.obsm['ground_truth_velocity_dimred'].
-    4) Replace X_dimred with the unified coordinate system (except for PhyloVelo).
-    5) If X_dimred mismatches and a high-dimensional velocity exists, drop old velocity embeddings
-       so they can be recomputed later under the unified embedding.
+    1) lineage-tracing: align X_basis and synthetic_celllabel.
+    2) Bursting-tree: inject special metadata and align X_basis.
+    3) Other topologies: align gt_dimred and X_basis when available.
     """
     method_prefix = f"{method_name}_" if method_name else ""
+    topology = infer_topology_from_dataset(dataset_id)
 
-    npz_base_dir = resolve_npz_base_dir(npz_base_dir)
-    if not npz_base_dir:
-        msg = (
-            f"{method_prefix}{dataset_id}: GT npz base directory is not provided.\n"
-            "Please pass --npz-base-dir, set SIM_ROSEPLOT_NPZ_BASE_DIR, or place a 'Simdata-GTkey' folder\n"
-            "in the current working directory or next to this script."
+    if topology == "lineage-tracing":
+        return add_lineage_tracing_reference_umap(
+            adata=adata,
+            dataset_id=dataset_id,
+            method_name=method_name,
+            velocity_key=velocity_key,
+            raise_on_failure=raise_on_failure,
+            allow_partial_match=allow_partial_match,
+            min_match_ratio=min_match_ratio,
+            reference_dir=reference_dir,
         )
+
+    if topology == "Bursting-tree":
+        return add_bursting_metadata(
+            adata=adata,
+            dataset_id=dataset_id,
+            method_name=method_name,
+            velocity_key=velocity_key,
+            raise_on_failure=raise_on_failure,
+            min_match_ratio=min_match_ratio,
+            reference_dir=reference_dir,
+        )
+
+    reference_dir = resolve_reference_dir(reference_dir)
+    if not reference_dir:
+        msg = f"{method_prefix}{dataset_id}: reference directory not provided"
         if raise_on_failure:
             raise ValueError(msg)
         return False, msg
 
     # Locate npz file
-    npz_path = locate_npz_file(dataset_id, npz_base_dir)
+    npz_path = locate_npz_file(dataset_id, reference_dir)
     if npz_path is None:
-        msg = f"{method_prefix}{dataset_id}: GT npz file not found"
+        msg = f"{method_prefix}{dataset_id}: reference npz file not found"
         if raise_on_failure:
             raise ValueError(msg)
         return False, msg
@@ -5772,11 +7011,11 @@ def add_ground_truth_velocity_dimred(
     try:
         npz_data = np.load(npz_path, allow_pickle=True)
         gt_dimred = npz_data['gt_dimred']
-        X_dimred_npz = npz_data['X_dimred']
+        X_dimred_npz = npz_data['X_basis']
         cell_names = npz_data['cell_names']
         cell_names_unique = npz_data.get('cell_names_unique', None)
     except Exception as e:
-        msg = f"{method_prefix}{dataset_id}: Failed to read GT npz file - {str(e)}"
+        msg = f"{method_prefix}{dataset_id}: Failed to read reference npz file - {str(e)}"
         if raise_on_failure:
             raise ValueError(msg) from e
         return False, msg
@@ -5847,13 +7086,7 @@ def add_ground_truth_velocity_dimred(
     # Add gt_dimred
     adata.obsm['ground_truth_velocity_dimred'] = gt_dimred_subset
 
-    # PhyloVelo special case: keep existing obsm (only low-dim results available)
-    if method_name == 'PhyloVelo':
-        if 'X_dimred' not in adata.obsm and 'X_umap' in adata.obsm:
-            adata.obsm['X_dimred'] = adata.obsm['X_umap'].copy()
-        return True, f"{method_prefix}{dataset_id}: Added gt_dimred; kept original obsm ({match_msg})"
-
-    # Other methods: replace X_dimred with the unified coordinate system
+    # Replace X_dimred with the unified coordinate system
     adata.obsm['X_dimred_ori'] = X_dimred_subset
 
     existing_dimred_key = 'X_dimred' if 'X_dimred' in adata.obsm else ('X_umap' if 'X_umap' in adata.obsm else None)
@@ -5900,121 +7133,25 @@ def add_ground_truth_velocity_dimred(
 
 
 # ============================================================================
-# Tool-Specific Preprocessing Functions
+# Generic Simulation Helpers
 # ============================================================================
 
-def preprocess_adata_for_method(
+def compute_velocity_embeddings_generic(
     adata: AnnData,
-    tool: str,
     velocity_key: str,
-    dataset: str
-) -> bool:
-    """
-    Method-specific preprocessing (phase 1: before unifying X_dimred).
-
-    Returns:
-        bool: Whether preprocessing succeeded.
-    """
-    try:
-        if tool == 'PhyloVelo':
-            if 'phylovelo_velocity' in adata.obsm:
-                adata.obsm['phylovelo_velocity_dimred'] = adata.obsm['phylovelo_velocity']
-            else:
-                error_logger = get_unified_logger()
-                error_logger.error(
-                    f"Preprocess failed | {tool}_{dataset} | missing obsm['phylovelo_velocity']"
-                )
-                return False
-
-        elif tool == 'cellDancer':
-            if 'clusters' in adata.obs:
-                adata.obs['milestone'] = adata.obs['clusters']
-
-        elif tool == 'TopicVelo':
-            vkey_exists = (
-                velocity_key in adata.layers or
-                f"{velocity_key}_dimred" in adata.obsm or
-                f"{velocity_key}_umap" in adata.obsm
-            )
-            if not vkey_exists and 'variance_velocity' in adata.layers:
-                adata.layers[velocity_key] = adata.layers['variance_velocity']
-
-        elif tool == 'TFvelo':
-            if 'velo_hat' in adata.layers and 'fit_scaling_y' in adata.var:
-                adata.layers['velocity'] = adata.layers['velo_hat'] / np.expand_dims(
-                    adata.var['fit_scaling_y'], 0
-                )
-
-        return True
-
-    except Exception as e:
-        error_logger = get_unified_logger()
-        error_logger.error(f"Preprocess error | {tool}_{dataset} | {str(e)}")
-        return False
-
-
-def compute_velocity_embeddings_for_method(
-    adata: AnnData,
-    tool: str,
-    velocity_key: str,
-    dataset: str,
+    basis_name: str,
     n_jobs: int = 1,
 ) -> bool:
-    """
-    Method-specific velocity embedding computation (phase 3: after unifying X_dimred).
-
-    Returns:
-        bool: Whether computation succeeded.
-    """
-    try:
-        if tool == 'TFvelo' and 'velocity' in adata.layers:
-            try:
-                scv.tl.velocity_graph(adata, vkey='velocity', xkey='M_total', n_jobs=int(n_jobs))
-            except Exception as e:
-                if "neighbor graph" in str(e):
-                    # Fix corrupted/missing neighbor graph
-                    for col in adata.obs.columns:
-                        if isinstance(adata.obs[col].dtype, pd.CategoricalDtype):
-                            adata.obs[col] = adata.obs[col].astype(str)
-                    if isinstance(adata.obs.index.dtype, pd.CategoricalDtype):
-                        adata.obs.index = adata.obs.index.astype(str)
-                    adata.obs_names_make_unique()
-                    duplicated_mask = adata.to_df().duplicated()
-                    if duplicated_mask.any():
-                        adata._inplace_subset_obs(~duplicated_mask)
-                    sc.pp.neighbors(adata)
-                    scv.tl.velocity_graph(adata, vkey='velocity', xkey='M_total', n_jobs=int(n_jobs))
-                else:
-                    raise
-            scv.tl.velocity_embedding(adata, basis='dimred', vkey='velocity')
-
-        elif tool == 'SDEvelo' and 'sde_velocity' in adata.layers:
-            try:
-                scv.tl.velocity_graph(adata, vkey='sde_velocity', xkey='Ms', n_jobs=int(n_jobs))
-                scv.tl.velocity_embedding(adata, basis='dimred', vkey='sde_velocity')
-            except Exception as e:
-                if "neighbor graph" in str(e):
-                    # Fix corrupted/missing neighbor graph
-                    for col in adata.obs.columns:
-                        if isinstance(adata.obs[col].dtype, pd.CategoricalDtype):
-                            adata.obs[col] = adata.obs[col].astype(str)
-                    if isinstance(adata.obs.index.dtype, pd.CategoricalDtype):
-                        adata.obs.index = adata.obs.index.astype(str)
-                    adata.obs_names_make_unique()
-                    duplicated_mask = adata.to_df().duplicated()
-                    if duplicated_mask.any():
-                        adata._inplace_subset_obs(~duplicated_mask)
-                    sc.pp.neighbors(adata)
-                    scv.tl.velocity_graph(adata, vkey='sde_velocity', xkey='Ms', n_jobs=int(n_jobs))
-                    scv.tl.velocity_embedding(adata, basis='dimred', vkey='sde_velocity')
-                else:
-                    raise
-
+    """Compute a missing low-dimensional velocity embedding with generic fallbacks."""
+    if velocity_key not in adata.layers:
         return True
 
+    try:
+        ensure_velocity_embedding_sim(adata, velocity_key, basis_name, n_jobs=n_jobs)
+        return True
     except Exception as e:
         error_logger = get_unified_logger()
-        error_logger.error(f"Embedding computation error | {tool}_{dataset} | {str(e)}")
+        error_logger.error(f"Generic simulation embedding computation error | {velocity_key}_{basis_name} | {str(e)}")
         return False
 
 

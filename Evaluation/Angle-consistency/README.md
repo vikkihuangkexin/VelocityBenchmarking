@@ -1,75 +1,295 @@
-# Angle Consistency (Rose Plot)
+# Evaluation
 
-Single-file RNA velocity angle-consistency metric (rose plot) for real and simulated datasets.
+## Angle Consistency
 
-Copy to run elsewhere:
+This metric compares predicted RNA velocity directions against reference differentiation directions on a shared low-dimensional basis.
+
+It is implemented as a single public script:
+
 - `angle_consistency.py`
-- Optional resource folder: `Simdata-GTkey/` (simulation GT npz)
 
-## Evaluation
+The script supports both:
 
-    Angle Consistency (Rose Plot)
-    result = run_unified_angle_consistency(
-        data_type="real",  # or "sim"
-        input_h5ad="/path/to/result.h5ad",
-        output_dir="/path/to/out",
-        tool="scVelo",
-        dataset="27",  # real dataset id or sim dataset name
-        benchmark_csv_path="/path/to/out/benchmark.csv",
-        benchmark_total_csv_path="/path/to/out/benchmark_total.csv",
-    )
+- real datasets
+- simulated datasets
 
-Input: A `.h5ad` file path. The file must contain predicted velocity (`velocity_key`, default: `velocity`) in `adata.layers` or as a precomputed low-dimensional embedding in `adata.obsm` (e.g. `velocity_umap` / `velocity_dimred`). Real datasets also need a cluster/celltype column in `adata.obs` (auto-detected or set via `cluster_key`). Simulation datasets also need milestone labels in `adata.obs[milestone_key]` (default: `milestone`).
+The score reported in `benchmark_total.csv` is the percentage of cells whose angle between predicted velocity and reference direction falls in the `0-60` degree range.
 
-Output: Returns a dictionary with `status`, plot paths, and `total_ratio_0_60` (% of valid cells with angles in [0, 60]). If CSV paths are provided, it writes:
-- `benchmark.csv` (long format: tool/dataset/data_type/group_type/group + angle bins + `valid_ratio` + `cv_coefficient`)
-- `benchmark_total.csv` (wide format: Tool + per-dataset 0–60% + Mean + Rank)
-  - Rank rule: higher Mean is better, but Rank=1 is the worst (smallest Mean)
-Errors are logged to `<output-dir>/errors.log` by default (override via `--error-log`).
+## Core Behavior
 
-Optional parameters supported by `run_unified_angle_consistency(...)`:
-- Common: `velocity_key`, `n_jobs`, `benchmark_csv_path`, `benchmark_total_csv_path`, `error_log_path`
-- Real only: `cluster_key`, `differentiation_paths`, `umap_dir`
-- Sim only: `milestone_key`, `topology_type`, `npz_base_dir`, `plot_reference_curves`, `reference_curves_dir`, `gt_velocity_enhancement`
+### Real datasets
 
-Follow-up: Run `run_batch_from_csv(...)` or `python angle_consistency.py --csv-file ...` to generate comparable `benchmark_total.csv` across multiple methods/datasets.
+For real datasets, the script:
 
-## CLI
+1. reads low-dimensional coordinates from the input h5ad
+2. builds reference differentiation paths from `cluster_key` and `differentiation_paths`
+3. fits low-dimensional trajectory curves
+4. compares predicted low-dimensional velocity directions against the trajectory tangents
 
-Single dataset:
+Important rules:
+
+- The public script does not recompute UMAP, tSNE, or PCA coordinates.
+- The default basis is `umap`.
+- If the default `umap` basis is missing, the script prints a warning and stops.
+- If the user explicitly requests another basis such as `tsne` or `pca` and it is missing, the script fails immediately.
+- External coordinate CSV injection is not supported in the public version.
+
+### Simulated datasets
+
+For simulated datasets, the script compares predicted low-dimensional velocity directions against reference trajectory directions.
+
+Simulated inputs may use:
+
+- coordinates already present in the input h5ad
+- or a public reference directory containing `*_reference_data.npz`
+
+The public reference directory is:
+
+- `simdata_reference`
+
+Reference files use:
+
+- topology subdirectories
+- file naming pattern `*_reference_data.npz`
+- a unified low-dimensional coordinate key `X_basis`
+
+#### Scope of simulation generality
+
+The public script supports two different levels of simulation handling.
+
+For the 11 built-in public topology families provided by the team:
+
+- the topology-specific reference-direction construction logic is kept
+- topology-specific guide points, spline degree choices, and smoothing settings are preserved
+- these built-in topologies use the original fine-tuned reference construction logic
+
+For user-defined or otherwise unknown simulated topologies:
+
+- the script does not apply built-in guide-point logic
+- the user must provide `differentiation_paths`
+- the script falls back to a basic spline workflow based on milestone centers
+- this fallback is more general but is not guaranteed to match the precision of the built-in fine-tuned topology implementations
+
+This boundary is intentional. The public script is reproducible for the built-in topologies and only moderately general for arbitrary user-defined simulated data.
+
+#### Reference requirements by topology type
+
+For ordinary simulated topologies:
+
+- a reference is optional if the input h5ad already contains a usable basis, milestone labels, and predicted velocity information
+
+For `lineage-tracing`:
+
+- the input h5ad is expected to use `adata.obs['synthetic_celllabel']`
+- the reference npz stores the same labels under `celltype`
+- the metric uses a dedicated graph-based reference-direction algorithm
+- `lineage-tracing` depends on the reference to provide unified `X_basis` and `celltype`
+
+For `Bursting-tree`:
+
+- the metric depends on special reference metadata such as `edge_id`, `cell_time_ref`, `lineage_id`, `milestone_id`, and related fields
+- if these fields are not available, the script prints a warning and asks for a valid `reference_dir`
+- if no valid reference file can be located, the script stops with an error
+
+In other words:
+
+- “reference is optional” applies only to ordinary simulated topologies
+- `lineage-tracing` depends on the reference for unified basis and labels
+- `Bursting-tree` effectively requires the reference
+
+Note:
+
+- datasets such as `lineage-tracing` that do not provide ground-truth velocity are not hard-coded to skip
+- they follow the same general validation path as any other unsupported input and fail with a clear error if required inputs are missing
+
+## Inputs
+
+### Predicted velocity
+
+The script expects predicted velocity in one of the following forms:
+
+- high-dimensional velocity in `adata.layers[velocity_key]`
+- or a precomputed low-dimensional embedding in `adata.obsm[f"{velocity_key}_{basis_name}"]`
+
+For simulated datasets, `velocity_key` is also used as the high-dimensional velocity layer name when low-dimensional embeddings need to be recomputed.
+
+### Real dataset labels
+
+Real datasets require:
+
+- a cluster or cell type column in `adata.obs`
+
+You may provide it explicitly with `cluster_key`. If omitted, the script tries to detect a suitable column automatically.
+
+### Simulated dataset labels
+
+Default label keys are:
+
+- ordinary simulated datasets: `milestone`
+- `Bursting-tree`: `pop`
+- `lineage-tracing`: `synthetic_celllabel`
+
+You may override `milestone_key`, but the public datasets should work out of the box with these defaults.
+
+## Outputs
+
+The script writes rose plots and summary CSV files under the chosen output directory.
+
+### Wide summary table
+
+`benchmark_total.csv` is the main benchmark output.
+
+Rules:
+
+- the first column is `Method`
+- one column is added per dataset
+- `Mean` and `Rank` are not produced
+- rows are sorted alphabetically by `Method`
+
+### Detailed long table
+
+`benchmark.csv` is optional and disabled by default.
+
+Enable it with:
+
+- `--save-detailed-csv`
+
+This file stores per-group angle-bin statistics.
+
+### Figures
+
+Each run writes:
+
+- one PDF rose plot
+- one PNG rose plot
+
+Optional QA plots for simulated reference curves can also be saved.
+
+## Command Line Usage
+
+### Single real dataset
+
 ```bash
 python angle_consistency.py \
   --input /path/to/result.h5ad \
   --data-type real \
-  --tool scVelo \
-  --dataset 27 \
-  --output-dir /path/to/out \
-  --n-jobs 1
+  --method scVelo \
+  --dataset 28 \
+  --output-dir /path/to/output \
+  --velocity-key velocity
 ```
 
-Batch CSV:
+### Single simulated dataset
+
 ```bash
 python angle_consistency.py \
-  --csv-file /path/to/jobs.csv \
-  --output-dir /path/to/out
+  --input /path/to/result.h5ad \
+  --data-type sim \
+  --method scVelo \
+  --dataset bifurcating_cell1000_gene10000 \
+  --output-dir /path/to/output \
+  --velocity-key velocity \
+  --reference-dir /path/to/simdata_reference
 ```
 
-## Batch CSV schema
+### Unknown simulated topology with user-defined paths
 
-Required columns:
-- `data_type` (`real` or `sim`), `tool`, `dataset`, `path`
+```bash
+python angle_consistency.py \
+  --input /path/to/custom_simulation.h5ad \
+  --data-type sim \
+  --method MyMethod \
+  --dataset custom_topology_case1 \
+  --output-dir /path/to/output \
+  --velocity-key velocity \
+  --basis-name dimred \
+  --milestone-key milestone \
+  --differentiation-paths "Root|Intermediate|BranchA;Root|Intermediate|BranchB"
+```
 
-Optional columns (only used when relevant):
-- Common: `velocity_key`, `n_jobs`
-- Real: `cluster_key`, `umap_dir`, `differentiation_paths` (JSON string or JSON file path; relative to the CSV file)
-- Sim: `milestone_key`, `topology_type`, `npz_base_dir` (or `gtkey_dir`), `plot_reference_curves`, `reference_curves_dir`, `gt_velocity_enhancement` (`true/false/auto`)
+### Save the detailed long-format CSV
 
-Aliases accepted (legacy CSVs): `method`→`tool`, `dataset_id|id|dataset_name`→`dataset`, `h5ad_path|input`→`path`, `vkey`→`velocity_key`.
+```bash
+python angle_consistency.py \
+  --input /path/to/result.h5ad \
+  --data-type real \
+  --method scVelo \
+  --dataset 28 \
+  --output-dir /path/to/output \
+  --save-detailed-csv
+```
 
-## Optional external UMAP CSVs
+## Batch CSV
 
-Real datasets can optionally use user-provided UMAP CSV files. Pass a directory with `--umap-dir /path/to/umap-csvs`, set the Python API `umap_dir` argument, add a batch CSV column named `umap_dir` or `external_umap_dir`, or set env `ANGLE_CONSISTENCY_UMAP_DIR`. Existing batch CSVs that use `real_umap_dir` are still accepted.
+The minimum required schema is:
 
-Each CSV should contain one index column with cell names and two coordinate columns named exactly `UMAP1` and `UMAP2`. Recommended filenames include the full dataset name or the dataset id as a separate token, for example `27_Hs_brain_UMAP.csv`, `dataset-27-umap.csv`, or `my_dataset_UMAP.csv`. Matching first tries the full dataset string, then the numeric dataset id token. When several CSV files match the same dataset, the script uses the first match in sorted filename order.
+```csv
+method,id,path,vkey
+```
 
-If no external UMAP directory is provided, or no matching CSV can be used, the script will use `adata.obsm["X_umap"]`, then `adata.obsm["original_umap"]`, and finally attempt to compute UMAP from the input `.h5ad`.
+Meaning:
+
+- `method`: display label in outputs
+- `id`: dataset identifier
+- `path`: input h5ad path
+- `vkey`: predicted velocity key
+
+Optional extension columns are:
+
+- `data_type`
+- `basis_name`
+- `cluster_key`
+- `differentiation_paths`
+- `milestone_key`
+- `topology_type`
+- `reference_dir`
+
+No legacy aliases are supported in the public version.
+
+### Example batch CSV
+
+```csv
+method,id,path,vkey,data_type,basis_name,reference_dir
+scVelo,28,/path/to/real_28.h5ad,velocity,real,umap,
+scVelo,bifurcating_cell1000_gene10000,/path/to/sim_bif.h5ad,velocity,sim,dimred,/path/to/simdata_reference
+MyMethod,custom_topology_case1,/path/to/custom_sim.h5ad,velocity,sim,dimred,
+```
+
+### `differentiation_paths` encoding
+
+`differentiation_paths` uses:
+
+- `;` between paths
+- `|` within each path
+
+Example:
+
+```text
+Root|Intermediate|BranchA;Root|Intermediate|BranchB
+```
+
+This format is used because:
+
+- commas would conflict with CSV separators
+- hyphens may already appear in real dataset cell type names
+
+## Python API
+
+Main entry points:
+
+- `run_unified_angle_consistency(...)`
+- `run_batch_from_csv(...)`
+
+Important defaults:
+
+- real datasets default to `basis_name="umap"`
+- simulated datasets default to `basis_name="dimred"`
+- `lineage-tracing` is forced to `umap`
+- `benchmark.csv` is written only when `save_detailed_csv=True`
+
+## Notes
+
+- `method` is only a display label used in file names and result tables.
+- The public script keeps generic robustness logic such as neighbor repair, duplicate-cell cleanup, and low-dimensional velocity recomputation when a valid high-dimensional velocity layer is available.
+- The public script does not keep tool-specific preprocessing branches.
+- Reference lookup keeps dataset-name normalization and underscore/hyphen topology normalization for locating `*_reference_data.npz`.

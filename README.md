@@ -9,22 +9,28 @@ We evaluated the performance, stability, scalability and usability of 28 velocit
 
 ---
 # Repository Structure
-/Benchmarked_tools: Source code for running RNA velocity inference methods and generating velocity estimation results.
+- **`Benchmarked_tools/`**
+Source code for running RNA velocity inference methods and generating velocity estimation results.
 
-/Example_data: Example datasets and input files for reproducing analyses.
+- **`Example_data/`**
+Example datasets and input files for reproducing analyses.
 
-/Evaluation: Scripts of accurary evaluation metrics used in the study.
+- **`Evaluation/`**
+Scripts of accurary evaluation metrics used in the study.
 
-/Batch_run: Scripts for stability assessment across multiple runs.
+- **`Batch_run/`**
+Scripts for stability assessment across multiple runs.
 
-/Dockerfile: Dockerfiles for each benchmarked velocity inference tool.
+- **`Dockerfile/`**
+Dockerfiles for each benchmarked velocity inference tool.
 
-/Figure_code: Scripts used to generate Figures 2–4 presented in the manuscript.
+- **`Figure_code/`**
+Scripts used to generate Figures 2–4 presented in the manuscript.
 
-/PlotData: Input data used for the code in ./Figure_code.
+- **`PlotDat/`**
+Input data used for the code in **`Figure_code/`**.
 
-/Simulation_generate: 
-**`simulation_generate/`**
+- **`simulation_generate/`**
 Scripts for generating simulated single-cell datasets using [dyngen](https://github.com/dynverse/dyngen) across diverse trajectory backbone topologies, cell counts, and gene counts, as well as transcriptional bursting simulations using [scMultiSim](https://github.com/ZhangLabGT/scMultiSim).
 
 ---

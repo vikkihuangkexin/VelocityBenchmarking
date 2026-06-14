@@ -23,7 +23,9 @@ We evaluated the performance, stability, scalability and usability of 28 velocit
 
 /PlotData: Input data used for the code in ./Figure_code.
 
-/Simulation_generate: Scripts for generating simulated single-cell datasets using [dyngen](https://github.com/dynverse/dyngen) across diverse trajectory backbone topologies, cell counts, and gene counts, as well as transcriptional bursting simulations using [scMultiSim](https://github.com/ZhangLabGT/scMultiSim).
+/Simulation_generate: 
+**`simulation_generate/`**
+Scripts for generating simulated single-cell datasets using [dyngen](https://github.com/dynverse/dyngen) across diverse trajectory backbone topologies, cell counts, and gene counts, as well as transcriptional bursting simulations using [scMultiSim](https://github.com/ZhangLabGT/scMultiSim).
 
 ---
 

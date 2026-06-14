@@ -27,10 +27,10 @@ Dockerfiles for each benchmarked velocity inference tool.
 - **`Figure_code/`**
 Scripts used to generate Figures 2–4 presented in the manuscript.
 
-- **`PlotDat/`**
+- **`PlotData/`**
 Input data used for the code in **`Figure_code/`**.
 
-- **`simulation_generate/`**
+- **`Simulation_generate/`**
 Scripts for generating simulated single-cell datasets using [dyngen](https://github.com/dynverse/dyngen) across diverse trajectory backbone topologies, cell counts, and gene counts, as well as transcriptional bursting simulations using [scMultiSim](https://github.com/ZhangLabGT/scMultiSim).
 
 ---

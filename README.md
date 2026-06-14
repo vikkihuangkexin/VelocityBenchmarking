@@ -1,7 +1,7 @@
 # Benchmarking algorithms for RNA velocity inference
 
 
-We evaluated the performance, stability, scalability and usability of 28 velocity inference methods, including 21 RNA velocity inference methods, 9 multi-omics velocity inference methods, and 2 velocity-based cell cycle inference methods across 209 datasets. Among these, 4 methods (InterVelo, SDEvelo, STT, and cell2fate) are applicable to the inference of both RNA velocity and specific multi-omics velocities.
+We evaluated the performance, stability, scalability and usability of 28 velocity inference methods, including 21 RNA velocity inference methods, 9 multi-omics velocity inference methods, and 2 velocity-based cell cycle inference methods across 209 datasets (69 real and 140 simulated). Among these, 4 methods (InterVelo, SDEvelo, STT, and cell2fate) are applicable to the inference of both RNA velocity and specific multi-omics velocities.
 
 <img width="2194" height="2298" alt="Fig 1" src="https://github.com/user-attachments/assets/eb34712a-531d-4275-93ac-b99ce6e9179b" />
 

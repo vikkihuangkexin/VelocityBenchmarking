@@ -114,12 +114,13 @@ GPU_DEVICE_VAL="device=0"
 
 ---
 
-# Webserver
-The detailed results for the benchmarking and comparison are available on the https://relab.xidian.edu.cn/RNAVelocity/#/
+# Website
+The detailed results for this benchmarking studt are available on the https://relab.xidian.edu.cn/RNAVelocity/#/
 
 # Datasets
 
-All benchmarking datasets used in this study can be downloaded from our webserver at [https://relab.xidian.edu.cn/RNAVelocity/#/](https://relab.xidian.edu.cn/RNAVelocity/#/). You can use `wget` to download them via the command line:
+All benchmarking datasets used in this study can be downloaded from our websiter at [https://relab.xidian.edu.cn/RNAVelocity/#/download](https://relab.xidian.edu.cn/RNAVelocity/#/download). 
+You can also use `wget` to download them via the command line:
 
 **Real datasets:**
 ```bash

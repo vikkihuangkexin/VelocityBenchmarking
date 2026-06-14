@@ -1,29 +1,29 @@
 # Benchmarking algorithms for RNA velocity inference
 
 
-We evaluated the performance, stability, scalability and usability of 28 velocity inference methods, including 21 RNA velocity inference methods, 9 multi-omics velocity inference methods, and 2 velocity-based cell cycle inference methods across 176 datasets.Among these, 4 methods (InterVelo, SDEvelo, STT, and cell2fate) are applicable to the inference of both RNA velocity and specific multi-omics velocities.
+We evaluated the performance, stability, scalability and usability of 28 velocity inference methods, including 21 RNA velocity inference methods, 9 multi-omics velocity inference methods, and 2 velocity-based cell cycle inference methods across 209 datasets. Among these, 4 methods (InterVelo, SDEvelo, STT, and cell2fate) are applicable to the inference of both RNA velocity and specific multi-omics velocities.
 
 <img width="2194" height="2298" alt="Fig 1" src="https://github.com/user-attachments/assets/eb34712a-531d-4275-93ac-b99ce6e9179b" />
 
 
 
 ---
-# File description
-/velocity_generate: Code for run each velocity inference tool.
+# Repository Structure
+/Benchmarked_tools: Source code for running RNA velocity inference methods and generating velocity estimation results.
 
-/example: Example datasets for running the code.
+/Example_data: Example datasets and input files for reproducing analyses.
 
-/Evaluation: Code of accurary evaluation metrics used in the study.
+/Evaluation: Scripts of accurary evaluation metrics used in the study.
 
-/batch_run: Code of stability evaluation used in the study.
+/Batch_run: Scripts for stability assessment across multiple runs.
 
-/Dockerfile: Docker for each tool.
+/Dockerfile: Dockerfiles for each benchmarked velocity inference tool.
 
-/Figure_code: Code for Figure 2, 3, and 4 in the paper.
+/Figure_code: Scripts used to generate Figures 2–4 presented in the manuscript.
 
 /PlotData: Input data used for the code in ./Figure_code.
 
-/Simulate_generate: a R script to batch-generate simulated single-cell datasets with dyngen across multiple backbone topologies, cell counts, and gene counts.
+/Simulation_generate: Scripts for generating simulated single-cell datasets using [dyngen](https://github.com/dynverse/dyngen) across diverse trajectory backbone topologies, cell counts, and gene counts, as well as transcriptional bursting simulations using [scMultiSim](https://github.com/ZhangLabGT/scMultiSim).
 
 ---
 

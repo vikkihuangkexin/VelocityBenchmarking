@@ -19,7 +19,7 @@ Example datasets and input files for reproducing analyses.
 Scripts of accurary evaluation metrics used in the study.
 
 - **`Batch_run/`**
-Scripts for stability assessment across multiple runs.
+Scripts for stability assessment across multiple runs （deep learning-based tools only）.
 
 - **`Dockerfile/`**
 Dockerfiles for each benchmarked velocity inference tool.

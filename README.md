@@ -21,9 +21,6 @@ Dockerfiles for each benchmarked velocity inference tool.
 - **`Evaluation/`**
 Scripts of accurary evaluation metrics used in the study.
 
-- **`Example_data/`**
-Example datasets and input files for reproducing analyses.
-
 - **`Figure_code/`**
 Scripts used to generate Figures 2–4 presented in the manuscript.
 

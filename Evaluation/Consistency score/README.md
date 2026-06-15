@@ -1,6 +1,6 @@
 
-## velocity_confidence_plot & ridge_line_plot
-### velocity_confidence_plot
+## Consistency score & Ridge line plot
+### Consistency score
 This repository provides a utility function to compute and visualize **velocity confidence** for single‑cell RNA velocity analyses. The function supports two workflows:
 
 - **AnnData workflow**: pass an `AnnData` object with precomputed velocities and neighbors; the function will call `scv.tl.velocity_confidence` and produce plots and CSV outputs.
@@ -66,7 +66,7 @@ velocity_length, velocity_confidence = velocity_confidence_plot(
 
 ---
 
-### ridge_line_plot
+### Ridge line plot
 This repository contains an R script to aggregate per-cell velocity confidence results from multiple methods and produce ridgeline plots that compare the confidence distributions across methods for each dataset.
 
 ## What this script does

@@ -15,6 +15,6 @@ Subfolders:
 - `stability/`: stability rank calculation.
 - `usability/`: usability rank formatting.
 - `overall/`: final overall rank calculation.
-- `sensitivity/`: category-weight sensitivity analysis (related to Supplementary Note 6).
+- `sensitivity/`: category-weight sensitivity analysis (related to Supplementary Note 8).
 - `figures/`: figure plotting scripts.
 - `figure4_cell_cycle/`: cell-cycle realted analysis scripts.

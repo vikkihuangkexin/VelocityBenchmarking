@@ -1,0 +1,68 @@
+{
+  "sample": "embryo3",
+  "mode_name": "blood2477",
+  "old_root": "/data/khuang6/simulation/test/simulation_real/embryo3",
+  "new_root": "/data/khuang6/simulation/test/simulation_real/embryo3",
+  "bam": {
+    "cells_only": "/data/khuang6/simulation/test/simulation_real/embryo3/rawdata/bam/embryo3.cells_only.bam",
+    "cb_in_read_name": "/data/khuang6/simulation/test/simulation_real/embryo3/rawdata/bam/embryo3.cells_only.CBinReadName.bam"
+  },
+  "prepared_paths": {
+    "prepared_root": "/data/khuang6/simulation/test/simulation_real/embryo3/prepared/blood2477",
+    "barcode_dir": "/data/khuang6/simulation/test/simulation_real/embryo3/prepared/blood2477/barcode",
+    "metadata_dir": "/data/khuang6/simulation/test/simulation_real/embryo3/prepared/blood2477/metadata",
+    "reference_dir": "/data/khuang6/simulation/test/simulation_real/embryo3/prepared/blood2477/reference",
+    "subset_barcodes_tsv": "/data/khuang6/simulation/test/simulation_real/embryo3/prepared/blood2477/barcode/barcodes.tsv",
+    "subset_celllabels_txt": "/data/khuang6/simulation/test/simulation_real/embryo3/prepared/blood2477/barcode/embryo3.celllabels.txt",
+    "barcode_mapping_tsv": "/data/khuang6/simulation/test/simulation_real/embryo3/prepared/blood2477/metadata/barcode_mapping.tsv",
+    "genome_fa": "/data/khuang6/simulation/test/simulation_real/embryo3/prepared/blood2477/reference/genome.fa",
+    "genome_fai": "/data/khuang6/simulation/test/simulation_real/embryo3/prepared/blood2477/reference/genome.fa.fai",
+    "chrom_sizes": "/data/khuang6/simulation/test/simulation_real/embryo3/prepared/blood2477/reference/chrom.sizes",
+    "genes_gtf": "/data/khuang6/simulation/test/simulation_real/embryo3/prepared/blood2477/reference/genes.gtf"
+  },
+  "selection": {
+    "loom_n_cells": 21658,
+    "csv_n_rows": 2476,
+    "selected_n_cells": 2419,
+    "barcode_column_in_csv": "cell",
+    "cluster_column_in_csv": "cluster",
+    "barcode_source_overlap_report": {
+      "cell": {
+        "n_nonnull_norm": 2476,
+        "overlap_rows": 2419,
+        "overlap_unique": 2419
+      },
+      "orig.ident": {
+        "n_nonnull_norm": 0,
+        "overlap_rows": 0,
+        "overlap_unique": 0
+      },
+      "nCount_RNA": {
+        "n_nonnull_norm": 0,
+        "overlap_rows": 0,
+        "overlap_unique": 0
+      },
+      "nFeature_RNA": {
+        "n_nonnull_norm": 0,
+        "overlap_rows": 0,
+        "overlap_unique": 0
+      },
+      "cluster": {
+        "n_nonnull_norm": 0,
+        "overlap_rows": 0,
+        "overlap_unique": 0
+      }
+    }
+  },
+  "label_counts": {
+    "cluster_13": 138,
+    "cluster_22": 2084,
+    "cluster_36": 86,
+    "cluster_9": 111
+  },
+  "notes": [
+    "subset barcodes are written as normalized 10x-style barcodes with -1 suffix",
+    "labels come directly from the selected blood-development CSV cluster column",
+    "cells retain loom order to preserve the original analyzed subset ordering"
+  ]
+}

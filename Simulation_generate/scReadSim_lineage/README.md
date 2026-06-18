@@ -188,24 +188,6 @@ bash run_replicates.sh \
   selected_cells
 ```
 
-The predefined replicate settings are:
-
-| Replicates | Synthetic cells | Total count | Read length | Jitter |
-|---|---:|---:|---:|---:|
-| rep01-rep02 | 2477 | 2500000 | 98 | 5 |
-| rep03-rep04 | 2477 | 3500000 | 98 | 5 |
-| rep05-rep06 | 2477 | 5000000 | 98 | 7 |
-| rep07-rep08 | 3000 | 6000000 | 126 | 7 |
-| rep09-rep10 | 3500 | 8000000 | 126 | 9 |
-
-## Notes from code review
-
-- No Chinese comments were present in the submitted scripts.
-- The repository version removes hard-coded local paths from the runner scripts.
-- The original BAM-subsetting step expected `manifest["bam"]["raw_bam"]`, but the prepare step did not write it. This version adds `--raw-bam` to `00_prepare_inputs.py` and records it in `manifest.json`.
-- The original replicate runner used a sandbox-specific absolute path as the default script directory. This version resolves scripts relative to the repository root.
-- The patched scReadSim script is used as the main `02_run_screadsim_fast.py`, so empty intergenic count matrices will not stop the pipeline.
-
 ## Expected repository layout
 
 ```text

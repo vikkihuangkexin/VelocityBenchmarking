@@ -17,4 +17,4 @@ Subfolders:
 - `overall/`: final overall rank calculation.
 - `sensitivity/`: category-weight sensitivity analysis.
 - `figures/`: figure plotting scripts.
-- `figure4_cell_cycle/`: optional analysis scripts requiring external intermediate files.
+- `figure4_cell_cycle/`: cell-cycle realted analysis scripts.

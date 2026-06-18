@@ -1,0 +1,6 @@
+numpy
+pandas
+biopython
+loompy
+pysam
+scReadSim

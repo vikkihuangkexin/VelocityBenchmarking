@@ -1,0 +1,24 @@
+# Large generated outputs
+prepared/
+rawdata/
+screadsim/
+lineage/
+*.bam
+*.bai
+*.loom
+*.fastq
+*.fastq.gz
+*.fa
+*.fasta
+*.fai
+*.gtf
+*.gtf.gz
+*.bed
+
+# Python/cache
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Local configuration
+config/*.local.env

@@ -1,0 +1,17 @@
+name: simulation-generate
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python>=3.10
+  - numpy
+  - pandas
+  - biopython
+  - loompy
+  - pysam
+  - samtools
+  - bedtools
+  - seqtk
+  - pip
+  - pip:
+      - scReadSim

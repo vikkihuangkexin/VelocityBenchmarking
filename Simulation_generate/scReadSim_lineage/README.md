@@ -1,11 +1,11 @@
-# Selected-cell scReadSim and lineage simulation pipeline
+# Simulation pipeline of lineage-tracing datasets by using scReadSim
 
 This repository contains a command-line pipeline for generating synthetic scRNA-seq reads from a selected cell subset and attaching synthetic cells to a donor lineage scaffold. The workflow is designed for GitHub use: code is path-agnostic, all local paths are supplied by command-line arguments, and large input/output files are excluded by `.gitignore`.
 
 ## Workflow
 
 ```text
-loom + selected-cell CSV + reference + raw BAM
+loom + reference real CSV data + genome reference + raw BAM
         |
         v
 00_prepare_inputs.py

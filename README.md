@@ -22,7 +22,7 @@ Dockerfiles for each benchmarked velocity inference tool.
 Scripts of accurary evaluation metrics used in the study.
 
 - **`Figure_code/`**
-Scripts used to generate Figures 2–4 presented in the manuscript.
+Scripts used to generate Figures 2–4, and supplementary notes presented in the manuscript.
 
 - **`PlotData/`**
 Input data used for the code in **`Figure_code/`**.

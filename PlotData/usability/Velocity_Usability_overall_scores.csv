@@ -1,0 +1,24 @@
+﻿Method,Overall
+velocyto,7.5
+scVelo stochastic,9
+scVelo dynamical,9
+veloVI,7.5
+cellDancer,7
+UniTVelo,8
+TFvelo,7.5
+NeuroVelo,8
+DeepVelo,8
+Region Velocity,5
+VeloVAE,7
+scRNAkinetics,7
+VeloAE,7.5
+PhyloVelo,8
+k-velo,7
+TopicVelo,5
+LatentVelo,7
+SDEvelo,8
+STT,6
+cell2fate,7
+InterVelo,8
+TopoVelo,8
+Pyro-Velocity,7.5

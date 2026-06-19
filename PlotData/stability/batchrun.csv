@@ -1,0 +1,23 @@
+﻿Method,8_mouse_PancreaticE15.5_GSE132188,bifurcating_cell1000_gene10000,AVG
+cell2fate,NA,NA,NA
+cellDancer,NA,NA,NA
+DeepVelo,0.855199,0.951307,0.903253
+k-velo,NA,NA,NA
+LatentVelo,0.5212,NA,0.5212
+NeuroVelo,1,1,1
+PhyloVelo,NA,NA,NA
+Pyro-Velocity,1,1,1
+Region Velocity,NA,NA,NA
+scRNAkinetics,NA,NA,NA
+scVelo dynamical,NA,NA,NA
+scVelo stochastic,NA,NA,NA
+SDEvelo,1,1,1
+STT,NA,NA,NA
+TFvelo,1,1,1
+TopicVelo,NA,NA,NA
+UniTVelo,1,1,1
+VeloAE,0.991566,0.995267,0.9934165
+velocyto,NA,NA,NA
+VeloVAE,0.834969,0.520795,0.677882
+veloVI,0.945016,0.797138,0.871077
+InterVelo,0.999,0.997,0.998

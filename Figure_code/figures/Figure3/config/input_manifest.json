@@ -1,0 +1,48 @@
+{
+  "source_workbook": "Supplementary_Tables_1014(1).xlsx",
+  "source_workbook_sha256": "0acd15f580ea5f71fa0bd4297826d525d54f83f6fd80cb1b0ce1704eb68ffdeb",
+  "source_package": "scRNA_1012_fig3.zip",
+  "resource_protocols_scored": [
+    "top_scRNA"
+  ],
+  "VRAM_enters_Scalability": false,
+  "category_weights": {
+    "Installability": 0.25,
+    "Code quality": 0.25,
+    "Usage guidance": 0.2,
+    "Maintenance": 0.15,
+    "Publication quality": 0.15
+  },
+  "inputs": [
+    {
+      "path": "Source_data/scalability/scRNA_runtime.csv",
+      "bytes": 757084,
+      "sha256": "496c81ab68ead84f5becd239eed405fa349c05eb2830cdb0b12fc807c5904128"
+    },
+    {
+      "path": "Source_data/scalability/scRNA_cpu_ram.csv",
+      "bytes": 724082,
+      "sha256": "54da0d53d39cf9b6a254cf7161a4c6fccc6f8656d0bf80dd6151191b2cb262db"
+    },
+    {
+      "path": "Source_data/scalability/scRNA_gpu_vram.csv",
+      "bytes": 703651,
+      "sha256": "807735eea1d9ca092ec81f40e592ea229694a37b6f7112b5a954ee87f40cb68c"
+    },
+    {
+      "path": "Source_data/usability/usability_rules.csv",
+      "bytes": 2128,
+      "sha256": "411eed257e95e3019ad31802007ed21461e0e04e34d3043fa660173c177b8c78"
+    },
+    {
+      "path": "Source_data/usability/scRNA_usability_items.csv",
+      "bytes": 250524,
+      "sha256": "daae16da8a07d79879f253f8530808483fc1e290eec04c96cc23bd867089bbfe"
+    },
+    {
+      "path": "Figure_code/Fig3/config/method_colors.csv",
+      "bytes": 1186,
+      "sha256": "0a63d95e7eb70e2d322a2aa7c41972bd1c654b72c9bb91bab31befc187ff33c9"
+    }
+  ]
+}

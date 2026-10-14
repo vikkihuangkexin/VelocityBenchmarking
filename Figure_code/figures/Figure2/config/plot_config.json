@@ -1,0 +1,33 @@
+{
+  "palette_selected": "A",
+  "selection_by": "user",
+  "N": 28,
+  "excluded": [
+    "Region Velocity",
+    "PhyloVelo"
+  ],
+  "primary": [
+    "Angle consistency",
+    "CBDir",
+    "Transition V1",
+    "Ground-truth correlation"
+  ],
+  "secondary": [
+    "Consistency score",
+    "ICCoh",
+    "Performance under downsampling"
+  ],
+  "real_simulation_shared_weights": [
+    0.5,
+    0.5
+  ],
+  "GT_and_downsampling": "simulation_only",
+  "Overall_plotted": false,
+  "method_color_assignment": "Fixed named A palette. Do not assign colours again after sorting.",
+  "height_inches": 12,
+  "method_label_font_pt": 14,
+  "bar_border_width": 0.5,
+  "errorbar_width": 0.2,
+  "std_display": "3 significant digits; true zero 0; missing blank in figures and NA in CSV",
+  "normalized_SD": "positive sample z within metric x data_type x dataset; mean available metrics per dataset; mean datasets within type; real/simulation50:50; lower better; raw SD retained"
+}

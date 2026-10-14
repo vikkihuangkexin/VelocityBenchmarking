@@ -1,0 +1,4 @@
+numpy==2.3.5
+pandas==2.2.3
+pymupdf==1.26.6
+pillow==12.3.0

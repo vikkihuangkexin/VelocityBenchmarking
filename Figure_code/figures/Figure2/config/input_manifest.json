@@ -1,0 +1,209 @@
+{
+  "baseline_archive": "scRNA_accuracy_A_std_complete.zip",
+  "baseline_sha256": "688bbdb78fe1462ca7a134a932238d19fd305845558cdfd11b21da533ead05ab",
+  "updated_archive": "summary_scRNA.zip",
+  "updated_archive_sha256": "8c40201e85af4fb9040bc21771dd7d83019835b0ba9f767ccacd189fc84378e3",
+  "downsampling_source": "Unchanged baseline raw CSV; no separate replacement was supplied in this request.",
+  "method_annotations": "Not supplied in the baseline; all editable entries are explicitly Unverified.",
+  "source_run_count": "Unknown; the input files contain SD summaries, not run-level values.",
+  "inputs": [
+    {
+      "path": "data/raw/summary/AngleConsistency_scRNA_real_02_summary.csv",
+      "role": "summary",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/AngleConsistency_scRNA_real_02_summary.csv",
+      "bytes": 21127,
+      "sha256": "90cdef789c6afc27cd5a0bff535e851591ed8ab83269f4142c8d051349bfda20"
+    },
+    {
+      "path": "data/raw/std/AngleConsistency_scRNA_real_03_batchrun_std.csv",
+      "role": "std",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/AngleConsistency_scRNA_real_03_batchrun_std.csv",
+      "bytes": 6703,
+      "sha256": "3b56568b64cb6892ea30ce90e3095752ac72b690b738589043d93425f4b0b78f"
+    },
+    {
+      "path": "data/raw/summary/AngleConsistency_scRNA_simulation_02_summary.csv",
+      "role": "summary",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/AngleConsistency_scRNA_simulation_02_summary.csv",
+      "bytes": 21916,
+      "sha256": "69676ccf201608ea1a4c48163489b1d8f8d228e831412fa216332b350cab8d1b"
+    },
+    {
+      "path": "data/raw/std/AngleConsistency_scRNA_simulation_03_batchrun_std.csv",
+      "role": "std",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/AngleConsistency_scRNA_simulation_03_batchrun_std.csv",
+      "bytes": 19715,
+      "sha256": "3fe6efefa6c3d354f6165faf8515ef932b7ccf6298e7ee080ef7f187ee655cb9"
+    },
+    {
+      "path": "data/raw/summary/CBDir_scRNA_real_02_summary.csv",
+      "role": "summary",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/CBDir_scRNA_real_02_summary.csv",
+      "bytes": 25768,
+      "sha256": "58f627189465b00bd7007a61d1ab99a0c3335dd20cf53a6f96074d2e71447664"
+    },
+    {
+      "path": "data/raw/std/CBDir_scRNA_real_03_batchrun_std.csv",
+      "role": "std",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/CBDir_scRNA_real_03_batchrun_std.csv",
+      "bytes": 7389,
+      "sha256": "84b42f36befdf03c5e5bc44ce49c31d57fe3b80c357c43349ed0e31443fbf90d"
+    },
+    {
+      "path": "data/raw/summary/CBDir_scRNA_simulation_02_summary.csv",
+      "role": "summary",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/CBDir_scRNA_simulation_02_summary.csv",
+      "bytes": 67044,
+      "sha256": "d13d6de5ab8f76be60a6975a66ef44d8ea192dedf1f717a348c937be88e9a29c"
+    },
+    {
+      "path": "data/raw/std/CBDir_scRNA_simulation_03_batchrun_std.csv",
+      "role": "std",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/CBDir_scRNA_simulation_03_batchrun_std.csv",
+      "bytes": 21698,
+      "sha256": "fdb4cdbac9bb23bc164f8144bab86655c20ec847c832e465e45b4301a7a3dc29"
+    },
+    {
+      "path": "data/raw/summary/ConsistencyScore_scRNA_real_02_summary.csv",
+      "role": "summary",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/ConsistencyScore_scRNA_real_02_summary.csv",
+      "bytes": 26439,
+      "sha256": "44e9bc1b87778896a14d122231845e54bb8e6e9f491fe314c38b2094763bf4d8"
+    },
+    {
+      "path": "data/raw/std/ConsistencyScore_scRNA_real_03_batchrun_std.csv",
+      "role": "std",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/ConsistencyScore_scRNA_real_03_batchrun_std.csv",
+      "bytes": 8793,
+      "sha256": "f1d6a7edad37358fe2b9975e5ff9d0740f93c7a3333a1785c59e6386be3e7fa2"
+    },
+    {
+      "path": "data/raw/summary/ConsistencyScore_scRNA_simulation_02_summary.csv",
+      "role": "summary",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/ConsistencyScore_scRNA_simulation_02_summary.csv",
+      "bytes": 60706,
+      "sha256": "d30707451010b09513b9ba22c0654e6bc3a4052f2ff2daad4a0a31dee2323210"
+    },
+    {
+      "path": "data/raw/std/ConsistencyScore_scRNA_simulation_03_batchrun_std.csv",
+      "role": "std",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/ConsistencyScore_scRNA_simulation_03_batchrun_std.csv",
+      "bytes": 23548,
+      "sha256": "881b2f6941932d97deac56d9e5c566207280bb856172a00675f9f03518a88c34"
+    },
+    {
+      "path": "data/raw/summary/GroundTruthCorrelation_scRNA_simulation_02_summary.csv",
+      "role": "summary",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/GroundTruthCorrelation_scRNA_simulation_02_summary.csv",
+      "bytes": 30270,
+      "sha256": "5e9230e64eb0c2e3af865c91a69468abb8ef951e48fa3ae7096211802c600dcd"
+    },
+    {
+      "path": "data/raw/std/GroundTruthCorrelation_scRNA_simulation_03_batchrun_std.csv",
+      "role": "std",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/GroundTruthCorrelation_scRNA_simulation_03_batchrun_std.csv",
+      "bytes": 20167,
+      "sha256": "f9696433d537a13fe3f66c54e61574771b2cb2f5d58e3de82f892eefb10b9af0"
+    },
+    {
+      "path": "data/raw/summary/ICCoh_scRNA_real_02_summary.csv",
+      "role": "summary",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/ICCoh_scRNA_real_02_summary.csv",
+      "bytes": 27963,
+      "sha256": "a349da9541f4ab172924f39e68b53f72aa9aaa65f844d1afa906ee75d1f095d5"
+    },
+    {
+      "path": "data/raw/std/ICCoh_scRNA_real_03_batchrun_std.csv",
+      "role": "std",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/ICCoh_scRNA_real_03_batchrun_std.csv",
+      "bytes": 8790,
+      "sha256": "a9f4785c25470b146e2c024e2d72c46e518f3d8593d650f1bc110f0f480aa44b"
+    },
+    {
+      "path": "data/raw/summary/ICCoh_scRNA_simulation_02_summary.csv",
+      "role": "summary",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/ICCoh_scRNA_simulation_02_summary.csv",
+      "bytes": 63168,
+      "sha256": "2dd7904dee324597d78b1bd4191bc7382d8cafe215e2175ea44704d0ba3c5488"
+    },
+    {
+      "path": "data/raw/std/ICCoh_scRNA_simulation_03_batchrun_std.csv",
+      "role": "std",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/ICCoh_scRNA_simulation_03_batchrun_std.csv",
+      "bytes": 22369,
+      "sha256": "7d9a0e1541341218539d909363eed7c4314a928d8bafda22f91e24f0a612f8f3"
+    },
+    {
+      "path": "data/raw/summary/TransitionScore_scRNA_real_02_summary.csv",
+      "role": "summary",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/TransitionScore_scRNA_real_02_summary.csv",
+      "bytes": 25081,
+      "sha256": "1acda37596d1c63d1217d7fe4d1b7970a2a440eba114cb35346b207ea704e0d4"
+    },
+    {
+      "path": "data/raw/std/TransitionScore_scRNA_real_03_batchrun_std.csv",
+      "role": "std",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/TransitionScore_scRNA_real_03_batchrun_std.csv",
+      "bytes": 7648,
+      "sha256": "315ac09512a8dbfe3139778cbf7aea0e861f589013e1fe543f68f07786811a26"
+    },
+    {
+      "path": "data/raw/summary/TransitionScore_scRNA_simulation_02_summary.csv",
+      "role": "summary",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/TransitionScore_scRNA_simulation_02_summary.csv",
+      "bytes": 64513,
+      "sha256": "3c4a791352b71164585243b19fea2623e90a764862d92644811bfece57c64b3c"
+    },
+    {
+      "path": "data/raw/std/TransitionScore_scRNA_simulation_03_batchrun_std.csv",
+      "role": "std",
+      "source_archive": "summary_scRNA.zip",
+      "source_member": "summary_scRNA/TransitionScore_scRNA_simulation_03_batchrun_std.csv",
+      "bytes": 22257,
+      "sha256": "7ef4e454489c4bb84d9aa0bf1a6085819dab1d3cb18a6484bc9e45ccbd9885d1"
+    },
+    {
+      "path": "data/raw/downsampling/GroundTruthCorrelation_scRNA_simulation_02_summary.csv",
+      "role": "downsampling",
+      "source_archive": "scRNA_accuracy_A_std_complete.zip/data/raw/scRNA_summary.zip",
+      "source_member": "scRNA_summary/downsampling/GroundTruthCorrelation_scRNA_simulation_02_summary.csv",
+      "bytes": 2499,
+      "sha256": "3574b7bd237c77e3fdb5946c0a9d313fae6c5f11afbdba5f9117a8de1611757f"
+    }
+  ],
+  "locked_files": [
+    {
+      "path": "data/methods.csv",
+      "sha256": "860939ebff7814eaa7d4049e245706ee7866a78df01762bdf50c1df9424c15f5"
+    },
+    {
+      "path": "data/real_dataset_ids.csv",
+      "sha256": "8e862fdfda34e8f1afd030e73ea6c91df14f5aea5bf05c867cb22b1b86b7c302"
+    },
+    {
+      "path": "config/method_colors.csv",
+      "sha256": "5492796fd4a30cdf2e8761f0bb87dc3bc880e6ea139a8e55dd9f0a7659fb0fb1"
+    }
+  ]
+}

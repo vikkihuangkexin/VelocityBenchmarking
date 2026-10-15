@@ -130,6 +130,12 @@ wget https://ccsm.uth.edu/Benchmarking/VelocityBenchmarking/RealData.zip
 wget https://ccsm.uth.edu/Benchmarking/VelocityBenchmarking/SimulatedData.zip
 ```
 
+**Batch_run raw measurements and metrics (multi-run):**<br>
+Raw outputs and evaluation metrics across multiple runs for the deep learning-based tools in `Batch_run/`.
+```bash
+wget https://ccsm.uth.edu/Benchmarking/VelocityBenchmarking/measurments_raw.zip
+```
+
 # Citation
 Huang K, Zhou Y, Wang T, Li X, Zhao X, Liu X, Huang L, Zhou X, Liu J. Benchmarking algorithms for RNA velocity inference. bioRxiv [Preprint]. 2026. doi: 10.64898/2026.01.03.697314.
 

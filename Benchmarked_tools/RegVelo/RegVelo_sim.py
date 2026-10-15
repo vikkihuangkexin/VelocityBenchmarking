@@ -2,11 +2,23 @@
 """
 RegVelo RNA velocity pipeline for VelocityBenchmarking (simulated data).
 
-Simulated datasets (scmultisim / dyngen) carry the ground-truth gene regulatory
-network that generated them, so the pySCENIC prior used for real data is replaced
-by that a-priori GRN (converted into the 0/1 regulator-target matrix that RegVelo's
-``set_prior_grn`` expects). Because the GRN handling is genuinely different, this
-simulated branch is kept as a **separate** script from RegVelo.py (real data).
+Simulated datasets have no real species database, so the pySCENIC prior used for
+real data is replaced by an a-priori GRN (converted into the 0/1 regulator-target
+matrix that RegVelo's ``set_prior_grn`` expects). The GRN source depends on the
+simulation engine:
+
+* scmultisim datasets use the known regulatory network shipped as a long-format
+  GRN csv (``GRN_params_100.csv`` / ``GRN_params_1139.csv``).
+* dyngen datasets have no prior file in use, so the GRN is always rebuilt from
+  Spearman correlation between the known TFs and every gene. If a reliable
+  simulated GRN for a dyngen dataset is available (such as a dumped dyngen
+  ``model$feature_network`` edge list), the commented block in
+  :func:`load_prior_grn` and the matching commented definitions in
+  ``grn_utils.py`` show how to use those true edges instead.
+
+Because the GRN handling is genuinely different, this simulated branch is kept as
+a **separate** script from RegVelo.py (real data). pySCENIC is therefore required
+exclusively by the real-data workflow.
 
 Installation:
     pip install regvelo scanpy scvelo GPUtil pynvml psutil pandas numpy scipy scikit-learn
@@ -23,11 +35,10 @@ from __future__ import annotations
 import argparse
 import gc
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional, Sequence
+from typing import List, Optional
 
 import matplotlib as mpl
 
@@ -42,133 +53,28 @@ import scanpy as sc
 import scvelo as scv
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-DEFAULT_GRN_100_CSV = str(SCRIPT_DIR / "GRN_params_100.csv")
-DEFAULT_GRN_1139_CSV = str(SCRIPT_DIR / "GRN_params_1139.csv")
-DEFAULT_DYNGEN_FEATURE_NETWORK_CSV = str(
-    SCRIPT_DIR / "dyngen_bifurcating_cell10000_gene500_feature_network.csv"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from grn_utils import (  # noqa: E402 - imported after the sys.path setup above
+    build_regvelo_grn_from_correlation,
+    build_regvelo_grn_from_scmultisim,
+    choose_grn_csv,
+    detect_sim_type,
+    detect_tf_from_names,
+    grn_regulatory_genes,
+    load_grn,
 )
 
+# The optional dyngen edge-list branch in load_prior_grn() (see the commented
+# block below) additionally needs "build_regvelo_grn" from grn_utils and, if the
+# dataset-to-csv map is enabled, "DYNGEN_MODEL_GRN" / "load_dyngen_feature_network".
+# Add those names to the import above when you enable that branch.
+
+DEFAULT_GRN_100_CSV = str(SCRIPT_DIR / "GRN_params_100.csv")
+DEFAULT_GRN_1139_CSV = str(SCRIPT_DIR / "GRN_params_1139.csv")
+
 _REGVELO_API = {}
-
-
-# ---------------------------------------------------------------------------
-# GRN utilities (inlined from the original grn_utils.py)
-# ---------------------------------------------------------------------------
-def detect_sim_type(adata) -> tuple:
-    """Detect the simulation engine: 'scmultisim' (numeric ids) or 'dyngen'."""
-    pure = [g for g in adata.var_names if re.fullmatch(r"\d+", str(g))]
-    if pure:
-        return "scmultisim", len(pure)
-    return "dyngen", 0
-
-
-def choose_grn_csv(n_regulatory_genes: int, grn_100_csv: str, grn_1139_csv: str) -> str:
-    if n_regulatory_genes <= 500:
-        return grn_100_csv
-    return grn_1139_csv
-
-
-def load_grn(csv_path: str) -> pd.DataFrame:
-    return pd.read_csv(csv_path)
-
-
-def grn_regulatory_genes(grn_df: pd.DataFrame) -> List[str]:
-    ids = set()
-    for column in ("regulated.gene", "regulator.gene", "target", "regulator"):
-        if column in grn_df.columns:
-            ids.update(grn_df[column].astype(int))
-    return sorted([str(i) for i in ids])
-
-
-def detect_tf_from_names(adata) -> List[str]:
-    return sorted([str(g) for g in adata.var_names if re.search(r"_TF\d*$", str(g))])
-
-
-def load_dyngen_feature_network(csv_path: str) -> pd.DataFrame:
-    return pd.read_csv(csv_path)
-
-
-def build_regvelo_grn(edges_df: pd.DataFrame, genes: Optional[Sequence[str]] = None) -> pd.DataFrame:
-    """Build a square 0/1 regulator-target matrix (``mat.loc[reg, tgt] = 1``)."""
-    reg_col = "regulator" if "regulator" in edges_df.columns else "from"
-    tgt_col = "target" if "target" in edges_df.columns else "to"
-
-    regulators = sorted({str(r) for r in edges_df[reg_col]})
-    targets = sorted({str(t) for t in edges_df[tgt_col]})
-    if genes is None:
-        genes = sorted(set(regulators) | set(targets))
-
-    mat = pd.DataFrame(0, index=genes, columns=genes, dtype=int)
-    for _, row in edges_df.iterrows():
-        regulator = str(row[reg_col])
-        target = str(row[tgt_col])
-        if regulator in mat.index and target in mat.columns:
-            mat.loc[regulator, target] = 1
-
-    n_edges = int((mat.values != 0).sum())
-    print(f"[build_regvelo_grn] {len(regulators)} regulators, {len(targets)} targets, "
-          f"{n_edges} edges, matrix {mat.shape}")
-    return mat
-
-
-def build_regvelo_grn_from_scmultisim(grn_df: pd.DataFrame) -> pd.DataFrame:
-    """Convert a long-format scmultisim GRN (integer ids) into a 0/1 matrix."""
-    columns = list(grn_df.columns)
-    if "regulated.gene" in columns and "regulator.gene" in columns:
-        tgt_col, reg_col = "regulated.gene", "regulator.gene"
-    else:
-        tgt_col, reg_col = "target", "regulator"
-
-    edges = pd.DataFrame({
-        "regulator": [str(int(r)) for r in grn_df[reg_col]],
-        "target": [str(int(t)) for t in grn_df[tgt_col]],
-    })
-    return build_regvelo_grn(edges)
-
-
-def build_regvelo_grn_from_correlation(
-    adata, tf_list: Sequence[str], top_k: int = 10, layer: str = "Ms"
-) -> pd.DataFrame:
-    """Fallback dyngen GRN: keep the top-|spearman| TFs per gene as regulators."""
-    from scipy import stats
-
-    gene_names = list(adata.var_names)
-    gene_index = {g: i for i, g in enumerate(gene_names)}
-
-    tf_list = [str(t).upper() for t in tf_list]
-    tf_list = sorted({t for t in tf_list if t in gene_index}, key=lambda x: gene_index[x])
-    if not tf_list:
-        raise ValueError("No TF in tf_list is present in adata.var_names.")
-
-    expr = np.asarray(adata.layers[layer], dtype=float)
-    k = min(top_k, len(tf_list))
-
-    mat = pd.DataFrame(0, index=gene_names, columns=gene_names, dtype=int)
-    n_edges = 0
-    for gene_id, gene in enumerate(gene_names):
-        target_expr = expr[:, gene_id]
-        scored = []
-        for tf in tf_list:
-            if tf == gene:
-                continue
-            tf_id = gene_index[tf]
-            tf_expr = expr[:, tf_id]
-            flag = (tf_expr > 0.1) & (target_expr > 0.1)
-            if flag.sum() < 2:
-                corr = 0.0
-            else:
-                corr, _ = stats.spearmanr(target_expr[flag], tf_expr[flag])
-                if np.isnan(corr):
-                    corr = 0.0
-            scored.append((tf, corr))
-        scored.sort(key=lambda x: -abs(x[1]))
-        for tf, _ in scored[:k]:
-            mat.loc[tf, gene] = 1
-            n_edges += 1
-
-    print(f"[build_regvelo_grn_from_correlation] {len(tf_list)} TFs, {n_edges} edges "
-          f"(top_k={k}, layer={layer})")
-    return mat
 
 
 # ---------------------------------------------------------------------------
@@ -241,10 +147,19 @@ def load_prior_grn(
     adata,
     grn_100_csv: str,
     grn_1139_csv: str,
-    dyngen_feature_network_csv: str,
+    data_file_name: Optional[str] = None,
     sim_type: Optional[str] = None,
 ) -> tuple:
-    """Return ``(grn_matrix_or_None, retain_genes, tf_list_or_None, sim_type)``."""
+    """Return ``(grn_matrix_or_None, retain_genes, tf_list_or_None, sim_type)``.
+
+    scmultisim datasets use the matching a-priori GRN csv. dyngen datasets have no
+    prior file in use, so ``grn_matrix`` stays ``None`` and the caller rebuilds the
+    GRN from Spearman correlation after ``moments``. See the commented block below
+    for how to switch a dyngen dataset to a reliable dumped GRN edge list.
+
+    ``data_file_name`` is the input h5ad file name; it identifies the dataset and
+    is used by the optional dyngen edge-list lookup.
+    """
     detected_type, n_reg = detect_sim_type(adata)
     sim_type = sim_type or detected_type
     tf_list = None
@@ -255,18 +170,42 @@ def load_prior_grn(
         retain_genes = grn_regulatory_genes(grn_df)
         print(f"scmultisim detected: {n_reg} regulatory genes, GRN edges={len(grn_df)}")
     else:
+        # dyngen: no prior file is used, the GRN is always rebuilt by Spearman
+        # correlation on the known ``*_TF1`` genes.
         tf_list = detect_tf_from_names(adata)
         grn_matrix = None
         retain_genes = tf_list
-        if dyngen_feature_network_csv and os.path.exists(dyngen_feature_network_csv):
-            edges_df = load_dyngen_feature_network(dyngen_feature_network_csv)
-            grn_matrix = build_regvelo_grn(edges_df)
-            reg_col = "regulator" if "regulator" in edges_df.columns else "from"
-            tgt_col = "target" if "target" in edges_df.columns else "to"
-            retain_genes = sorted(
-                {str(r) for r in edges_df[reg_col]} | {str(t) for t in edges_df[tgt_col]}
-            )
-        print(f"dyngen detected: {len(tf_list)} TFs")
+        print(f"dyngen detected ({data_file_name or 'input'}): {len(tf_list)} TFs; "
+              f"GRN will be rebuilt by Spearman correlation")
+
+        # ------------------------------------------------------------------
+        # Optional: use a reliable dyngen GRN instead of Spearman correlation.
+        # ------------------------------------------------------------------
+        # If a trustworthy simulated GRN is available for this dyngen dataset --
+        # for example the dataset's dyngen model ``model$feature_network`` edge
+        # list dumped to csv, such as the shipped
+        # ``dyngen_bifurcating_cell10000_gene500_feature_network.csv`` -- uncomment
+        # both this block and the matching definitions in grn_utils.py and add
+        # "build_regvelo_grn" (+ "DYNGEN_MODEL_GRN" /
+        # "load_dyngen_feature_network") to the grn_utils import at the top of this
+        # file. The true edges then replace the correlation-based GRN; datasets
+        # without a reliable GRN keep the Spearman fallback.
+        #
+        # The lookup key is the dataset name with the benchmark ``_dataset`` suffix
+        # stripped, matching DYNGEN_MODEL_GRN and derive_output_stem().
+        #
+        # dyngen_key = Path(data_file_name or "").stem
+        # if dyngen_key.endswith("_dataset"):
+        #     dyngen_key = dyngen_key[:-8]
+        # dyngen_grn_csv = DYNGEN_MODEL_GRN.get(dyngen_key)
+        # if dyngen_grn_csv and os.path.exists(dyngen_grn_csv):
+        #     edges_df = load_dyngen_feature_network(dyngen_grn_csv)
+        #     grn_matrix = build_regvelo_grn(edges_df)
+        #     retain_genes = sorted(
+        #         {str(r) for r in edges_df["regulator"]}
+        #         | {str(t) for t in edges_df["target"]}
+        #     )
+        #     print(f"dyngen: using the dumped GRN edge list {dyngen_grn_csv}")
 
     return grn_matrix, retain_genes, tf_list, sim_type
 
@@ -274,9 +213,9 @@ def load_prior_grn(
 def preprocess_adata(
     adata,
     cluster_key: str = "vis_annotation",
+    data_file_name: Optional[str] = None,
     grn_100_csv: str = DEFAULT_GRN_100_CSV,
     grn_1139_csv: str = DEFAULT_GRN_1139_CSV,
-    dyngen_feature_network_csv: str = DEFAULT_DYNGEN_FEATURE_NETWORK_CSV,
     dyngen_correlation_top_k: int = 10,
     sim_type: Optional[str] = None,
     n_pcs: int = 30,
@@ -296,7 +235,7 @@ def preprocess_adata(
         adata.obsm["X_umap"] = adata.obsm["X_dimred"]
 
     grn_matrix, retain_genes, tf_list, sim_type = load_prior_grn(
-        adata, grn_100_csv, grn_1139_csv, dyngen_feature_network_csv, sim_type
+        adata, grn_100_csv, grn_1139_csv, data_file_name, sim_type
     )
 
     if adata.n_vars < 2000:
@@ -412,7 +351,6 @@ def run_regvelo_sim_analysis(
     dataset_name: Optional[str] = None,
     grn_100_csv: str = DEFAULT_GRN_100_CSV,
     grn_1139_csv: str = DEFAULT_GRN_1139_CSV,
-    dyngen_feature_network_csv: str = DEFAULT_DYNGEN_FEATURE_NETWORK_CSV,
     dyngen_correlation_top_k: int = 10,
     sim_type: Optional[str] = None,
     max_epochs: int = 500,
@@ -451,9 +389,9 @@ def run_regvelo_sim_analysis(
         adata = preprocess_adata(
             adata,
             cluster_key=cluster_key,
+            data_file_name=input_path.name,
             grn_100_csv=grn_100_csv,
             grn_1139_csv=grn_1139_csv,
-            dyngen_feature_network_csv=dyngen_feature_network_csv,
             dyngen_correlation_top_k=dyngen_correlation_top_k,
             sim_type=sim_type,
         )
@@ -504,7 +442,6 @@ def run_batch_regvelo_sim(
     cluster_key: str = "vis_annotation",
     grn_100_csv: str = DEFAULT_GRN_100_CSV,
     grn_1139_csv: str = DEFAULT_GRN_1139_CSV,
-    dyngen_feature_network_csv: str = DEFAULT_DYNGEN_FEATURE_NETWORK_CSV,
     dyngen_correlation_top_k: int = 10,
     sim_type: Optional[str] = None,
     max_epochs: int = 500,
@@ -536,7 +473,6 @@ def run_batch_regvelo_sim(
                     dataset_name=str(row.get("dataset_name", file_path.stem)),
                     grn_100_csv=grn_100_csv,
                     grn_1139_csv=grn_1139_csv,
-                    dyngen_feature_network_csv=dyngen_feature_network_csv,
                     dyngen_correlation_top_k=dyngen_correlation_top_k,
                     sim_type=sim_type,
                     max_epochs=max_epochs,
@@ -572,11 +508,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
                         help="scmultisim GRN csv for small networks (~100 regulators)")
     parser.add_argument("--grn-1139-csv", dest="grn_1139_csv", default=DEFAULT_GRN_1139_CSV,
                         help="scmultisim GRN csv for large networks (~1100 regulators)")
-    parser.add_argument("--dyngen-feature-network-csv", dest="dyngen_feature_network_csv",
-                        default=DEFAULT_DYNGEN_FEATURE_NETWORK_CSV,
-                        help="dyngen model feature_network csv (true GRN edges)")
     parser.add_argument("--dyngen-correlation-top-k", dest="dyngen_correlation_top_k", type=int, default=10,
-                        help="Top-k correlated TFs kept per gene when rebuilding a dyngen GRN")
+                        help="Top-k correlated TFs kept per gene when rebuilding a dyngen GRN by Spearman correlation")
     parser.add_argument("--max-epochs", dest="max_epochs", type=int, default=500,
                         help="Maximum number of training epochs")
     parser.add_argument("--batch-size", dest="batch_size", type=int, default=None,
@@ -612,7 +545,6 @@ def main(args: Optional[argparse.Namespace] = None):
             cluster_key=args.cluster_key,
             grn_100_csv=args.grn_100_csv,
             grn_1139_csv=args.grn_1139_csv,
-            dyngen_feature_network_csv=args.dyngen_feature_network_csv,
             dyngen_correlation_top_k=args.dyngen_correlation_top_k,
             sim_type=sim_type,
             max_epochs=args.max_epochs,
@@ -629,7 +561,6 @@ def main(args: Optional[argparse.Namespace] = None):
         dataset_name=args.dataset_name,
         grn_100_csv=args.grn_100_csv,
         grn_1139_csv=args.grn_1139_csv,
-        dyngen_feature_network_csv=args.dyngen_feature_network_csv,
         dyngen_correlation_top_k=args.dyngen_correlation_top_k,
         sim_type=sim_type,
         max_epochs=args.max_epochs,

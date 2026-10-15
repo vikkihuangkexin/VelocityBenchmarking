@@ -2,9 +2,9 @@
 """Recompute Figure 2 using the repository's external measurement directory.
 
 Run from the VelocityBenchmarking repository root:
-    python -m pip install -r Figure_code/Fig2/requirements.txt
-    Rscript --vanilla Figure_code/Fig2/code/install_R_packages.R
-    python Figure_code/Fig2/run.py
+    python -m pip install -r Figure_code/figures/Figure2/requirements.txt
+    Rscript --vanilla Figure_code/figures/Figure2/code/install_R_packages.R
+    python Figure_code/figures/Figure2/run.py
 
 Default inputs:
     Source_data/measurements_raw/scRNA/methods.csv
@@ -13,15 +13,15 @@ Default inputs:
     Source_data/measurements_raw/scRNA/measurement/std/*.csv
     Source_data/measurements_raw/scRNA/measurement/downsampling/*.csv
 
-The default output is Figure_code/Fig2/results. It must be new or empty.
+The default output is Figure_code/figures/Figure2/results. It must be new or empty.
 Use --data-root to select another scRNA directory and --output for another
 output location. The entry point stages a read-only copy in the original
 pipeline layout; scoring and R plotting scripts do not need path changes.
 
 Analysis without R:
-    python Figure_code/Fig2/run.py --mode analysis
+    python Figure_code/figures/Figure2/run.py --mode analysis
 Plot an existing analysis, after editing verified English annotations:
-    python Figure_code/Fig2/run.py --mode plots
+    python Figure_code/figures/Figure2/run.py --mode plots
 """
 from pathlib import Path
 import argparse
@@ -42,7 +42,7 @@ def resolve_data_root(script_root, supplied):
         if candidate.is_dir():
             return candidate
     raise FileNotFoundError('Could not find Source_data/measurements_raw/scRNA. '
-                            'Place this code in Figure_code/Fig2 or supply --data-root PATH.')
+                            'Place this code in Figure_code/figures/Figure2 or supply --data-root PATH.')
 
 
 def verify_inputs(root, data_root=None):

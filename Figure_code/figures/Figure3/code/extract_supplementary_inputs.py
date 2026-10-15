@@ -2,7 +2,7 @@
 """Extract the scRNA S4-S8 inputs as standalone, English-only CSV files.
 
 The workbook is optional after extraction and is not distributed with the code.
-Usage: python Figure_code/Fig3/code/extract_supplementary_inputs.py workbook.xlsx
+Usage: python Figure_code/figures/Figure3/code/extract_supplementary_inputs.py workbook.xlsx
 The three resource protocols are top_scRNA, velocity_genes_2000 and
 velocity_genes_5000. Only top_scRNA enters the Scalability score.
 """
@@ -104,7 +104,7 @@ def resource_rows(workbook, sheet_name, measure, unit, methods, source_name):
 
 
 def extract(workbook_path, repo_root):
-    code = repo_root/'Figure_code/Fig3'
+    code = repo_root/'Figure_code/figures/Figure3'
     with (code/'config/method_colors.csv').open(encoding='utf-8-sig') as handle:
         palette = sorted(csv.DictReader(handle),key=lambda row:int(row['method_order']))
     methods = [row['method'] for row in palette]

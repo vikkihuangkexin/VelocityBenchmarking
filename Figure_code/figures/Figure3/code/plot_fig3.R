@@ -4,7 +4,7 @@
 # U: 24 item scores, S7 subweights, category weights .25/.25/.20/.15/.15.
 # The two panels use independent descending orders and exact average ties.
 # Original BluGrn heatmaps, orange bubbles, dimensions and geometry are kept.
-# U = .25 Installability + .25 Code quality + .20 Usage guidance + .15 Maintenance + .15 Publication quality。
+# U = .25 Installability + .25 Code quality + .20 Usage guidance + .15 Maintenance + .15 Publication quality.
 
 args <- commandArgs(trailingOnly = TRUE)
 PROJECT <- normalizePath(if (length(args)) args[[1]] else ".", winslash = "/", mustWork = TRUE)

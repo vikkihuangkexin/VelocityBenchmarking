@@ -2,15 +2,15 @@
 """Run independent Fig3 Scalability/Usability analysis and metric-rank exports.
 
 From the VelocityBenchmarking repository root:
-    python -m pip install -r Figure_code/Fig3/requirements.txt
-    Rscript --vanilla Figure_code/Fig3/code/install_R_packages.R
-    python Figure_code/Fig3/run.py
+    python -m pip install -r Figure_code/figures/Figure3/requirements.txt
+    Rscript --vanilla Figure_code/figures/Figure3/code/install_R_packages.R
+    python Figure_code/figures/Figure3/run.py
 
 Inputs are standalone CSVs in Source_data/scalability and Source_data/usability.
 No supplementary workbook is needed at runtime. The original R calculations,
 heatmaps, orange usability bubbles and independent Sc/U orders are preserved.
 Fig2 results, when available, are read for the complete per-metric rank export.
-Ranks go to rank/scRNA; figures/tables go to Figure_code/Fig3/results.
+Ranks go to rank/scRNA; figures/tables go to Figure_code/figures/Figure3/results.
 Run --mode ranks to refresh rankings from existing computed result files.
 """
 from pathlib import Path
@@ -29,7 +29,7 @@ import time
 def find_repo(root):
     for parent in root.parents:
         if (parent/'Source_data/scalability').is_dir() and (parent/'Source_data/usability').is_dir():return parent
-    raise FileNotFoundError('Place this code in Figure_code/Fig3 with Source_data/scalability and Source_data/usability.')
+    raise FileNotFoundError('Place this code in Figure_code/figures/Figure3 with Source_data/scalability and Source_data/usability.')
 
 
 def check_inputs(repo, code):
@@ -82,7 +82,7 @@ def main():
     if not __debug__:raise SystemExit('Run without python -O; verification assertions are required.')
     repo=args.repo_root.expanduser().resolve() if args.repo_root else find_repo(root)
     out=args.output.expanduser().resolve()
-    fig2=(args.fig2_results or repo/'Figure_code/Fig2/results').expanduser().resolve()
+    fig2=(args.fig2_results or repo/'Figure_code/figures/Figure2/results').expanduser().resolve()
     ranks=(args.rank_dir or repo/'rank/scRNA').expanduser().resolve()
     protected=[root,root/'code',root/'config',repo/'Source_data',repo/'rank']
     if any(out==p or out in p.parents or (p!=root and p in out.parents) for p in protected):

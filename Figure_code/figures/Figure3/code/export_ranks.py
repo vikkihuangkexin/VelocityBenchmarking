@@ -19,7 +19,7 @@ def read(path):
 
 
 def export(repo, fig3, fig2, destination):
-    palette=read(repo/'Figure_code/Fig3/config/method_colors.csv').sort_values('method_order')
+    palette=read(repo/'Figure_code/figures/Figure3/config/method_colors.csv').sort_values('method_order')
     methods=palette.method.tolist();fixed=dict(zip(methods,range(1,len(methods)+1)))
     destination.mkdir(parents=True,exist_ok=True)
     frames=[];index=[]
@@ -112,6 +112,6 @@ if __name__=='__main__':
     parser.add_argument('--fig3-results',type=Path)
     parser.add_argument('--rank-dir',type=Path)
     args=parser.parse_args();repo=args.repo_root.expanduser().resolve()
-    export(repo,(args.fig3_results or repo/'Figure_code/Fig3/results').resolve(),
-           (args.fig2_results or repo/'Figure_code/Fig2/results').resolve(),
+    export(repo,(args.fig3_results or repo/'Figure_code/figures/Figure3/results').resolve(),
+           (args.fig2_results or repo/'Figure_code/figures/Figure2/results').resolve(),
            (args.rank_dir or repo/'rank/scRNA').resolve())

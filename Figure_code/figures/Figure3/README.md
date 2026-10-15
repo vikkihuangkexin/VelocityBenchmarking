@@ -56,16 +56,16 @@ written to the repository's `rank/scRNA/` directory.
 To export all 18 metric rank tables, supply the completed Figure 2 output path:
 
 ```bash
-python run.py --fig2-results "/absolute/path/to/Figure2/results"
+python run.py --fig2-results "/absolute/path/to/Figure_code/figures/Figure2/results"
 ```
 
 Replace the example path with your actual directory. This option is needed if
-Figure 2 results are outside the default `Figure_code/Fig2/results` location.
+Figure 2 results are outside the default `Figure_code/figures/Figure2/results` location.
 Without Figure 2 results, the exporter produces the nine Figure 3 rank tables.
 After Figure 3 has completed, refresh ranks without redrawing:
 
 ```bash
-python run.py --mode ranks --fig2-results "/absolute/path/to/Figure2/results"
+python run.py --mode ranks --fig2-results "/absolute/path/to/Figure_code/figures/Figure2/results"
 ```
 
 Exports include individual `*_rank.csv` files, `all_metric_ranks.csv`,

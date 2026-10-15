@@ -4,8 +4,8 @@ library(dplyr)
 library(grid)
 
 # Paths
-expr_path <- "/data_d/Velocity/silver/exp/31_expression_matrix_fixed.csv"
-phase_csv_path <- "/data_d/ZXL/RNA_Velocity/DeepCycle-main/result/phase_result/31_phase_deepcycle_phase.csv"
+expr_path <- ".../31_expression_matrix_fixed.csv"
+phase_csv_path <- ".../DeepCycle-main/result/phase_result/31_phase_deepcycle_phase.csv"
 output_png <- "31_deepcycle_heatmap_with_phase.png"
 output_pdf <- "31_deepcycle_heatmap_with_phase.pdf"
 

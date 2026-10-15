@@ -126,7 +126,7 @@ def save_plots(fig, base_path):
 
 def main():
     # -------------------------- 1. Data Loading and Preprocessing --------------------------
-    data_path = "/data_d/ZXL/RNA_Velocity/DeepCycle-main/result/phase_result/otu/euclidean_distance_summary.csv"
+    data_path = ".../DeepCycle-main/result/phase_result/otu/euclidean_distance_summary.csv"
     df = pd.read_csv(data_path, usecols=["data_group", "mean_distance"])
     
     # Extract cell and gene counts
@@ -142,7 +142,7 @@ def main():
     fig, ax = plot_heatmap(heatmap_matrix, unique_cells, unique_genes)
     
     # -------------------------- 3. Save plots --------------------------
-    base_save_path = "/data_d/ZXL/RNA_Velocity/DeepCycle-main/result/phase_result/otu/cell_gene_distance_heatmap"
+    base_save_path = ".../DeepCycle-main/result/phase_result/otu/cell_gene_distance_heatmap"
     save_plots(fig, base_save_path)
     
     # Print summary

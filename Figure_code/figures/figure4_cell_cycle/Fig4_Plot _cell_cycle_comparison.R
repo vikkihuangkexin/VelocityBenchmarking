@@ -2,7 +2,7 @@
 library(dplyr)
 
 # Load data
-file_path <- "/data_d/ZXL/RNA_Velocity/velocycle-main/test/phase_result/merged_all_datasets.csv"
+file_path <- ".../velocycle-main/test/phase_result/merged_all_datasets.csv"
 df <- read.delim(file_path, sep = ",", stringsAsFactors = FALSE)
 
 # True counts
@@ -21,7 +21,7 @@ pred_counts <- df %>%
 
 # Merge and save
 result <- inner_join(true_counts, pred_counts, by = "dataset")
-output_path <- "/data_d/ZXL/RNA_Velocity/velocycle-main/test/phase_result/cell_counts_by_dataset.csv"
+output_path <- ".../velocycle-main/test/phase_result/cell_counts_by_dataset.csv"
 write.table(result, file = output_path, sep = ",", row.names = FALSE, quote = FALSE)
 
 cat("Count saved to: ", output_path, "\n")

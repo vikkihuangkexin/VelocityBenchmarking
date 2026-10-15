@@ -5,8 +5,8 @@ library(readr)
 
 # Read data
 data <- read_delim(
-  "/data_d/ZXL/RNA_Velocity/DeepCycle-main/result/phase_result/cycle-simple_cell500_gene500_phase_deepcycle_phase.csv",
-  delim = ",",
+  ".../DeepCycle-main/result/phase_result/cycle-simple_cell500_gene500_phase_deepcycle_phase.csv",
+  delim = ",
   show_col_types = FALSE
 )
 

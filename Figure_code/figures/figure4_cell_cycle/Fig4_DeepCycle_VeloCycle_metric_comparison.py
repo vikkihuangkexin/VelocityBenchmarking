@@ -5,7 +5,7 @@ from sklearn.metrics import (
 )
 
 # Read data
-file_path = "/data_d/ZXL/RNA_Velocity/DeepCycle-main/result/phase_result/merged_all_datasets.csv"
+file_path = ".../DeepCycle-main/result/phase_result/merged_all_datasets.csv"
 merged_df = pd.read_csv(file_path, sep=",")
 
 # Calculate metrics function
@@ -32,7 +32,7 @@ def calculate_metrics(group):
 metrics_df = merged_df.groupby("dataset").apply(calculate_metrics).reset_index()
 
 # Save metrics
-output_path = "/data_d/ZXL/RNA_Velocity/DeepCycle-main/result/phase_result/dataset_metrics.csv"
+output_path = ".../DeepCycle-main/result/phase_result/dataset_metrics.csv"
 metrics_df.to_csv(output_path, sep=",", index=False)
 
 print(f"Metrics saved to: {output_path}")

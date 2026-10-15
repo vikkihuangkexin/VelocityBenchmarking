@@ -5,9 +5,9 @@ library(tidyr)
 library(rstatix)
 
 # Load and combine data
-velo <- read.csv("/data_d/ZXL/RNA_Velocity/velocycle-main/test/phase_result/dataset_metrics.csv")
+velo <- read.csv(".../velocycle-main/test/phase_result/dataset_metrics.csv")
 velo$Tool <- "VeloCycle"
-deep <- read.csv("/data_d/ZXL/RNA_Velocity/DeepCycle-main/result/phase_result/dataset_metrics.csv")
+deep <- read.csv(".../DeepCycle-main/result/phase_result/dataset_metrics.csv")
 deep$Tool <- "DeepCycle"
 combined <- rbind(velo, deep) %>%
   pivot_longer(cols = -c(dataset, Tool), names_to = "metric", values_to = "value")

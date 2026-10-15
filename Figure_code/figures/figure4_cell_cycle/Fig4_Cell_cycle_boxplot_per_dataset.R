@@ -3,7 +3,7 @@ library(ggplot2)
 library(dplyr)
 
 # Load data
-data_path <- "/data_d/ZXL/RNA_Velocity/velocycle-main/test/phase_result/merged_all_datasets.csv"
+data_path <- ".../velocycle-main/test/phase_result/merged_all_datasets.csv"
 df <- read.delim(data_path, sep = ",", stringsAsFactors = FALSE)
 
 # Preprocess
@@ -12,7 +12,7 @@ df <- df %>%
   mutate(milestone = factor(milestone, levels = c("G1", "S", "G2M")))
 
 # Output dir
-output_dir <- "/data_d/ZXL/RNA_Velocity/velocycle-main/test/phase_result/1114plot/boxplot"
+output_dir <- ".../velocycle-main/test/phase_result/1114plot/boxplot"
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 
 # Batch plot

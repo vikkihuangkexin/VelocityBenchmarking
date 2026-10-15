@@ -1,4 +1,4 @@
-# Angle Consistency
+# Velocity Angle Consistency
 
 This metric compares predicted RNA velocity directions against reference differentiation directions on a shared low-dimensional basis. It is implemented as a single public script, `angle_consistency.py`, which supports both real and simulated datasets.
 

@@ -103,5 +103,94 @@ Relative result and reference paths inside the CSV resolve relative to that
 CSV. The reference is never guessed from the dataset ID. A user can supply a
 different NPZ for a new simulation without editing the script.
 The study's reference NPZ files are already provided under
-`simdata_reference/`; their former server-specific export script is not
-needed to score the supplied inputs.
+`simdata_reference/`; exporting them again is not needed to score the supplied
+inputs.
+
+## Export simulation references
+
+Use [get_gt_concurrent.py](simdata_reference/get_gt_concurrent.py) to export
+references from your simulation H5AD files. Input and output directories are
+explicit; no server paths are embedded in the script. Install Scanpy, scVelo,
+NumPy, and pandas.
+
+The output is `<output-dir>/<topology>/<dataset_id>_reference_data.npz`.
+Dataset IDs come from the input filename, removing `_dataset.h5ad` or `.h5ad`.
+Every file contains `X_basis`, `cell_names`, and `celltype`; `gt_dimred` stores
+true 2D velocity when available. Duplicate cell names receive an additional
+`cell_names_unique` array without changing the original `cell_names`.
+
+### ATAC simulations
+
+Select `--modality atac`. The exporter copies existing arrays without
+computing neighbors or projecting velocity:
+
+| NPZ field | ATAC H5AD source |
+| --- | --- |
+| `X_basis` | `obsm['X_tsne']` |
+| `gt_dimred` | `obsm['true_velocity_tsne']` |
+| `celltype`, dataset ID contains `linear` (case-insensitive) | `obs['pseudo_celltype']` |
+| `celltype`, other dataset IDs | `obs['celltype']` |
+
+Coordinates and velocity must have one row per cell and at least two columns;
+the first two columns are exported in their original order. Coordinates must
+be finite, and the selected annotation must be complete. True velocities are
+copied without cleaning; the scoring metric determines which rows are valid.
+Missing required fields fail explicitly, with no alternate annotation or
+velocity key inferred.
+
+For a directory containing H5AD files directly, use `--topologies .`; outputs
+are written directly under `--output-dir`:
+
+```bash
+python Evaluation/Groundtruth-correlation/simdata_reference/get_gt_concurrent.py \
+  --input-dir data/atac_simulations --output-dir references/atac \
+  --modality atac --topologies .
+```
+
+For topology subdirectories, list their names instead of `.`. Use separate
+output roots for RNA and ATAC to avoid collisions between dataset IDs.
+
+### RNA, Bursting-tree, and lineage simulations
+
+RNA remains the default. Inputs normally live under
+`<input-dir>/<topology>/*.h5ad`; underscore spellings of topology directory
+names are also searched. The `all` preset selects the original standard RNA
+topologies and skips Bursting-tree and lineage-tracing unless requested
+explicitly. Custom topology names can be passed directly.
+
+```bash
+python Evaluation/Groundtruth-correlation/simdata_reference/get_gt_concurrent.py \
+  --input-dir data/rna_simulations --output-dir references/rna \
+  --topologies bifurcating linear-simple
+```
+
+RNA retains the original `X_dimred`/`X_umap` coordinate selection and
+`milestone`, `synthetic_celllabel`, `pop`, or `edge_id` label priority.
+True projected velocity is computed from `layers['ground_truth_velocity']`
+with the original scVelo graph/projection workflow; `--n-jobs` defaults to 10.
+The Bursting-tree branch initially selects `X_tsne`, with `X_dimred` as a fallback,
+then uses the original external annotated-H5AD and metadata export below.
+
+Lineage inputs live at `<input-dir>/lineage_tracing/<replicate>/adata.h5ad`
+and use `X_umap` and `synthetic_celllabel`; their references contain no true
+velocity. Bursting-tree requires explicit resource directories:
+
+```bash
+python Evaluation/Groundtruth-correlation/simdata_reference/get_gt_concurrent.py \
+  --input-dir data/rna_simulations --output-dir references/rna \
+  --topologies Bursting-tree \
+  --bursting-meta-dir data/bursting_metadata \
+  --bursting-annotated-dir data/bursting_annotated
+```
+
+These directories contain `<dataset_id>/cell_metadata.csv` and
+`<dataset_id>.h5ad`, respectively. Metadata requires `cell_id`, `edge_id`,
+`cell_time_ref`, `milestone_id`, and `lineage_id`. The original Bursting-tree
+export of metadata and annotated true velocity is retained.
+
+`--fallback-input-dir` optionally supplies a second topology root; the first
+root takes precedence for repeated IDs. Existing NPZ files are skipped unless
+`--overwrite` is set. No dataset-size exclusion is applied by default;
+repeat `--skip-name-fragment` to request explicit exclusions. Failures are
+reported in `<output-dir>/export_reference_sidecar.log`, and any failed export
+causes a nonzero exit status.

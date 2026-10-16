@@ -43,10 +43,6 @@ and missing values. ATAC and spatial ranks also exactly match the latest
 previously generated figure-data tables. Scores in those figure-data exports
 differ only by CSV serialization rounding below 1e-12.
 
-`verification.json` records these comparisons, file hashes, and the current
-source-file hashes. Earlier preliminary analyses using different inputs or
-metric selections are not the reference for this release.
-
 ## Reading the files
 
 - `score`: the original category score. Higher is better. Scores from different
@@ -69,29 +65,6 @@ and SVC; its downsampling uses Angle consistency, CBDir, Transition V1, STC,
 and SVC. The updated ATAC downsampling matrix is aggregated from the supplied
 cell-level values. RNA Stability combines downsampling with the measured
 batch-run SD inputs. Missing batch-run SD is never assumed to be zero.
-
-scRNA contains 28 methods. The Stability and Overall scores for k-velo and
-GRAVITY remain unavailable, so those two ranks remain missing. ATAC has nine
-methods with all six categories available.
-
-Spatial has seven methods. STT and spaVelo have no successful Scalability
-measurements: their scientific `score`, `rank`, and `reversed_rank` remain
-missing. The Scalability file preserves `display_rank=6.5` and
-`effective_reversed_rank=0` under the previously confirmed resource-failure
-policy. Overall uses that effective value. The spatial summary adds a separate
-`scalability_display_rank` column; it does not replace the missing scientific
-rank. All seven spatial Overall scores remain available under this policy.
-
-Overall uses the original weighted reversed ranks:
-
-```text
-0.65 * Accuracy + 0.10 * Consistency + 0.10 * Scalability
-+ 0.075 * Stability + 0.075 * Usability
-```
-
-The terms above are reversed ranks, not raw category scores. Missing dimensions
-do not trigger weight redistribution. The explicit spatial resource-failure
-policy is retained as specified above.
 
 ## Reproduce the calculations
 

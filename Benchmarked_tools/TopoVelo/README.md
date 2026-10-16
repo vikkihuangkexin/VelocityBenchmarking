@@ -1,139 +1,102 @@
-# TopoVelo Velocity Script
+# TopoVelo
 
-## Introduction
+This standalone script provides two explicit TopoVelo benchmark workflows.
+`scrna` retains the existing public post-analysis and plot workflow.
+`spatial` uses the spatial benchmark training workflow and saves the model and
+AnnData without that post-analysis or plot pass. Both modes use the supplied
+two-dimensional coordinates to build TopoVelo's spatial graph; `scrna` is the
+name of the existing public workflow, not a claim that TopoVelo ignores
+coordinates.
 
-[TopoVelo](https://topovelo.readthedocs.io/) is a graph-based deep learning framework for RNA velocity estimation in spatial transcriptomics. It extends the VeloVAE framework by incorporating a graph-attention (GAT) network that models spatial neighborhood relationships between cells. TopoVelo jointly infers latent temporal dynamics and spatial-aware RNA velocities.
-
-Reference: Gu Y, Welch JD. *TopoVelo: inferring RNA velocity with spatial information from single-cell spatial transcriptomics data.* (2024)
-
-## Installation
-
-TopoVelo is available on PyPI. Install required dependencies:
-
-```bash
-pip install topovelo scanpy scvelo torch
-```
-
-Alternatively, install from source:
+Use the [team TopoVelo source fork](https://github.com/sd68515/TopoVelo_benchmark)
+with compatible Scanpy, scVelo, and PyTorch dependencies:
 
 ```bash
-git clone https://github.com/welch-lab/TopoVelo.git
-cd topovelo
-pip install -e .
+git clone https://github.com/sd68515/TopoVelo_benchmark.git ../TopoVelo_benchmark
+python -m pip install --no-deps -e ../TopoVelo_benchmark
 ```
 
-## Usage
+## Input
 
-Basic usage on a spatial transcriptomics dataset:
+Each H5AD input needs `spliced` and `unspliced` layers, an annotation column
+in `adata.obs`, and finite two-dimensional coordinates in `adata.obsm`.
+Provide the exact annotation and coordinate keys. Dataset IDs default to the
+input stem; annotation/coordinate keys are never guessed from it. All five
+CSV columns below are required. Run commands from the repository root:
 
 ```bash
-python topovelo.py --data_dir /path/to/data.h5ad --save_dir ./output/TopoVelo --celltype_key cell_type
+python Benchmarked_tools/TopoVelo/topovelo.py --input sample.h5ad --output-dir results \
+  --dataset-id sample --modality scrna \
+  --cluster-key cell_type --coordinate-key X_umap
+
+python Benchmarked_tools/TopoVelo/topovelo.py --input tissue.h5ad --output-dir results \
+  --dataset-id tissue --modality spatial \
+  --cluster-key cell_type --coordinate-key spatial
 ```
 
-Specify a custom spatial key (if different from `X_spatial`):
+The input coordinates are copied to TopoVelo's internal `X_spatial` key.
+Before calls using `basis='spatial'` or `embed='spatial'`, the script checks
+that `X_spatial` exists and copies `obsm['spatial']` if the alias is missing.
+For several datasets, use a CSV:
+
+```csv
+dataset_name,file_path,modality,cluster_key,dimred_key
+sample,data/sample.h5ad,scrna,cell_type,X_umap
+tissue,data/tissue.h5ad,spatial,cell_type,spatial
+```
 
 ```bash
-python topovelo.py --data_dir /path/to/data.h5ad --save_dir ./output/TopoVelo --spatial_key spatial
+python Benchmarked_tools/TopoVelo/topovelo.py --metadata-file datasets.csv --output-dir results
 ```
 
-For CPU-only environments:
+CSV paths may be absolute or relative to the CSV. Dataset IDs must be unique.
 
-```bash
-python topovelo.py --data_dir /path/to/data.h5ad --save_dir ./output/TopoVelo --vae_device cpu
-```
+## Outputs
 
-With custom VAE architecture and learning rates:
+The script creates
+`results/<dataset_id>/adata_out.h5ad` and `results/<dataset_id>/model/`.
+Use `--overwrite` if the dataset output directory already contains files.
+`--device` accepts `auto` (default), `cpu`, `cuda`, or `cuda:<index>`.
 
-```bash
-python topovelo.py \
-    --data_dir /path/to/data.h5ad \
-    --save_dir ./output/TopoVelo \
-    --vae_tmax 30 \
-    --vae_dim_z 10 \
-    --vae_hidden_size 100 50 100 \
-    --lr 1e-4 \
-    --lr_ode 1e-3
-```
+## Preprocessing and mode settings
 
-## Input requirements
+| Setting | `scrna` | `spatial` |
+| --- | --- | --- |
+| Preprocessing | Existing public `tpv.preprocess` defaults: 2,000 genes, minimum cell count 1, minimum expressed genes 1, UMAP off | Up to 2,000 genes, same count filters, UMAP off, annotation passed as `cluster_key`; cell loss stops the run |
+| Graph | Public `KNN` default or `radius` with radius 30 | `KNN` with up to 16 neighbors |
+| VAE | Time horizon 20, latent dimension 5, hidden sizes `(50,25,50)`, graph decoder and attention on | Time horizon 20, latent dimension 5, hidden sizes chosen from retained gene count, graph decoder and attention on |
+| Training | Learning rates `2e-4`, `5e-3`, `2e-4`; other TopoVelo defaults | Same learning rates; batch size 128/256/512 by cell count, with validation interval `2 * batches_per_epoch`; trains with `cluster_key`, `embed='spatial'`, and `plot=False` |
+| Post-analysis | TopoVelo `post_analysis`, scVelo velocity graph and pseudotime, plus stream, grid, and pseudotime plots in PNG/PDF | No TopoVelo post-analysis or plotting; scVelo graph and pseudotime are computed only when model time is constant |
 
-- AnnData `.h5ad` file with an expression matrix in `adata.X`.
-- Spatial coordinates in `adata.obsm` under a key (default: `X_spatial`). The script will also auto-detect `spatial` or `spatial_coords` keys.
-- `adata.obs` should contain a cell-type/cluster column (default: `cell_type`).
+The `scrna` options `--prep-*`, `--graph-*`, `--vae-*`, `--lr*`, and
+`--post-*` retain the public entry's tunable settings. The spatial workflow
+uses the spatial benchmark settings; `--spatial-batch-size` and
+`--spatial-n-jobs` control its batch size and scVelo fallback jobs.
 
-## Output
+### Time fields and saved result
 
-The script creates the following structure under `{save_dir}/`:
+The result keeps TopoVelo's raw model time in `obs['gat_time']`. When it has a
+discernible range, its min-max-scaled copy is stored separately in
+`obs['gat_time_normalized']`. scVelo pseudotime, when computed, remains in
+scVelo's default `obs['gat_velocity_pseudotime']` field. In `scrna` mode it is
+computed after `post_analysis`; in `spatial` mode it is a fallback only when
+model time is constant. These fields represent different calculations and
+must not be interchanged.
 
-- `adata_out.h5ad`: Processed AnnData with velocity estimates (layers: `gat_velocity`, obs: `gat_velocity_pseudotime`).
-- `model/`: Saved VAE model parameters (`encoder`, `decoder`).
-- `figures/`: Training diagnostic figures generated by the VAE.
-- `TopoVelo_{dataset}_umap.{fmt}`: Velocity embedding stream plot (no arrows, for visual clarity).
-- `TopoVelo_{dataset}_stream.{fmt}`: Velocity stream plot with arrows.
-- `TopoVelo_{dataset}_grid.{fmt}`: Velocity grid plot.
-- `TopoVelo_{dataset}_pseudotime.{fmt}`: Velocity pseudotime scatter plot.
+The script writes `adata_out.h5ad` again after the selected postprocessing so
+the stored file includes the final time and graph fields. It also records
+the selected mode and settings in `uns['topovelo_run']`. The gene-space
+velocity key is `layers['gat_velocity']`. A spatial run with usable model time
+may have no saved velocity graph or projection; direction metrics can project
+`gat_velocity` from its expression layer and neighbors when needed. `scrna` retains the
+public post-analysis plot calls and four named plot types; `spatial` saves
+the model and AnnData only.
 
-## Parameters (high level)
+## Fork behavior
 
-- `--data_dir`: Path to the input `.h5ad` file (required).
-- `--save_dir`: Output directory for all results (required).
-- `--celltype_key`: Column name in `adata.obs` for cell-type/cluster labels (default: `cell_type`).
-- `--spatial_key`: Key in `adata.obsm` for spatial coordinate matrix (default: `X_spatial`).
-
-### Preprocessing (`tpv.preprocess`)
-
-- `--prep_n_gene`: Number of highly variable genes to select. Affects the gene set used for velocity estimation (default: 2000).
-- `--prep_min_count_per_cell`: Minimum total UMI counts per cell for filtering (default: 1).
-- `--prep_min_genes_expressed`: Minimum number of genes expressed per cell for filtering (default: 1).
-- `--prep_compute_umap`: If set, compute UMAP embedding during preprocessing (off by default).
-
-### Spatial graph (`tpv.build_spatial_graph`)
-
-- `--graph_method`: Method for constructing the spatial neighborhood graph. `KNN` uses k-nearest neighbors; `radius` uses a fixed distance radius (default: `KNN`).
-- `--graph_radius`: Distance radius in spatial coordinate units. Only applies when `graph_method='radius'` (default: 30).
-
-### VAE model (`tpv.VAE`)
-
-- `--vae_tmax`: Maximum integration time for the ODE solver. Controls the time horizon of velocity dynamics (default: 20).
-- `--vae_dim_z`: Dimension of the latent space $z$. Larger values capture more complex dynamics but increase model complexity (default: 5).
-- `--vae_hidden_size`: Tuple of hidden layer sizes for the encoder/decoder networks. Specified as space-separated integers (default: `50 25 50`).
-- `--vae_device`: PyTorch device for training, e.g. `cuda:0` or `cpu` (default: `cuda:0`).
-- `--vae_graph_decoder`: Whether the decoder uses the spatial graph structure for reconstruction. Enables spatial-aware decoding (default: `True`).
-- `--vae_attention`: Whether to use graph attention (GAT) layers. When enabled, the model learns to weight spatial neighbors differently (default: `True`).
-
-### Training learning rates (`tpv.VAE.train`)
-
-- `--lr`: Learning rate for the main VAE (encoder/decoder) training phase (default: `2e-4`).
-- `--lr_ode`: Learning rate for the ODE solver parameters during training. Higher values speed up convergence of velocity dynamics (default: `5e-3`).
-- `--lr_refine`: Learning rate for the final refinement phase that fine-tunes velocity estimates (default: `2e-4`).
-
-### Post-analysis (`tpv.post_analysis`)
-
-- `--post_n_spatial_neighbors`: Number of spatial neighbors used to construct the spatial velocity graph (default: 50).
-- `--post_spatial_velocity_graph`: Whether to compute the velocity transition matrix on the spatial graph. When enabled, velocity directions are projected onto spatial neighbors (default: `True`).
-- `--post_compute_metrics`: Whether to compute evaluation metrics during post-analysis. Set to `True` if a ground-truth is available (default: `False`).
-
-## Notes
-
-- TopoVelo is designed specifically for **spatial transcriptomics** data (e.g., MERFISH, Visium, seqFISH). It requires spatial coordinates in `adata.obsm`.
-- The GAT-based spatial graph allows the model to share information across neighboring cells, improving velocity estimation in spatially structured tissues.
-- Training requires a GPU (CUDA) for reasonable runtime. Use `--vae_device cpu` only for small datasets or testing.
-- Gene selection (`--prep_n_gene`) can significantly impact results. If velocities appear noisy, try reducing the number of highly variable genes.
-- The `--vae_dim_z` parameter controls the latent space bottleneck. Typical values range from 2 to 10; start with 5 and adjust based on dataset complexity.
-
-## Batch processing
-
-To run on multiple datasets, call the script in a loop with unique `--save_dir` per dataset:
-
-```bash
-for data in /path/to/datasets/*.h5ad; do
-    name=$(basename "$data" .h5ad)
-    python topovelo.py --data_dir "$data" --save_dir "./output/TopoVelo/$name"
-done
-```
-
-## References
-
-- Gu Y, Welch JD. *TopoVelo: inferring RNA velocity with spatial information from single-cell spatial transcriptomics data.* bioRxiv, 2024.
-- TopoVelo documentation: https://topovelo.readthedocs.io/
-- TopoVelo GitHub: https://github.com/welch-lab/TopoVelo
+The fork
+restores compatibility with newer Matplotlib, limits parallel initialization
+to eight threads by default (`TOPOVELO_N_JOBS` overrides this), and reduces
+training memory. Its `float32` input conversion can change numerical results.
+These source changes apply to both script modalities; the scRNA training and
+post-analysis parameters remain those of the existing public entry.

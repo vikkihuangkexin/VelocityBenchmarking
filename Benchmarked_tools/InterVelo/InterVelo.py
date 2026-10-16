@@ -9,9 +9,9 @@ Installation:
     # The example workflow was validated with torch 2.5.1 + CUDA 12.1.
 
 Usage:
-    python InterVelo.py --input data.h5ad --output-dir ./output --cluster-key celltype
-    python InterVelo.py --input sim.h5ad --output-dir ./output --cluster-key milestone --dimred-key X_dimred --zero-threshold
-    python InterVelo.py --input multiome.h5ad --output-dir ./output --cluster-key celltype --extra-layers Mc
+    python InterVelo.py --input data.h5ad --output-dir ./output --modality real --cluster-key celltype --dimred-key X_umap
+    python InterVelo.py --input sim.h5ad --output-dir ./output --modality sim --cluster-key milestone --dimred-key X_dimred
+    python InterVelo.py --input multiome.h5ad --output-dir ./output --modality atac --cluster-key celltype --dimred-key X_umap
     python InterVelo.py --metadata-file datasets.csv --output-dir ./output
 """
 
@@ -23,7 +23,7 @@ import importlib
 import sys
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import matplotlib as mpl
 
@@ -36,8 +36,10 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import scvelo as scv
-import torch
 from scipy import sparse
+
+if TYPE_CHECKING:
+    import torch
 
 PALETTE = [
     "#d73027", "#fc8d59", "#fee090", "#91bfdb", "#4575b4",
@@ -85,31 +87,18 @@ def load_intervelo_api():
     )
 
 
-def parse_bool(value) -> bool:
-    if isinstance(value, bool):
-        return value
-    if value is None or (isinstance(value, float) and np.isnan(value)):
-        return False
-
-    text = str(value).strip().lower()
-    if text in {"1", "true", "t", "yes", "y"}:
-        return True
-    if text in {"0", "false", "f", "no", "n", ""}:
-        return False
-    raise ValueError(f"Unsupported boolean value: {value}")
+MODALITIES = ("real", "sim", "atac")
 
 
-def parse_layer_list(value) -> list[str]:
-    if value is None or (isinstance(value, float) and np.isnan(value)):
-        return []
-    if isinstance(value, (list, tuple)):
-        values = value
-    else:
-        values = str(value).replace(";", ",").split(",")
-    return [str(layer).strip() for layer in values if str(layer).strip()]
+def validate_dataset_name(name: str) -> str:
+    if not name or name in {".", ".."} or Path(name).name != name or "\\" in name:
+        raise ValueError("Dataset name must be a nonempty path component")
+    return name
 
 
 def cleanup_resources():
+    import torch
+
     gc.collect()
     plt.close("all")
     if torch.cuda.is_available():
@@ -117,6 +106,8 @@ def cleanup_resources():
 
 
 def seed_everything(seed: int) -> None:
+    import torch
+
     torch.manual_seed(seed)
     np.random.seed(seed)
     if torch.cuda.is_available():
@@ -138,47 +129,41 @@ def detect_separator(path: Path) -> str:
 
 
 def load_metadata_file(metadata_path: Path) -> pd.DataFrame:
-    df = pd.read_csv(metadata_path, sep=detect_separator(metadata_path))
+    df = pd.read_csv(metadata_path, sep=detect_separator(metadata_path), dtype=str,
+                     keep_default_na=False)
 
-    required_columns = ["dataset_name", "file_path", "cluster_key"]
+    required_columns = ["dataset_name", "file_path", "modality", "cluster_key", "dimred_key"]
     missing_columns = [column for column in required_columns if column not in df.columns]
     if missing_columns:
         raise ValueError(f"Missing required columns: {missing_columns}")
+    if df.empty:
+        raise ValueError("Metadata file contains no datasets")
 
-    if "dimred_key" not in df.columns:
-        df["dimred_key"] = "X_umap"
-    if "zero_threshold" not in df.columns:
-        df["zero_threshold"] = False
-    if "extra_layers" not in df.columns:
-        df["extra_layers"] = ""
-
-    df["dataset_name"] = df["dataset_name"].astype(str)
-    df["file_path"] = df["file_path"].astype(str)
-    df["cluster_key"] = df["cluster_key"].astype(str)
-    df["dimred_key"] = df["dimred_key"].astype(str)
-    df["zero_threshold"] = df["zero_threshold"].map(parse_bool)
-    df["extra_layers"] = df["extra_layers"].map(parse_layer_list)
+    for column in required_columns:
+        if df[column].isna().any() or df[column].astype(str).str.strip().eq("").any():
+            raise ValueError(f"Manifest column '{column}' must contain a value in every row")
+        df[column] = df[column].astype(str).str.strip()
+    df["dataset_name"] = df["dataset_name"].map(validate_dataset_name)
+    if df["dataset_name"].duplicated().any():
+        raise ValueError("Manifest dataset names must be unique")
+    invalid = sorted(set(df["modality"]) - set(MODALITIES))
+    if invalid:
+        raise ValueError(f"Unsupported modalities: {invalid}; choose from {MODALITIES}")
+    df["file_path"] = df["file_path"].map(
+        lambda path: str((metadata_path.parent / path).resolve())
+        if not Path(path).is_absolute() else path
+    )
 
     return df
 
 
-def ensure_required_layers(adata, extra_layers: Optional[list[str]] = None) -> None:
+def ensure_required_layers(adata, modality: str) -> None:
     missing_layers = [layer for layer in ("spliced", "unspliced") if layer not in adata.layers]
     if missing_layers:
         raise ValueError(f"Missing required layers: {missing_layers}")
 
-    extra_layers = extra_layers or []
-    missing_extra_layers = [layer for layer in extra_layers if layer not in adata.layers]
-    if missing_extra_layers:
-        raise ValueError(f"Missing extra layers: {missing_extra_layers}")
-
-    for layer in extra_layers:
-        layer_shape = adata.layers[layer].shape
-        if layer_shape[0] != adata.n_obs:
-            raise ValueError(
-                f"Extra layer '{layer}' must have one row per cell; "
-                f"found {layer_shape[0]} rows for {adata.n_obs} cells."
-            )
+    if modality == "atac" and "Mc" not in adata.layers:
+        raise ValueError("ATAC input requires adata.layers['Mc']")
 
 
 def determine_preprocessing_params(adata) -> tuple[int, int, int]:
@@ -190,44 +175,68 @@ def determine_preprocessing_params(adata) -> tuple[int, int, int]:
     return n_pcs, n_neighbors, batch_size
 
 
-def check_or_compute_dimred(adata, dimred_key: str) -> str:
+def validate_dimred(adata, dimred_key: str) -> str:
     basis_name = dimred_key[2:] if dimred_key.startswith("X_") else dimred_key
 
     if dimred_key not in adata.obsm:
-        print(f"  Computing UMAP because '{dimred_key}' was not found...")
-        sc.tl.umap(adata)
-        adata.obsm[dimred_key] = adata.obsm["X_umap"].copy()
+        raise ValueError(f"Requested coordinate key '{dimred_key}' is missing from adata.obsm")
 
     embedding = np.asarray(adata.obsm[dimred_key])
     if embedding.ndim != 2 or embedding.shape[1] < 2:
         raise ValueError(f"Embedding '{dimred_key}' must be a 2D matrix with at least two columns.")
+    if embedding.shape[0] != adata.n_obs or not np.isfinite(embedding).all():
+        raise ValueError(f"Embedding '{dimred_key}' must have one finite row per cell")
+
+    # scVelo addresses all projection coordinates through X_<basis>.
+    if dimred_key != f"X_{basis_name}":
+        adata.obsm[f"X_{basis_name}"] = embedding.copy()
 
     return basis_name
 
 
-def preprocess_adata(adata, dimred_key: str, zero_threshold: bool, extra_layers: Optional[list[str]] = None):
+def preprocess_adata(adata, dimred_key: str, modality: str):
     _, _, preprocess_data, _, _ = load_intervelo_api()
 
-    extra_layers = extra_layers or []
-    ensure_required_layers(adata, extra_layers=extra_layers)
+    if modality not in MODALITIES:
+        raise ValueError(f"Unsupported modality '{modality}'")
+    ensure_required_layers(adata, modality)
     adata.obs_names_make_unique()
     adata.var_names_make_unique()
+    basis_name = validate_dimred(adata, dimred_key)
+    initial_coordinates = pd.DataFrame(
+        np.asarray(adata.obsm[dimred_key]).copy(), index=adata.obs_names.copy()
+    )
+
+    if modality == "real":
+        adata.X = adata.layers["spliced"].copy()
+    # Optional X-based deduplication: adata = adata[~adata.to_df().duplicated()].copy()
+    # Converting X to a dense DataFrame can exhaust memory on large datasets.
 
     n_pcs, n_neighbors, batch_size = determine_preprocessing_params(adata)
 
-    if zero_threshold:
-        scv.pp.filter_and_normalize(adata, min_shared_counts=0, min_shared_cells=0)
+    if modality == "sim":
+        scv.pp.filter_and_normalize(adata)
     else:
         scv.pp.filter_and_normalize(adata, min_shared_counts=20)
 
     sc.pp.log1p(adata)
     sc.pp.highly_variable_genes(adata, n_top_genes=min(2000, adata.n_vars), subset=True)
+    if modality == "real":
+        spliced_sum = np.asarray(adata.layers["spliced"].sum(axis=1)).ravel()
+        adata = adata[spliced_sum != 0].copy()
+        if adata.n_obs == 0:
+            raise ValueError("Real-data filtering removed every cell with zero spliced counts")
     n_pcs, n_neighbors, batch_size = determine_preprocessing_params(adata)
     sc.pp.pca(adata, n_comps=n_pcs)
     sc.pp.neighbors(adata, n_pcs=n_pcs, n_neighbors=n_neighbors)
     scv.pp.moments(adata, n_pcs=n_pcs, n_neighbors=n_neighbors)
-    adata = preprocess_data(adata, layers=["Ms", "Mu", *extra_layers], filter_on_r2=False)
-    basis_name = check_or_compute_dimred(adata, dimred_key)
+    layers = ["Ms", "Mu", "Mc"] if modality == "atac" else ["Ms", "Mu"]
+    adata = preprocess_data(adata, layers=layers, filter_on_r2=False)
+    missing_cells = adata.obs_names.difference(initial_coordinates.index)
+    if len(missing_cells):
+        raise ValueError("Preprocessing produced cells absent from the input coordinates")
+    adata.obsm[dimred_key] = initial_coordinates.loc[adata.obs_names].to_numpy()
+    validate_dimred(adata, dimred_key)
 
     return adata, basis_name, batch_size
 
@@ -238,13 +247,17 @@ def to_dense_float32(layer) -> np.ndarray:
     return np.asarray(layer, dtype=np.float32)
 
 
-def build_inputdata(adata, extra_layers: Optional[list[str]] = None) -> torch.Tensor:
-    input_layers = ["Ms", "Mu", *(extra_layers or [])]
+def build_inputdata(adata, modality: str) -> torch.Tensor:
+    import torch
+
+    input_layers = ["Ms", "Mu", "Mc"] if modality == "atac" else ["Ms", "Mu"]
     tensors = [torch.from_numpy(to_dense_float32(adata.layers[layer])) for layer in input_layers]
     return torch.cat(tensors, dim=1)
 
 
 def build_configs(adata, method_name: str, saved_dir: Path, batch_size: int):
+    import torch
+
     _, Constants, _, update_dict, autoset_coeff_s = load_intervelo_api()
 
     configs = {
@@ -276,8 +289,7 @@ def build_configs(adata, method_name: str, saved_dir: Path, batch_size: int):
 
 
 def ensure_velocity_embedding(adata, basis_name: str) -> str:
-    if "velocity_graph" not in adata.uns:
-        scv.tl.velocity_graph(adata)
+    scv.tl.velocity_graph(adata, vkey="velocity")
     scv.tl.velocity_embedding(adata, basis=basis_name, vkey="velocity")
     return f"velocity_{basis_name}"
 
@@ -399,10 +411,9 @@ def run_intervelo_analysis(
     input_path: str | Path,
     output_dir: str | Path,
     cluster_key: str,
+    modality: str,
     dataset_name: Optional[str] = None,
     dimred_key: str = "X_umap",
-    zero_threshold: bool = False,
-    extra_layers: Optional[list[str] | str] = None,
     save_pdf: bool = False,
     overwrite: bool = False,
     seed: int = 2024,
@@ -411,12 +422,14 @@ def run_intervelo_analysis(
 
     input_path = Path(input_path)
     output_dir = Path(output_dir)
-    extra_layers = parse_layer_list(extra_layers)
+    if modality not in MODALITIES:
+        raise ValueError(f"Unsupported modality '{modality}'; choose from {MODALITIES}")
     if not input_path.exists():
         raise FileNotFoundError(f"Input file not found: {input_path}")
 
     if dataset_name is None:
         dataset_name = derive_output_stem(input_path)
+    dataset_name = validate_dataset_name(str(dataset_name))
 
     dataset_output_dir = output_dir / str(dataset_name)
     dataset_output_dir.mkdir(parents=True, exist_ok=True)
@@ -447,12 +460,11 @@ def run_intervelo_analysis(
         adata, basis_name, batch_size = preprocess_adata(
             adata=adata,
             dimred_key=dimred_key,
-            zero_threshold=zero_threshold,
-            extra_layers=extra_layers,
+            modality=modality,
         )
 
         print("  Building model input...")
-        inputdata = build_inputdata(adata, extra_layers=extra_layers)
+        inputdata = build_inputdata(adata, modality=modality)
         configs = build_configs(
             adata=adata,
             method_name=method_name,
@@ -461,7 +473,10 @@ def run_intervelo_analysis(
         )
 
         print("  Training InterVelo...")
+        coordinates = np.asarray(adata.obsm[dimred_key]).copy()
         train(adata, inputdata, configs)
+        adata.obsm[dimred_key] = coordinates
+        validate_dimred(adata, dimred_key)
 
         print("  Computing velocity embedding...")
         velocity_embed_key = ensure_velocity_embedding(adata, basis_name)
@@ -479,12 +494,11 @@ def run_intervelo_analysis(
 
         adata.uns["intervelo_run"] = {
             "dataset_name": str(dataset_name),
-            "input_path": str(input_path.resolve()),
             "cluster_key": cluster_key,
             "dimred_key": dimred_key,
-            "zero_threshold": bool(zero_threshold),
-            "extra_layers": list(extra_layers),
-            "output_path": str(output_h5ad.resolve()),
+            "modality": modality,
+            "input_layers": ["Ms", "Mu", "Mc"] if modality == "atac" else ["Ms", "Mu"],
+            "seed": int(seed),
         }
 
         adata.write(output_h5ad, compression="lzf")
@@ -514,25 +528,20 @@ def run_batch_intervelo(
     for _, row in metadata_df.iterrows():
         file_path = Path(row["file_path"])
         if not file_path.exists():
-            print(f"Skipping missing file: {file_path}")
-            continue
+            raise FileNotFoundError(f"Input file not found: {file_path}")
 
-        try:
-            output_path = run_intervelo_analysis(
-                input_path=file_path,
-                output_dir=output_dir,
-                cluster_key=row["cluster_key"],
-                dataset_name=row["dataset_name"],
-                dimred_key=row["dimred_key"],
-                zero_threshold=bool(row["zero_threshold"]),
-                extra_layers=row["extra_layers"],
-                save_pdf=save_pdf,
-                overwrite=overwrite,
-                seed=seed,
-            )
-            outputs.append(output_path)
-        except Exception as exc:
-            print(f"Failed: {row['dataset_name']}: {exc}")
+        output_path = run_intervelo_analysis(
+            input_path=file_path,
+            output_dir=output_dir,
+            cluster_key=row["cluster_key"],
+            modality=row["modality"],
+            dataset_name=row["dataset_name"],
+            dimred_key=row["dimred_key"],
+            save_pdf=save_pdf,
+            overwrite=overwrite,
+            seed=seed,
+        )
+        outputs.append(output_path)
 
     return outputs
 
@@ -549,6 +558,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
     parser.add_argument("--output-dir", required=True, help="Output directory")
     parser.add_argument("--dataset-name", default=None, help="Dataset folder name for single-file mode")
+    parser.add_argument("--modality", choices=MODALITIES, help="Input modality for single-file mode")
     parser.add_argument(
         "--cluster-key",
         default=None,
@@ -556,22 +566,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--dimred-key",
-        default="X_umap",
-        help="Dimensionality reduction key in adata.obsm; use X_umap for real data and X_dimred for simulated data",
-    )
-    parser.add_argument(
-        "--zero-threshold",
-        action="store_true",
-        default=False,
-        help="Set min_shared_counts=0 and min_shared_cells=0 during preprocessing",
-    )
-    parser.add_argument(
-        "--extra-layers",
-        default="",
-        help=(
-            "Comma-separated adata.layers keys for additional cell-aligned omic or reference matrices "
-            "to append after Ms and Mu, for example Mc or Ma"
-        ),
+        help="Existing coordinate key in adata.obsm for single-file mode",
     )
     parser.add_argument(
         "--save-pdf",
@@ -598,17 +593,16 @@ def main(args: Optional[argparse.Namespace] = None):
             seed=args.seed,
         )
 
-    if not args.cluster_key:
-        parser.error("--cluster-key is required in single-file mode")
+    if not args.cluster_key or not args.modality or not args.dimred_key:
+        parser.error("--cluster-key, --modality, and --dimred-key are required in single-file mode")
 
     return run_intervelo_analysis(
         input_path=args.input,
         output_dir=args.output_dir,
         cluster_key=args.cluster_key,
+        modality=args.modality,
         dataset_name=args.dataset_name,
         dimred_key=args.dimred_key,
-        zero_threshold=args.zero_threshold,
-        extra_layers=args.extra_layers,
         save_pdf=args.save_pdf,
         overwrite=args.overwrite,
         seed=args.seed,

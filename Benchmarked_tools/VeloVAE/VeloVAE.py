@@ -193,18 +193,22 @@ def determine_preprocessing_params(adata, hvg_scheme='real'):
 
 
 def check_or_compute_dimred(adata, dimred_key: str, npc: int):
-    """
-    Check if dimensionality reduction exists, compute UMAP if not.
-
-    Note: Does NOT modify the original dimred_key in adata.obsm.
-    This preserves data integrity for downstream analysis scripts.
-    """
+    """Keep existing coordinates; compute UMAP only when the key is absent."""
     if dimred_key not in adata.obsm:
         print(f"  Computing UMAP ({dimred_key} not found)...")
         sc.pp.neighbors(adata, n_neighbors=15, n_pcs=npc)
         sc.tl.umap(adata)
         # Store under the requested key
         adata.obsm[dimred_key] = adata.obsm['X_umap'].copy()
+    coordinates = np.asarray(adata.obsm[dimred_key])
+    if coordinates.shape != (adata.n_obs, 2) or not np.isfinite(coordinates).all():
+        raise ValueError(f"obsm[{dimred_key!r}] must contain finite 2D coordinates")
+
+
+def validate_dataset_name(value: str) -> str:
+    if not value or value in {'.', '..'} or Path(value).name != value or '\\' in value:
+        raise ValueError("dataset_name must be one nonempty path component")
+    return value
 
 
 def run_velovae_analysis(
@@ -216,11 +220,12 @@ def run_velovae_analysis(
     dim_z: int = 5,
     zero_threshold: bool = False,
     hvg_scheme: str = 'real',
-    device: str = 'cuda:0',
+    device: str = 'auto',
     n_jobs: int = 1
 ) -> None:
     """Run VeloVAE analysis on a single dataset."""
     import velovae as vv
+    import torch
 
     adata = None
     vae = None
@@ -241,12 +246,16 @@ def run_velovae_analysis(
 
         if cluster_key not in adata.obs.columns:
             raise ValueError(f"Cluster key '{cluster_key}' not found in adata.obs")
+        if not {'spliced', 'unspliced'}.issubset(adata.layers):
+            raise ValueError("Input needs spliced and unspliced layers")
+        if device == 'auto':
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
         n_gene, npc, batch_size = determine_preprocessing_params(adata, hvg_scheme=hvg_scheme)
         check_or_compute_dimred(adata, dimred_key, npc)
 
         # Extract basis name for VeloVAE (e.g., 'X_dimred' -> 'dimred')
-        basis_name = dimred_key.replace('X_', '')
+        basis_name = dimred_key.removeprefix('X_')
 
         if not isinstance(adata.layers["spliced"], csr_matrix):
             adata.layers["spliced"] = csr_matrix(adata.layers["spliced"])
@@ -255,12 +264,16 @@ def run_velovae_analysis(
 
         adata.obs_names_make_unique()
         adata = adata[~adata.to_df().duplicated(), :]
+        coordinates = pd.DataFrame(np.asarray(adata.obsm[dimred_key]).copy(),
+                                   index=adata.obs_names.copy())
 
         print("  Preprocessing...")
         if zero_threshold:
             vv.preprocess(adata, n_gene=n_gene, npc=npc, min_shared_counts=0, min_shared_cells=0)
         else:
             vv.preprocess(adata, n_gene=n_gene, npc=npc)
+        adata.obsm[dimred_key] = coordinates.loc[adata.obs_names].to_numpy()
+        adata.obsm[f'X_{basis_name}'] = adata.obsm[dimred_key].copy()
 
         print("  Training VAE...")
         figure_path = output_dir / "figure"
@@ -369,25 +382,45 @@ def load_metadata_file(metadata_path: Path) -> pd.DataFrame:
             first_line = f.readline()
             sep = '\t' if '\t' in first_line else ','
 
-    df = pd.read_csv(metadata_path, sep=sep)
+    df = pd.read_csv(metadata_path, sep=sep, dtype=str, keep_default_na=False)
 
-    required_cols = ['dataset_name', 'file_path', 'cluster_key']
+    required_cols = ['dataset_name', 'file_path', 'modality', 'cluster_key', 'dimred_key']
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
         raise ValueError(f"Missing required columns: {missing_cols}")
+    if df[required_cols].isna().any().any() or (df[required_cols].astype(str).apply(lambda col: col.str.strip()) == '').any().any():
+        raise ValueError("Every required CSV field must be nonempty")
+    for column in required_cols:
+        df[column] = df[column].str.strip()
+    df['dataset_name'] = df['dataset_name'].map(validate_dataset_name)
+    if df.empty or df['dataset_name'].duplicated().any():
+        raise ValueError("Metadata must contain datasets with unique names")
 
-    if 'dimred_key' not in df.columns:
-        df['dimred_key'] = 'X_umap'
-    if 'dim_z' not in df.columns:
-        df['dim_z'] = 5
-    if 'zero_threshold' not in df.columns:
-        df['zero_threshold'] = False
-    if 'hvg_scheme' not in df.columns:
-        df['hvg_scheme'] = 'real'
+    if not df['modality'].isin(['real', 'sim']).all():
+        raise ValueError("modality must be real or sim")
+    df['file_path'] = df['file_path'].map(
+        lambda value: str((metadata_path.parent / value).resolve())
+        if not Path(value).is_absolute() else value
+    )
+    defaults = {
+        'dim_z': df['modality'].map({'real': '5', 'sim': '4'}),
+        'zero_threshold': df['modality'].map({'real': 'false', 'sim': 'true'}),
+        'hvg_scheme': df['modality'].map({'real': 'real', 'sim': 'simulated'}),
+    }
+    for column, default in defaults.items():
+        if column not in df:
+            df[column] = default
+        else:
+            df[column] = df[column].str.strip().mask(df[column].str.strip().eq(''), default)
 
     df['dim_z'] = df['dim_z'].astype(int)
-    df['zero_threshold'] = df['zero_threshold'].astype(bool)
+    flags = df['zero_threshold'].astype(str).str.strip().str.lower()
+    if not flags.isin({'true', 'false', '1', '0', 'yes', 'no'}).all():
+        raise ValueError("zero_threshold must be true or false")
+    df['zero_threshold'] = flags.isin({'true', '1', 'yes'})
     df['hvg_scheme'] = df['hvg_scheme'].astype(str).str.lower()
+    if (df['dim_z'] < 1).any() or not df['hvg_scheme'].isin(['real', 'simulated']).all():
+        raise ValueError("dim_z must be positive and hvg_scheme must be real or simulated")
 
     return df
 
@@ -401,11 +434,13 @@ def main(args):
     if args.metadata_file:
         metadata_df = load_metadata_file(Path(args.metadata_file))
         print(f"Batch mode: {len(metadata_df)} datasets")
+        failed = 0
 
         for _, row in metadata_df.iterrows():
             file_path = Path(row['file_path'])
             if not file_path.exists():
-                print(f"Skipping (not found): {file_path}")
+                print(f"Failed (not found): {file_path}")
+                failed += 1
                 continue
 
             dataset_output_dir = output_dir / row['dataset_name']
@@ -415,7 +450,7 @@ def main(args):
                 run_velovae_analysis(
                     input_path=file_path,
                     output_dir=dataset_output_dir,
-                    fig_dir=fig_dir,
+                    fig_dir=fig_dir / row['dataset_name'],
                     cluster_key=row['cluster_key'],
                     dimred_key=row['dimred_key'],
                     dim_z=int(row['dim_z']),
@@ -425,7 +460,10 @@ def main(args):
                     n_jobs=args.n_jobs
                 )
             except Exception as e:
+                failed += 1
                 print(f"Failed: {row['dataset_name']}: {e}")
+        if failed:
+            raise SystemExit(f"{failed} VeloVAE datasets failed")
     else:
         if not args.input:
             print("Error: --input or --metadata-file required")
@@ -477,7 +515,7 @@ if __name__ == "__main__":
                         help="Set min_shared_counts/cells to 0 in preprocessing (REQUIRED for simulated data)")
     parser.add_argument("--hvg-scheme", choices=["real", "simulated"], default="real",
                         help="HVG selection rule: use the real-data scheme (500/2000) or the simulated-data scheme (500/2000/4000/5000)")
-    parser.add_argument("--device", default="cuda:0", help="PyTorch device")
+    parser.add_argument("--device", default="auto", help="auto, cpu, or a PyTorch CUDA device")
     parser.add_argument("--n-jobs", type=int, default=1, help="Parallel jobs for post-analysis")
 
     args = parser.parse_args()

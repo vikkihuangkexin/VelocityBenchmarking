@@ -1,0 +1,1685 @@
+dataset_id,path_id,position,label,closed
+1,1,0,RadialGlia,false
+1,1,1,nIPC,false
+1,1,2,Nbl1,false
+1,1,3,ImmGranule1,false
+1,1,4,Granule,false
+2,1,0,Schwann cell precursors,false
+2,1,1,chromaffin,false
+5,1,0,Stem,false
+5,1,1,TA.G1,false
+5,1,2,TA.G2,false
+5,1,3,Enterocyte.Progenitor.Early,false
+5,1,4,Enterocyte.Progenitor.Late,false
+5,1,5,Enterocyte.Immature.Distal,false
+5,1,6,Enterocyte.Mature.Distal,false
+6,1,0,Radial glia,false
+6,1,1,Neuroblast,false
+6,1,2,Immature neuron,false
+6,1,3,Neuron,false
+7,1,0,Ductal,false
+7,1,1,Ngn3 low EP,false
+7,1,2,Ngn3 high EP,false
+7,1,3,Pre-endocrine,false
+8,1,0,DIplotene/Secondary spermatocytes,false
+8,1,1,Early Round spermatids,false
+8,1,2,Mid Round spermatids,false
+8,1,3,Late Round spermatids,false
+10,1,0,OPC,false
+10,1,1,NF Oligo,false
+10,1,2,Oligo,false
+11,1,0,Blood progenitors 1,false
+11,1,1,Blood progenitors 2,false
+11,1,2,Erythroid1,false
+11,1,3,Erythroid2,false
+11,1,4,Erythroid3,false
+12,1,0,M,false
+12,1,1,M-G1,false
+12,1,2,G1-S,false
+12,1,3,S,false
+12,1,4,G2-M,false
+13,1,0,MEMP,false
+13,1,1,Early Erythroid,false
+13,1,2,Mid  Erythroid,false
+13,1,3,Late Erythroid,false
+14,1,0,Stem cells,false
+14,1,1,TA cells,false
+14,1,2,Enterocytes,false
+15,1,0,Neuroblast,false
+15,1,1,AC/HC,false
+16,1,0,0h,false
+16,1,1,15h,false
+16,1,2,30h,false
+16,1,3,60h,false
+16,1,4,120h,false
+17,1,0,OPCs,false
+17,1,1,COPs,false
+17,1,2,NFOLs,false
+17,1,3,MFOLs,false
+22,1,0,"RG, Astro, OPC",false
+22,1,1,IPC,false
+22,1,2,V-SVZ,false
+23,1,0,embryonic day 3,false
+23,1,1,embryonic day 4,false
+23,1,2,embryonic day 5,false
+23,1,3,embryonic day 6,false
+23,1,4,embryonic day 7,false
+24,1,0,TAC-1,false
+24,1,1,Medulla,false
+25,1,0,RG/Astro,false
+25,1,1,Cyc.,false
+25,1,2,nIPC/ExN,false
+25,1,3,ExM,false
+25,1,4,ExUp,false
+26,1,0,HSC,false
+26,1,1,MPP,false
+26,1,2,LMPP,false
+26,1,3,GMP,false
+26,1,4,Granulocyte,false
+27,1,0,G1,false
+27,1,1,S,false
+27,1,2,G2M,false
+28,1,0,G1,false
+28,1,1,S,false
+28,1,2,G2M,false
+29,1,0,G1,false
+29,1,1,S,false
+29,1,2,G2M,false
+30,1,0,G1,false
+30,1,1,S,false
+30,1,2,G2M,false
+31,1,0,Neural stem cells,false
+31,1,1,Gliogenic progenitors,false
+31,2,0,Differentiating GABA interneurons,false
+31,2,1,GABA interneurons,false
+32,1,0,Early mesenchyme,false
+32,1,1,Limb mesenchyme,false
+32,1,2,Chondrocyte progenitors,false
+32,1,3,Chondrocytes and osteoblasts,false
+33,1,0,Embryonic stem cells  ,false
+33,1,1,Embryonic cells  ,false
+34,1,0,6h,false
+34,1,1,12h,false
+34,1,2,24h,false
+34,1,3,36h,false
+34,1,4,48h,false
+34,1,5,60h,false
+34,1,6,72h,false
+34,1,7,96h,false
+35,1,0,Neural progenitors,false
+35,1,1,Sensory progenitors,false
+35,1,2,Mature neurons,false
+36,1,0,Neuronal progenitor cells,false
+36,1,1,Neuronal cells,false
+36,2,0,Neural progenitor cells,false
+36,2,1,Interneuron cells,false
+37,1,0,Hematopoietic stem cells,false
+37,1,1,Erythroid progenitor,false
+38,1,0,Undifferentiated,false
+38,1,1,DC-like-monocyte,false
+39,1,0,OPC,false
+39,1,1,OL,false
+39,2,0,Radial Glia-like,false
+39,2,1,Astrocytes,false
+39,3,0,Neuroblast,false
+39,3,1,Granule immature,false
+40,1,0,Acinar,false
+40,1,1,Ductal,false
+41,1,0,Blood progenitors 1,false
+41,1,1,Blood progenitors 2,false
+41,1,2,Erythroid1,false
+41,1,3,Erythroid2,false
+41,1,4,Erythroid3,false
+42,1,0,Angioblasts,false
+42,1,1,Primitive blood,false
+42,2,0,Visceral endoderm,false
+42,2,1,Gut endoderm,false
+43,1,0,Pre-EMT,false
+43,1,1,Early EMT 1,false
+43,1,2,Mesenchymal-1,false
+43,1,3,Mesenchymal-2,false
+44,1,0,CD8+/CD45RA+ Naive Cytotoxic,false
+44,1,1,CD8+ Cytotoxic T,false
+45,1,0,HSCs #1.,false
+45,1,1,HSCs #2,false
+45,1,2,LMPPs #1,false
+45,1,3,LMPPs #2,false
+45,1,4,Myel. prog. #1,false
+45,1,5,Myel. prog. #2,false
+45,1,6,Myel. prog. #3,false
+46,1,0,Quiescent-like,false
+46,1,1,ILC3-like,false
+47,1,0,HSC,false
+47,1,1,MEP-like,false
+47,1,2,Ery,false
+48,1,0,spermatocytes,false
+48,1,1,round spermatids,false
+48,1,2,elongating spermatids,false
+49,1,0,Immature myocardial cells,false
+49,1,1,Cardiomyocytes-1,false
+50,1,0,Radial glia,false
+50,1,1,Neuroblast,false
+50,1,2,Neuron,false
+51,1,0,Mixed mesenchymal mesoderm,false
+51,1,1,Splanchnic mesoderm,false
+52,1,0,Immature,false
+52,1,1,Transitional,false
+52,1,2,Early mature,false
+52,1,3,Mid mature,false
+52,1,4,Late mature,false
+53,1,0,CD14 Mono,false
+53,1,1,CD16 Mono,false
+54,1,0,RG,false
+54,1,1,IPC,false
+54,1,2,EN-fetal-early,false
+54,1,3,EN-fetal-late,false
+54,1,4,EN,false
+55,1,0,Immature myocardial cells,false
+55,1,1,Cardiomyocytes-1,false
+56,1,0,core,false
+56,1,1,transitory,false
+56,1,2,edge,false
+57,1,0,core,false
+57,1,1,transitory,false
+57,1,2,edge,false
+58,1,0,core,false
+58,1,1,transitory,false
+58,1,2,edge,false
+59,1,0,core,false
+59,1,1,transitory,false
+59,1,2,edge,false
+60,1,0,core,false
+60,1,1,transitory,false
+60,1,2,edge,false
+61,1,0,core,false
+61,1,1,transitory,false
+61,1,2,edge,false
+62,1,0,core,false
+62,1,1,transitory,false
+62,1,2,edge,false
+63,1,0,core,false
+63,1,1,transitory,false
+63,1,2,edge,false
+64,1,0,dEGC,false
+64,1,1,dNBL2,false
+64,1,2,Immature nptxEX,false
+65,1,0,dEGC,false
+65,1,1,dNBL2,false
+65,1,2,Immature nptxEX,false
+66,1,0,dEGC,false
+66,1,1,dNBL2,false
+66,1,2,Immature nptxEX,false
+67,1,0,VZ,false
+67,1,1,SVZ,false
+67,1,2,IZ,false
+67,1,3,CP,false
+69,1,0,Radial glia,false
+69,1,1,Neuron,false
+72,1,0,Edge,false
+72,1,1,Cortex,false
+72,1,2,Medulla,false
+75,1,0,HSC,false
+75,1,1,MPP,false
+75,1,2,LMPP,false
+75,1,3,GMP,false
+75,1,4,Granulocyte,false
+76,1,0,"RG, Astro, OPC",false
+76,1,1,IPC,false
+76,1,2,V-SVZ,false
+77,1,0,TAC-1,false
+77,1,1,Medulla,false
+78,1,0,RG/Astro,false
+78,1,1,Cyc.,false
+78,1,2,nIPC/ExN,false
+78,1,3,ExM,false
+78,1,4,ExUp,false
+79,1,0,Immature,false
+79,1,1,Transitional,false
+79,1,2,Early Mature,false
+79,1,3,Mid Mature,false
+79,1,4,Late Mature,false
+80,1,0,CD14 Mono,false
+80,1,1,CD16 Mono,false
+81,1,0,RG,false
+81,1,1,IPC,false
+81,1,2,EN-fetal-early,false
+81,1,3,EN-fetal-late,false
+81,1,4,EN,false
+82,1,0,CNC-derived progenitors,false
+82,1,1,anterior palatal mesenchymal,false
+82,2,0,CNC-derived progenitors,false
+82,2,1,posterior palatal mesenchymal,false
+82,3,0,CNC-derived progenitors,false
+82,3,1,dental mesenchymal,false
+83,1,0,Primitive_Streak,false
+83,1,1,Early_Mes_EOi,false
+83,1,2,Early_Mes_EOd,false
+83,1,3,HE_Precursor,false
+83,1,4,HE,false
+83,1,5,Blood_Progenitor,false
+84,1,0,dermomyotome,false
+84,1,1,early angioblast,false
+84,1,2,late angioblast,false
+84,1,3,early EC 1,false
+85,1,0,0d,false
+85,1,1,8h,false
+85,1,2,1d,false
+85,1,3,2d,false
+85,1,4,3d,false
+85,1,5,4d,false
+85,1,6,7d,false
+85,1,7,10d,false
+86,1,0,0d,false
+86,1,1,8h,false
+86,1,2,1d,false
+86,1,3,2d,false
+86,1,4,3d,false
+86,1,5,4d,false
+86,1,6,7d,false
+86,1,7,10d,false
+87,1,0,s0,false
+87,1,1,cg1,false
+88,1,0,LSK,false
+88,1,1,FLT3,false
+88,1,2,IL7RA,false
+88,1,3,CD19,false
+89,1,0,Neuromesodermal progenitors,false
+89,1,1,Neuroectoderm,false
+89,2,0,Neuromesodermal progenitors,false
+89,2,1,Paraxial mesoderm,false
+90,1,0,Day7,false
+90,1,1,Day12,false
+90,1,2,Day19,false
+90,1,3,Day25,false
+91,1,0,NMPs,false
+91,1,1,Posterior_PSM,false
+91,1,2,Anterior_PSM,false
+91,1,3,Somitic_Mesoderm,false
+92,1,0,Day2,false
+92,1,1,Day4,false
+92,1,2,Day6,false
+93,1,0,Day0,false
+93,1,1,Day3,false
+93,1,2,Day6,false
+93,1,3,Day9,false
+93,1,4,Day12,false
+93,1,5,Day15,false
+93,1,6,Day21,false
+93,1,7,Day28,false
+94,1,0,Generation6,false
+94,1,1,Generation7,false
+94,1,2,Generation8,false
+94,1,3,Generation9,false
+94,1,4,Generation10,false
+94,1,5,Generation11,false
+95,1,0,Day0,false
+95,1,1,Day1,false
+95,1,2,Day2,false
+95,1,3,Day3,false
+95,1,4,Day5,false
+cycle-simple_cell100000_gene1000,1,0,s1,true
+cycle-simple_cell100000_gene1000,1,1,s2,true
+cycle-simple_cell100000_gene1000,1,2,s3,true
+cycle-simple_cell10000_gene10000,1,0,s1,true
+cycle-simple_cell10000_gene10000,1,1,s2,true
+cycle-simple_cell10000_gene10000,1,2,s3,true
+cycle-simple_cell10000_gene1000,1,0,s1,true
+cycle-simple_cell10000_gene1000,1,1,s2,true
+cycle-simple_cell10000_gene1000,1,2,s3,true
+cycle-simple_cell10000_gene500,1,0,s1,true
+cycle-simple_cell10000_gene500,1,1,s2,true
+cycle-simple_cell10000_gene500,1,2,s3,true
+cycle-simple_cell1000_gene10000,1,0,s1,true
+cycle-simple_cell1000_gene10000,1,1,s2,true
+cycle-simple_cell1000_gene10000,1,2,s3,true
+cycle-simple_cell1000_gene1000,1,0,s1,true
+cycle-simple_cell1000_gene1000,1,1,s2,true
+cycle-simple_cell1000_gene1000,1,2,s3,true
+cycle-simple_cell1000_gene20000,1,0,s1,true
+cycle-simple_cell1000_gene20000,1,1,s2,true
+cycle-simple_cell1000_gene20000,1,2,s3,true
+cycle-simple_cell1000_gene500,1,0,s1,true
+cycle-simple_cell1000_gene500,1,1,s2,true
+cycle-simple_cell1000_gene500,1,2,s3,true
+cycle-simple_cell50000_gene1000,1,0,s1,true
+cycle-simple_cell50000_gene1000,1,1,s2,true
+cycle-simple_cell50000_gene1000,1,2,s3,true
+cycle-simple_cell500_gene10000,1,0,s1,true
+cycle-simple_cell500_gene10000,1,1,s2,true
+cycle-simple_cell500_gene10000,1,2,s3,true
+cycle-simple_cell500_gene1000,1,0,s1,true
+cycle-simple_cell500_gene1000,1,1,s2,true
+cycle-simple_cell500_gene1000,1,2,s3,true
+cycle-simple_cell500_gene500,1,0,s1,true
+cycle-simple_cell500_gene500,1,1,s2,true
+cycle-simple_cell500_gene500,1,2,s3,true
+3_cycle-simple_cell10000_gene1000,1,0,s1,true
+3_cycle-simple_cell10000_gene1000,1,1,s2,true
+3_cycle-simple_cell10000_gene1000,1,2,s3,true
+4_cycle-simple_cell1000_gene10000,1,0,s1,true
+4_cycle-simple_cell1000_gene10000,1,1,s2,true
+4_cycle-simple_cell1000_gene10000,1,2,s3,true
+01_linear_cell1000_gene1000,1,0,early,false
+01_linear_cell1000_gene1000,1,1,late,false
+02_bifurcation3_cell1000_gene1000,1,0,4_5,false
+02_bifurcation3_cell1000_gene1000,1,1,5_2,false
+02_bifurcation3_cell1000_gene1000,2,0,4_5,false
+02_bifurcation3_cell1000_gene1000,2,1,5_3,false
+03_bifurcation5_cell1000_gene1000,1,0,6_7,false
+03_bifurcation5_cell1000_gene1000,1,1,7_8,false
+03_bifurcation5_cell1000_gene1000,2,0,6_7,false
+03_bifurcation5_cell1000_gene1000,2,1,7_9,false
+03_bifurcation5_cell1000_gene1000,3,0,7_8,false
+03_bifurcation5_cell1000_gene1000,3,1,8_2,false
+03_bifurcation5_cell1000_gene1000,4,0,7_8,false
+03_bifurcation5_cell1000_gene1000,4,1,8_3,false
+03_bifurcation5_cell1000_gene1000,5,0,7_9,false
+03_bifurcation5_cell1000_gene1000,5,1,9_4,false
+03_bifurcation5_cell1000_gene1000,6,0,7_9,false
+03_bifurcation5_cell1000_gene1000,6,1,9_5,false
+04_linear_cell1000_gene5000,1,0,early,false
+04_linear_cell1000_gene5000,1,1,late,false
+05_bifurcation3_cell1000_gene5000,1,0,4_5,false
+05_bifurcation3_cell1000_gene5000,1,1,5_2,false
+05_bifurcation3_cell1000_gene5000,2,0,4_5,false
+05_bifurcation3_cell1000_gene5000,2,1,5_3,false
+06_bifurcation5_cell1000_gene5000,1,0,6_7,false
+06_bifurcation5_cell1000_gene5000,1,1,7_8,false
+06_bifurcation5_cell1000_gene5000,2,0,6_7,false
+06_bifurcation5_cell1000_gene5000,2,1,7_9,false
+06_bifurcation5_cell1000_gene5000,3,0,7_8,false
+06_bifurcation5_cell1000_gene5000,3,1,8_2,false
+06_bifurcation5_cell1000_gene5000,4,0,7_8,false
+06_bifurcation5_cell1000_gene5000,4,1,8_3,false
+06_bifurcation5_cell1000_gene5000,5,0,7_9,false
+06_bifurcation5_cell1000_gene5000,5,1,9_4,false
+06_bifurcation5_cell1000_gene5000,6,0,7_9,false
+06_bifurcation5_cell1000_gene5000,6,1,9_5,false
+07_linear_cell1000_gene10000,1,0,early,false
+07_linear_cell1000_gene10000,1,1,late,false
+08_bifurcation3_cell1000_gene10000,1,0,4_5,false
+08_bifurcation3_cell1000_gene10000,1,1,5_2,false
+08_bifurcation3_cell1000_gene10000,2,0,4_5,false
+08_bifurcation3_cell1000_gene10000,2,1,5_3,false
+09_bifurcation5_cell1000_gene10000,1,0,6_7,false
+09_bifurcation5_cell1000_gene10000,1,1,7_8,false
+09_bifurcation5_cell1000_gene10000,2,0,6_7,false
+09_bifurcation5_cell1000_gene10000,2,1,7_9,false
+09_bifurcation5_cell1000_gene10000,3,0,7_8,false
+09_bifurcation5_cell1000_gene10000,3,1,8_2,false
+09_bifurcation5_cell1000_gene10000,4,0,7_8,false
+09_bifurcation5_cell1000_gene10000,4,1,8_3,false
+09_bifurcation5_cell1000_gene10000,5,0,7_9,false
+09_bifurcation5_cell1000_gene10000,5,1,9_4,false
+09_bifurcation5_cell1000_gene10000,6,0,7_9,false
+09_bifurcation5_cell1000_gene10000,6,1,9_5,false
+10_linear_cell1000_gene20000,1,0,early,false
+10_linear_cell1000_gene20000,1,1,late,false
+11_bifurcation3_cell1000_gene20000,1,0,4_5,false
+11_bifurcation3_cell1000_gene20000,1,1,5_2,false
+11_bifurcation3_cell1000_gene20000,2,0,4_5,false
+11_bifurcation3_cell1000_gene20000,2,1,5_3,false
+12_bifurcation5_cell1000_gene20000,1,0,6_7,false
+12_bifurcation5_cell1000_gene20000,1,1,7_8,false
+12_bifurcation5_cell1000_gene20000,2,0,6_7,false
+12_bifurcation5_cell1000_gene20000,2,1,7_9,false
+12_bifurcation5_cell1000_gene20000,3,0,7_8,false
+12_bifurcation5_cell1000_gene20000,3,1,8_2,false
+12_bifurcation5_cell1000_gene20000,4,0,7_8,false
+12_bifurcation5_cell1000_gene20000,4,1,8_3,false
+12_bifurcation5_cell1000_gene20000,5,0,7_9,false
+12_bifurcation5_cell1000_gene20000,5,1,9_4,false
+12_bifurcation5_cell1000_gene20000,6,0,7_9,false
+12_bifurcation5_cell1000_gene20000,6,1,9_5,false
+13_linear_cell5000_gene1000,1,0,early,false
+13_linear_cell5000_gene1000,1,1,late,false
+14_bifurcation3_cell5000_gene1000,1,0,4_5,false
+14_bifurcation3_cell5000_gene1000,1,1,5_2,false
+14_bifurcation3_cell5000_gene1000,2,0,4_5,false
+14_bifurcation3_cell5000_gene1000,2,1,5_3,false
+15_bifurcation5_cell5000_gene1000,1,0,6_7,false
+15_bifurcation5_cell5000_gene1000,1,1,7_8,false
+15_bifurcation5_cell5000_gene1000,2,0,6_7,false
+15_bifurcation5_cell5000_gene1000,2,1,7_9,false
+15_bifurcation5_cell5000_gene1000,3,0,7_8,false
+15_bifurcation5_cell5000_gene1000,3,1,8_2,false
+15_bifurcation5_cell5000_gene1000,4,0,7_8,false
+15_bifurcation5_cell5000_gene1000,4,1,8_3,false
+15_bifurcation5_cell5000_gene1000,5,0,7_9,false
+15_bifurcation5_cell5000_gene1000,5,1,9_4,false
+15_bifurcation5_cell5000_gene1000,6,0,7_9,false
+15_bifurcation5_cell5000_gene1000,6,1,9_5,false
+16_linear_cell10000_gene1000,1,0,early,false
+16_linear_cell10000_gene1000,1,1,late,false
+17_bifurcation3_cell10000_gene1000,1,0,4_5,false
+17_bifurcation3_cell10000_gene1000,1,1,5_2,false
+17_bifurcation3_cell10000_gene1000,2,0,4_5,false
+17_bifurcation3_cell10000_gene1000,2,1,5_3,false
+18_bifurcation5_cell10000_gene1000,1,0,6_7,false
+18_bifurcation5_cell10000_gene1000,1,1,7_8,false
+18_bifurcation5_cell10000_gene1000,2,0,6_7,false
+18_bifurcation5_cell10000_gene1000,2,1,7_9,false
+18_bifurcation5_cell10000_gene1000,3,0,7_8,false
+18_bifurcation5_cell10000_gene1000,3,1,8_2,false
+18_bifurcation5_cell10000_gene1000,4,0,7_8,false
+18_bifurcation5_cell10000_gene1000,4,1,8_3,false
+18_bifurcation5_cell10000_gene1000,5,0,7_9,false
+18_bifurcation5_cell10000_gene1000,5,1,9_4,false
+18_bifurcation5_cell10000_gene1000,6,0,7_9,false
+18_bifurcation5_cell10000_gene1000,6,1,9_5,false
+19_linear_cell10000_gene20000,1,0,early,false
+19_linear_cell10000_gene20000,1,1,late,false
+20_bifurcation3_cell10000_gene20000,1,0,4_5,false
+20_bifurcation3_cell10000_gene20000,1,1,5_2,false
+20_bifurcation3_cell10000_gene20000,2,0,4_5,false
+20_bifurcation3_cell10000_gene20000,2,1,5_3,false
+21_bifurcation5_cell10000_gene20000,1,0,6_7,false
+21_bifurcation5_cell10000_gene20000,1,1,7_8,false
+21_bifurcation5_cell10000_gene20000,2,0,6_7,false
+21_bifurcation5_cell10000_gene20000,2,1,7_9,false
+21_bifurcation5_cell10000_gene20000,3,0,7_8,false
+21_bifurcation5_cell10000_gene20000,3,1,8_2,false
+21_bifurcation5_cell10000_gene20000,4,0,7_8,false
+21_bifurcation5_cell10000_gene20000,4,1,8_3,false
+21_bifurcation5_cell10000_gene20000,5,0,7_9,false
+21_bifurcation5_cell10000_gene20000,5,1,9_4,false
+21_bifurcation5_cell10000_gene20000,6,0,7_9,false
+21_bifurcation5_cell10000_gene20000,6,1,9_5,false
+22_linear_cell10000_gene20000_sparse90,1,0,early,false
+22_linear_cell10000_gene20000_sparse90,1,1,late,false
+23_linear_cell10000_gene20000_sparse97,1,0,early,false
+23_linear_cell10000_gene20000_sparse97,1,1,late,false
+24_bifurcation3_cell10000_gene20000_sparse90,1,0,4_5,false
+24_bifurcation3_cell10000_gene20000_sparse90,1,1,5_2,false
+24_bifurcation3_cell10000_gene20000_sparse90,2,0,4_5,false
+24_bifurcation3_cell10000_gene20000_sparse90,2,1,5_3,false
+25_bifurcation3_cell10000_gene20000_sparse97,1,0,4_5,false
+25_bifurcation3_cell10000_gene20000_sparse97,1,1,5_2,false
+25_bifurcation3_cell10000_gene20000_sparse97,2,0,4_5,false
+25_bifurcation3_cell10000_gene20000_sparse97,2,1,5_3,false
+26_bifurcation3_cell10000_gene20000_downsample60_r1,1,0,4_5,false
+26_bifurcation3_cell10000_gene20000_downsample60_r1,1,1,5_2,false
+26_bifurcation3_cell10000_gene20000_downsample60_r1,2,0,4_5,false
+26_bifurcation3_cell10000_gene20000_downsample60_r1,2,1,5_3,false
+27_bifurcation3_cell10000_gene20000_downsample60_r2,1,0,4_5,false
+27_bifurcation3_cell10000_gene20000_downsample60_r2,1,1,5_2,false
+27_bifurcation3_cell10000_gene20000_downsample60_r2,2,0,4_5,false
+27_bifurcation3_cell10000_gene20000_downsample60_r2,2,1,5_3,false
+28_bifurcation3_cell10000_gene20000_downsample70_r1,1,0,4_5,false
+28_bifurcation3_cell10000_gene20000_downsample70_r1,1,1,5_2,false
+28_bifurcation3_cell10000_gene20000_downsample70_r1,2,0,4_5,false
+28_bifurcation3_cell10000_gene20000_downsample70_r1,2,1,5_3,false
+29_bifurcation3_cell10000_gene20000_downsample70_r2,1,0,4_5,false
+29_bifurcation3_cell10000_gene20000_downsample70_r2,1,1,5_2,false
+29_bifurcation3_cell10000_gene20000_downsample70_r2,2,0,4_5,false
+29_bifurcation3_cell10000_gene20000_downsample70_r2,2,1,5_3,false
+30_bifurcation3_cell10000_gene20000_downsample80_r1,1,0,4_5,false
+30_bifurcation3_cell10000_gene20000_downsample80_r1,1,1,5_2,false
+30_bifurcation3_cell10000_gene20000_downsample80_r1,2,0,4_5,false
+30_bifurcation3_cell10000_gene20000_downsample80_r1,2,1,5_3,false
+31_bifurcation3_cell10000_gene20000_downsample80_r2,1,0,4_5,false
+31_bifurcation3_cell10000_gene20000_downsample80_r2,1,1,5_2,false
+31_bifurcation3_cell10000_gene20000_downsample80_r2,2,0,4_5,false
+31_bifurcation3_cell10000_gene20000_downsample80_r2,2,1,5_3,false
+32_bifurcation3_cell10000_gene20000_downsample90_r1,1,0,4_5,false
+32_bifurcation3_cell10000_gene20000_downsample90_r1,1,1,5_2,false
+32_bifurcation3_cell10000_gene20000_downsample90_r1,2,0,4_5,false
+32_bifurcation3_cell10000_gene20000_downsample90_r1,2,1,5_3,false
+33_bifurcation3_cell10000_gene20000_downsample90_r2,1,0,4_5,false
+33_bifurcation3_cell10000_gene20000_downsample90_r2,1,1,5_2,false
+33_bifurcation3_cell10000_gene20000_downsample90_r2,2,0,4_5,false
+33_bifurcation3_cell10000_gene20000_downsample90_r2,2,1,5_3,false
+34_bifurcation3_cell10000_gene20000_downsample95_r1,1,0,4_5,false
+34_bifurcation3_cell10000_gene20000_downsample95_r1,1,1,5_2,false
+34_bifurcation3_cell10000_gene20000_downsample95_r1,2,0,4_5,false
+34_bifurcation3_cell10000_gene20000_downsample95_r1,2,1,5_3,false
+35_bifurcation3_cell10000_gene20000_downsample95_r2,1,0,4_5,false
+35_bifurcation3_cell10000_gene20000_downsample95_r2,1,1,5_2,false
+35_bifurcation3_cell10000_gene20000_downsample95_r2,2,0,4_5,false
+35_bifurcation3_cell10000_gene20000_downsample95_r2,2,1,5_3,false
+cellsub-chickenheart_60pct,1,0,Immature myocardial cells,false
+cellsub-chickenheart_60pct,1,1,Cardiomyocytes-1,false
+cellsub-chickenheart_70pct,1,0,Immature myocardial cells,false
+cellsub-chickenheart_70pct,1,1,Cardiomyocytes-1,false
+cellsub-chickenheart_80pct,1,0,Immature myocardial cells,false
+cellsub-chickenheart_80pct,1,1,Cardiomyocytes-1,false
+cellsub-chickenheart_90pct,1,0,Immature myocardial cells,false
+cellsub-chickenheart_90pct,1,1,Cardiomyocytes-1,false
+cellsub-chickenheart_95pct,1,0,Immature myocardial cells,false
+cellsub-chickenheart_95pct,1,1,Cardiomyocytes-1,false
+genesub-chickenheart_60pct,1,0,Immature myocardial cells,false
+genesub-chickenheart_60pct,1,1,Cardiomyocytes-1,false
+genesub-chickenheart_70pct,1,0,Immature myocardial cells,false
+genesub-chickenheart_70pct,1,1,Cardiomyocytes-1,false
+genesub-chickenheart_80pct,1,0,Immature myocardial cells,false
+genesub-chickenheart_80pct,1,1,Cardiomyocytes-1,false
+genesub-chickenheart_90pct,1,0,Immature myocardial cells,false
+genesub-chickenheart_90pct,1,1,Cardiomyocytes-1,false
+genesub-chickenheart_95pct,1,0,Immature myocardial cells,false
+genesub-chickenheart_95pct,1,1,Cardiomyocytes-1,false
+1_linear-simple_cell1000_gene10000,1,0,s1,false
+1_linear-simple_cell1000_gene10000,1,1,s2,false
+2_linear-simple_cell10000_gene1000,1,0,s1,false
+2_linear-simple_cell10000_gene1000,1,1,s2,false
+5_bifurcating_cell1000_gene10000,1,0,sA,false
+5_bifurcating_cell1000_gene10000,1,1,sB,false
+5_bifurcating_cell1000_gene10000,1,2,sBmid,false
+5_bifurcating_cell1000_gene10000,2,0,sBmid,false
+5_bifurcating_cell1000_gene10000,2,1,sC,false
+5_bifurcating_cell1000_gene10000,2,2,sEndC,false
+5_bifurcating_cell1000_gene10000,3,0,sBmid,false
+5_bifurcating_cell1000_gene10000,3,1,sD,false
+5_bifurcating_cell1000_gene10000,3,2,sEndD,false
+6_bifurcating_cell500_gene10000,1,0,sA,false
+6_bifurcating_cell500_gene10000,1,1,sB,false
+6_bifurcating_cell500_gene10000,1,2,sBmid,false
+6_bifurcating_cell500_gene10000,2,0,sBmid,false
+6_bifurcating_cell500_gene10000,2,1,sC,false
+6_bifurcating_cell500_gene10000,2,2,sEndC,false
+6_bifurcating_cell500_gene10000,3,0,sBmid,false
+6_bifurcating_cell500_gene10000,3,1,sD,false
+6_bifurcating_cell500_gene10000,3,2,sEndD,false
+7_bifurcating-loop_cell1000_gene10000,1,0,sA,false
+7_bifurcating-loop_cell1000_gene10000,1,1,sB,false
+7_bifurcating-loop_cell1000_gene10000,2,0,sB,false
+7_bifurcating-loop_cell1000_gene10000,2,1,sD,false
+7_bifurcating-loop_cell1000_gene10000,3,0,sB,false
+7_bifurcating-loop_cell1000_gene10000,3,1,sC,false
+8_bifurcating-loop_cell1000_gene10000,1,0,sA,false
+8_bifurcating-loop_cell1000_gene10000,1,1,sB,false
+8_bifurcating-loop_cell1000_gene10000,2,0,sB,false
+8_bifurcating-loop_cell1000_gene10000,2,1,sD,false
+8_bifurcating-loop_cell1000_gene10000,3,0,sB,false
+8_bifurcating-loop_cell1000_gene10000,3,1,sC,false
+9_consecutive-bifurcating_cell500_gene10000,1,0,sA,false
+9_consecutive-bifurcating_cell500_gene10000,1,1,sB,false
+9_consecutive-bifurcating_cell500_gene10000,1,2,sC,false
+9_consecutive-bifurcating_cell500_gene10000,1,3,sCmid,false
+9_consecutive-bifurcating_cell500_gene10000,2,0,sCmid,false
+9_consecutive-bifurcating_cell500_gene10000,2,1,sD,false
+9_consecutive-bifurcating_cell500_gene10000,2,2,sEndD,false
+9_consecutive-bifurcating_cell500_gene10000,3,0,sCmid,false
+9_consecutive-bifurcating_cell500_gene10000,3,1,sE,false
+9_consecutive-bifurcating_cell500_gene10000,3,2,sEmid,false
+9_consecutive-bifurcating_cell500_gene10000,4,0,sEmid,false
+9_consecutive-bifurcating_cell500_gene10000,4,1,sF,false
+9_consecutive-bifurcating_cell500_gene10000,4,2,sEndF,false
+9_consecutive-bifurcating_cell500_gene10000,5,0,sEmid,false
+9_consecutive-bifurcating_cell500_gene10000,5,1,sG,false
+9_consecutive-bifurcating_cell500_gene10000,5,2,sEndG,false
+10_consecutive-bifurcating_cell1000_gene10000,1,0,sA,false
+10_consecutive-bifurcating_cell1000_gene10000,1,1,sB,false
+10_consecutive-bifurcating_cell1000_gene10000,1,2,sC,false
+10_consecutive-bifurcating_cell1000_gene10000,1,3,sCmid,false
+10_consecutive-bifurcating_cell1000_gene10000,2,0,sCmid,false
+10_consecutive-bifurcating_cell1000_gene10000,2,1,sE,false
+10_consecutive-bifurcating_cell1000_gene10000,2,2,sEndE,false
+10_consecutive-bifurcating_cell1000_gene10000,3,0,sCmid,false
+10_consecutive-bifurcating_cell1000_gene10000,3,1,sD,false
+10_consecutive-bifurcating_cell1000_gene10000,3,2,sDmid,false
+10_consecutive-bifurcating_cell1000_gene10000,4,0,sDmid,false
+10_consecutive-bifurcating_cell1000_gene10000,4,1,sF,false
+10_consecutive-bifurcating_cell1000_gene10000,4,2,sEndF,false
+10_consecutive-bifurcating_cell1000_gene10000,5,0,sDmid,false
+10_consecutive-bifurcating_cell1000_gene10000,5,1,sG,false
+10_consecutive-bifurcating_cell1000_gene10000,5,2,sEndG,false
+11_trifurcating_cell1000_gene10000,1,0,sA,false
+11_trifurcating_cell1000_gene10000,1,1,sB,false
+11_trifurcating_cell1000_gene10000,1,2,sC,false
+11_trifurcating_cell1000_gene10000,1,3,sCmid,false
+11_trifurcating_cell1000_gene10000,2,0,sCmid,false
+11_trifurcating_cell1000_gene10000,2,1,sD,false
+11_trifurcating_cell1000_gene10000,2,2,sEndD,false
+11_trifurcating_cell1000_gene10000,3,0,sCmid,false
+11_trifurcating_cell1000_gene10000,3,1,sE,false
+11_trifurcating_cell1000_gene10000,3,2,sEndE,false
+11_trifurcating_cell1000_gene10000,4,0,sCmid,false
+11_trifurcating_cell1000_gene10000,4,1,sF,false
+11_trifurcating_cell1000_gene10000,4,2,sEndF,false
+12_trifurcating_cell1000_gene10000,1,0,sA,false
+12_trifurcating_cell1000_gene10000,1,1,sB,false
+12_trifurcating_cell1000_gene10000,1,2,sC,false
+12_trifurcating_cell1000_gene10000,1,3,sCmid,false
+12_trifurcating_cell1000_gene10000,2,0,sCmid,false
+12_trifurcating_cell1000_gene10000,2,1,sD,false
+12_trifurcating_cell1000_gene10000,2,2,sEndD,false
+12_trifurcating_cell1000_gene10000,3,0,sCmid,false
+12_trifurcating_cell1000_gene10000,3,1,sE,false
+12_trifurcating_cell1000_gene10000,3,2,sEndE,false
+12_trifurcating_cell1000_gene10000,4,0,sCmid,false
+12_trifurcating_cell1000_gene10000,4,1,sF,false
+12_trifurcating_cell1000_gene10000,4,2,sEndF,false
+13_trifurcating_cell1000_gene10000,1,0,sA,false
+13_trifurcating_cell1000_gene10000,1,1,sB,false
+13_trifurcating_cell1000_gene10000,1,2,sC,false
+13_trifurcating_cell1000_gene10000,1,3,sCmid,false
+13_trifurcating_cell1000_gene10000,2,0,sCmid,false
+13_trifurcating_cell1000_gene10000,2,1,sD,false
+13_trifurcating_cell1000_gene10000,2,2,sEndD,false
+13_trifurcating_cell1000_gene10000,3,0,sCmid,false
+13_trifurcating_cell1000_gene10000,3,1,sE,false
+13_trifurcating_cell1000_gene10000,3,2,sEndE,false
+13_trifurcating_cell1000_gene10000,4,0,sCmid,false
+13_trifurcating_cell1000_gene10000,4,1,sF,false
+13_trifurcating_cell1000_gene10000,4,2,sEndF,false
+14_linear-bifurcating_cell10000_gene1000,1,0,left sA,false
+14_linear-bifurcating_cell10000_gene1000,1,1,left sB,false
+14_linear-bifurcating_cell10000_gene1000,1,2,left sC,false
+14_linear-bifurcating_cell10000_gene1000,1,3,left sEndC,false
+14_linear-bifurcating_cell10000_gene1000,2,0,right sA,false
+14_linear-bifurcating_cell10000_gene1000,2,1,right sB,false
+14_linear-bifurcating_cell10000_gene1000,2,2,right sBmid,false
+14_linear-bifurcating_cell10000_gene1000,3,0,right sBmid,false
+14_linear-bifurcating_cell10000_gene1000,3,1,right sC,false
+14_linear-bifurcating_cell10000_gene1000,3,2,right sEndC,false
+14_linear-bifurcating_cell10000_gene1000,4,0,right sBmid,false
+14_linear-bifurcating_cell10000_gene1000,4,1,right sD,false
+14_linear-bifurcating_cell10000_gene1000,4,2,right sEndD,false
+15_linear-linear_cell10000_gene500,1,0,left sA,false
+15_linear-linear_cell10000_gene500,1,1,left sB,false
+15_linear-linear_cell10000_gene500,1,2,left sC,false
+15_linear-linear_cell10000_gene500,1,3,left sEndC,false
+15_linear-linear_cell10000_gene500,2,0,right sA,false
+15_linear-linear_cell10000_gene500,2,1,right sB,false
+15_linear-linear_cell10000_gene500,2,2,right sC,false
+15_linear-linear_cell10000_gene500,2,3,right sEndC,false
+16_bifurcating_cell500_gene500,1,0,sA,false
+16_bifurcating_cell500_gene500,1,1,sB,false
+16_bifurcating_cell500_gene500,1,2,sBmid,false
+16_bifurcating_cell500_gene500,2,0,sBmid,false
+16_bifurcating_cell500_gene500,2,1,sC,false
+16_bifurcating_cell500_gene500,2,2,sEndC,false
+16_bifurcating_cell500_gene500,3,0,sBmid,false
+16_bifurcating_cell500_gene500,3,1,sD,false
+16_bifurcating_cell500_gene500,3,2,sEndD,false
+Bursting-tree_vary-all_cells1800_genes2000,1,0,edge01_m1,false
+Bursting-tree_vary-all_cells1800_genes2000,1,1,edge02_m1,false
+Bursting-tree_vary-all_cells1800_genes2000,1,2,edge02_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,1,3,edge02_m3,false
+Bursting-tree_vary-all_cells1800_genes2000,2,0,edge01_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,2,1,edge01_m3,false
+Bursting-tree_vary-all_cells1800_genes2000,2,2,edge03_m1,false
+Bursting-tree_vary-all_cells1800_genes2000,2,3,edge03_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,2,4,edge03_m3,false
+Bursting-tree_vary-all_cells1800_genes2000,2,5,edge07_m1,false
+Bursting-tree_vary-all_cells1800_genes2000,2,6,edge07_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,2,7,edge07_m3,false
+Bursting-tree_vary-all_cells1800_genes2000,3,0,edge01_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,3,1,edge01_m3,false
+Bursting-tree_vary-all_cells1800_genes2000,3,2,edge03_m1,false
+Bursting-tree_vary-all_cells1800_genes2000,3,3,edge03_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,3,4,edge03_m3,false
+Bursting-tree_vary-all_cells1800_genes2000,3,5,edge08_m1,false
+Bursting-tree_vary-all_cells1800_genes2000,3,6,edge08_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,3,7,edge08_m3,false
+Bursting-tree_vary-all_cells1800_genes2000,4,0,edge01_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,4,1,edge01_m3,false
+Bursting-tree_vary-all_cells1800_genes2000,4,2,edge04_m1,false
+Bursting-tree_vary-all_cells1800_genes2000,4,3,edge04_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,4,4,edge04_m3,false
+Bursting-tree_vary-all_cells1800_genes2000,4,5,edge05_m1,false
+Bursting-tree_vary-all_cells1800_genes2000,4,6,edge05_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,5,0,edge01_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,5,1,edge01_m3,false
+Bursting-tree_vary-all_cells1800_genes2000,5,2,edge04_m1,false
+Bursting-tree_vary-all_cells1800_genes2000,5,3,edge04_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,5,4,edge04_m3,false
+Bursting-tree_vary-all_cells1800_genes2000,5,5,edge06_m1,false
+Bursting-tree_vary-all_cells1800_genes2000,5,6,edge06_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,6,0,edge02_m1,false
+Bursting-tree_vary-all_cells1800_genes2000,6,1,edge02_m2,false
+Bursting-tree_vary-all_cells1800_genes2000,6,2,edge02_m3,false
+Bursting-tree_vary-all_cells2200_genes2500,1,0,edge01_m1,false
+Bursting-tree_vary-all_cells2200_genes2500,1,1,edge01_m2,false
+Bursting-tree_vary-all_cells2200_genes2500,1,2,edge01_m3,false
+Bursting-tree_vary-all_cells2200_genes2500,1,3,edge03_m1,false
+Bursting-tree_vary-all_cells2200_genes2500,1,4,edge03_m2,false
+Bursting-tree_vary-all_cells2200_genes2500,1,5,edge03_m3,false
+Bursting-tree_vary-all_cells2200_genes2500,1,6,edge05_m1,false
+Bursting-tree_vary-all_cells2200_genes2500,1,7,edge05_m2,false
+Bursting-tree_vary-all_cells2200_genes2500,2,0,edge01_m1,false
+Bursting-tree_vary-all_cells2200_genes2500,2,1,edge01_m2,false
+Bursting-tree_vary-all_cells2200_genes2500,2,2,edge01_m3,false
+Bursting-tree_vary-all_cells2200_genes2500,2,3,edge03_m1,false
+Bursting-tree_vary-all_cells2200_genes2500,2,4,edge03_m2,false
+Bursting-tree_vary-all_cells2200_genes2500,2,5,edge03_m3,false
+Bursting-tree_vary-all_cells2200_genes2500,2,6,edge06_m1,false
+Bursting-tree_vary-all_cells2200_genes2500,2,7,edge06_m2,false
+Bursting-tree_vary-all_cells2200_genes2500,3,0,edge01_m1,false
+Bursting-tree_vary-all_cells2200_genes2500,3,1,edge01_m2,false
+Bursting-tree_vary-all_cells2200_genes2500,3,2,edge01_m3,false
+Bursting-tree_vary-all_cells2200_genes2500,3,3,edge04_m1,false
+Bursting-tree_vary-all_cells2200_genes2500,3,4,edge04_m2,false
+Bursting-tree_vary-all_cells2200_genes2500,3,5,edge04_m3,false
+Bursting-tree_vary-all_cells2200_genes2500,3,6,edge07_m1,false
+Bursting-tree_vary-all_cells2200_genes2500,3,7,edge07_m2,false
+Bursting-tree_vary-all_cells2200_genes2500,3,8,edge07_m3,false
+Bursting-tree_vary-all_cells2200_genes2500,4,0,edge01_m1,false
+Bursting-tree_vary-all_cells2200_genes2500,4,1,edge01_m2,false
+Bursting-tree_vary-all_cells2200_genes2500,4,2,edge01_m3,false
+Bursting-tree_vary-all_cells2200_genes2500,4,3,edge04_m1,false
+Bursting-tree_vary-all_cells2200_genes2500,4,4,edge04_m2,false
+Bursting-tree_vary-all_cells2200_genes2500,4,5,edge04_m3,false
+Bursting-tree_vary-all_cells2200_genes2500,4,6,edge08_m1,false
+Bursting-tree_vary-all_cells2200_genes2500,4,7,edge08_m2,false
+Bursting-tree_vary-all_cells2200_genes2500,4,8,edge08_m3,false
+Bursting-tree_vary-all_cells2200_genes2500,5,0,edge02_m1,false
+Bursting-tree_vary-all_cells2200_genes2500,5,1,edge02_m2,false
+Bursting-tree_vary-all_cells2200_genes2500,5,2,edge02_m3,false
+Bursting-tree_vary-koff_cells1200_genes800,1,0,edge01_m1,false
+Bursting-tree_vary-koff_cells1200_genes800,1,1,edge01_m2,false
+Bursting-tree_vary-koff_cells1200_genes800,1,2,edge01_m3,false
+Bursting-tree_vary-koff_cells1200_genes800,1,3,edge03_m1,false
+Bursting-tree_vary-koff_cells1200_genes800,1,4,edge03_m2,false
+Bursting-tree_vary-koff_cells1200_genes800,1,5,edge03_m3,false
+Bursting-tree_vary-koff_cells1200_genes800,1,6,edge07_m1,false
+Bursting-tree_vary-koff_cells1200_genes800,1,7,edge07_m2,false
+Bursting-tree_vary-koff_cells1200_genes800,1,8,edge07_m3,false
+Bursting-tree_vary-koff_cells1200_genes800,2,0,edge01_m1,false
+Bursting-tree_vary-koff_cells1200_genes800,2,1,edge01_m2,false
+Bursting-tree_vary-koff_cells1200_genes800,2,2,edge01_m3,false
+Bursting-tree_vary-koff_cells1200_genes800,2,3,edge03_m1,false
+Bursting-tree_vary-koff_cells1200_genes800,2,4,edge03_m2,false
+Bursting-tree_vary-koff_cells1200_genes800,2,5,edge03_m3,false
+Bursting-tree_vary-koff_cells1200_genes800,2,6,edge08_m1,false
+Bursting-tree_vary-koff_cells1200_genes800,2,7,edge08_m2,false
+Bursting-tree_vary-koff_cells1200_genes800,2,8,edge08_m3,false
+Bursting-tree_vary-koff_cells1200_genes800,3,0,edge01_m1,false
+Bursting-tree_vary-koff_cells1200_genes800,3,1,edge01_m2,false
+Bursting-tree_vary-koff_cells1200_genes800,3,2,edge01_m3,false
+Bursting-tree_vary-koff_cells1200_genes800,3,3,edge04_m1,false
+Bursting-tree_vary-koff_cells1200_genes800,3,4,edge04_m2,false
+Bursting-tree_vary-koff_cells1200_genes800,3,5,edge04_m3,false
+Bursting-tree_vary-koff_cells1200_genes800,3,6,edge05_m1,false
+Bursting-tree_vary-koff_cells1200_genes800,3,7,edge05_m2,false
+Bursting-tree_vary-koff_cells1200_genes800,4,0,edge01_m1,false
+Bursting-tree_vary-koff_cells1200_genes800,4,1,edge01_m2,false
+Bursting-tree_vary-koff_cells1200_genes800,4,2,edge01_m3,false
+Bursting-tree_vary-koff_cells1200_genes800,4,3,edge04_m1,false
+Bursting-tree_vary-koff_cells1200_genes800,4,4,edge04_m2,false
+Bursting-tree_vary-koff_cells1200_genes800,4,5,edge04_m3,false
+Bursting-tree_vary-koff_cells1200_genes800,4,6,edge06_m1,false
+Bursting-tree_vary-koff_cells1200_genes800,4,7,edge06_m2,false
+Bursting-tree_vary-koff_cells1200_genes800,5,0,edge02_m1,false
+Bursting-tree_vary-koff_cells1200_genes800,5,1,edge02_m2,false
+Bursting-tree_vary-koff_cells1200_genes800,5,2,edge02_m3,false
+Bursting-tree_vary-koff_cells1500_genes1500,1,0,edge01_m1,false
+Bursting-tree_vary-koff_cells1500_genes1500,1,1,edge01_m2,false
+Bursting-tree_vary-koff_cells1500_genes1500,1,2,edge01_m3,false
+Bursting-tree_vary-koff_cells1500_genes1500,1,3,edge03_m1,false
+Bursting-tree_vary-koff_cells1500_genes1500,1,4,edge03_m2,false
+Bursting-tree_vary-koff_cells1500_genes1500,1,5,edge03_m3,false
+Bursting-tree_vary-koff_cells1500_genes1500,1,6,edge07_m1,false
+Bursting-tree_vary-koff_cells1500_genes1500,1,7,edge07_m2,false
+Bursting-tree_vary-koff_cells1500_genes1500,1,8,edge07_m3,false
+Bursting-tree_vary-koff_cells1500_genes1500,2,0,edge01_m1,false
+Bursting-tree_vary-koff_cells1500_genes1500,2,1,edge01_m2,false
+Bursting-tree_vary-koff_cells1500_genes1500,2,2,edge01_m3,false
+Bursting-tree_vary-koff_cells1500_genes1500,2,3,edge03_m1,false
+Bursting-tree_vary-koff_cells1500_genes1500,2,4,edge03_m2,false
+Bursting-tree_vary-koff_cells1500_genes1500,2,5,edge03_m3,false
+Bursting-tree_vary-koff_cells1500_genes1500,2,6,edge08_m1,false
+Bursting-tree_vary-koff_cells1500_genes1500,2,7,edge08_m2,false
+Bursting-tree_vary-koff_cells1500_genes1500,2,8,edge08_m3,false
+Bursting-tree_vary-koff_cells1500_genes1500,3,0,edge01_m1,false
+Bursting-tree_vary-koff_cells1500_genes1500,3,1,edge01_m2,false
+Bursting-tree_vary-koff_cells1500_genes1500,3,2,edge01_m3,false
+Bursting-tree_vary-koff_cells1500_genes1500,3,3,edge04_m1,false
+Bursting-tree_vary-koff_cells1500_genes1500,3,4,edge04_m2,false
+Bursting-tree_vary-koff_cells1500_genes1500,3,5,edge04_m3,false
+Bursting-tree_vary-koff_cells1500_genes1500,3,6,edge05_m1,false
+Bursting-tree_vary-koff_cells1500_genes1500,3,7,edge05_m2,false
+Bursting-tree_vary-koff_cells1500_genes1500,4,0,edge01_m1,false
+Bursting-tree_vary-koff_cells1500_genes1500,4,1,edge01_m2,false
+Bursting-tree_vary-koff_cells1500_genes1500,4,2,edge01_m3,false
+Bursting-tree_vary-koff_cells1500_genes1500,4,3,edge04_m1,false
+Bursting-tree_vary-koff_cells1500_genes1500,4,4,edge04_m2,false
+Bursting-tree_vary-koff_cells1500_genes1500,4,5,edge04_m3,false
+Bursting-tree_vary-koff_cells1500_genes1500,4,6,edge06_m1,false
+Bursting-tree_vary-koff_cells1500_genes1500,4,7,edge06_m2,false
+Bursting-tree_vary-koff_cells1500_genes1500,5,0,edge02_m1,false
+Bursting-tree_vary-koff_cells1500_genes1500,5,1,edge02_m2,false
+Bursting-tree_vary-koff_cells1500_genes1500,5,2,edge02_m3,false
+Bursting-tree_vary-kon_cells1500_genes1500,1,0,edge01_m1,false
+Bursting-tree_vary-kon_cells1500_genes1500,1,1,edge02_m1,false
+Bursting-tree_vary-kon_cells1500_genes1500,1,2,edge02_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,1,3,edge02_m3,false
+Bursting-tree_vary-kon_cells1500_genes1500,2,0,edge01_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,2,1,edge01_m3,false
+Bursting-tree_vary-kon_cells1500_genes1500,2,2,edge03_m1,false
+Bursting-tree_vary-kon_cells1500_genes1500,2,3,edge03_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,2,4,edge03_m3,false
+Bursting-tree_vary-kon_cells1500_genes1500,2,5,edge07_m1,false
+Bursting-tree_vary-kon_cells1500_genes1500,2,6,edge07_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,2,7,edge07_m3,false
+Bursting-tree_vary-kon_cells1500_genes1500,3,0,edge01_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,3,1,edge01_m3,false
+Bursting-tree_vary-kon_cells1500_genes1500,3,2,edge03_m1,false
+Bursting-tree_vary-kon_cells1500_genes1500,3,3,edge03_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,3,4,edge03_m3,false
+Bursting-tree_vary-kon_cells1500_genes1500,3,5,edge08_m1,false
+Bursting-tree_vary-kon_cells1500_genes1500,3,6,edge08_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,3,7,edge08_m3,false
+Bursting-tree_vary-kon_cells1500_genes1500,4,0,edge01_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,4,1,edge01_m3,false
+Bursting-tree_vary-kon_cells1500_genes1500,4,2,edge04_m1,false
+Bursting-tree_vary-kon_cells1500_genes1500,4,3,edge04_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,4,4,edge04_m3,false
+Bursting-tree_vary-kon_cells1500_genes1500,4,5,edge05_m1,false
+Bursting-tree_vary-kon_cells1500_genes1500,4,6,edge05_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,5,0,edge01_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,5,1,edge01_m3,false
+Bursting-tree_vary-kon_cells1500_genes1500,5,2,edge04_m1,false
+Bursting-tree_vary-kon_cells1500_genes1500,5,3,edge04_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,5,4,edge04_m3,false
+Bursting-tree_vary-kon_cells1500_genes1500,5,5,edge06_m1,false
+Bursting-tree_vary-kon_cells1500_genes1500,5,6,edge06_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,6,0,edge02_m1,false
+Bursting-tree_vary-kon_cells1500_genes1500,6,1,edge02_m2,false
+Bursting-tree_vary-kon_cells1500_genes1500,6,2,edge02_m3,false
+Bursting-tree_vary-kon_cells1500_genes2000,1,0,edge01_m1,false
+Bursting-tree_vary-kon_cells1500_genes2000,1,1,edge01_m2,false
+Bursting-tree_vary-kon_cells1500_genes2000,1,2,edge01_m3,false
+Bursting-tree_vary-kon_cells1500_genes2000,1,3,edge03_m1,false
+Bursting-tree_vary-kon_cells1500_genes2000,1,4,edge03_m2,false
+Bursting-tree_vary-kon_cells1500_genes2000,1,5,edge03_m3,false
+Bursting-tree_vary-kon_cells1500_genes2000,1,6,edge05_m1,false
+Bursting-tree_vary-kon_cells1500_genes2000,1,7,edge05_m2,false
+Bursting-tree_vary-kon_cells1500_genes2000,2,0,edge01_m1,false
+Bursting-tree_vary-kon_cells1500_genes2000,2,1,edge01_m2,false
+Bursting-tree_vary-kon_cells1500_genes2000,2,2,edge01_m3,false
+Bursting-tree_vary-kon_cells1500_genes2000,2,3,edge03_m1,false
+Bursting-tree_vary-kon_cells1500_genes2000,2,4,edge03_m2,false
+Bursting-tree_vary-kon_cells1500_genes2000,2,5,edge03_m3,false
+Bursting-tree_vary-kon_cells1500_genes2000,2,6,edge06_m1,false
+Bursting-tree_vary-kon_cells1500_genes2000,2,7,edge06_m2,false
+Bursting-tree_vary-kon_cells1500_genes2000,3,0,edge01_m1,false
+Bursting-tree_vary-kon_cells1500_genes2000,3,1,edge01_m2,false
+Bursting-tree_vary-kon_cells1500_genes2000,3,2,edge01_m3,false
+Bursting-tree_vary-kon_cells1500_genes2000,3,3,edge04_m1,false
+Bursting-tree_vary-kon_cells1500_genes2000,3,4,edge04_m2,false
+Bursting-tree_vary-kon_cells1500_genes2000,3,5,edge04_m3,false
+Bursting-tree_vary-kon_cells1500_genes2000,3,6,edge07_m1,false
+Bursting-tree_vary-kon_cells1500_genes2000,3,7,edge07_m2,false
+Bursting-tree_vary-kon_cells1500_genes2000,3,8,edge07_m3,false
+Bursting-tree_vary-kon_cells1500_genes2000,4,0,edge01_m1,false
+Bursting-tree_vary-kon_cells1500_genes2000,4,1,edge01_m2,false
+Bursting-tree_vary-kon_cells1500_genes2000,4,2,edge01_m3,false
+Bursting-tree_vary-kon_cells1500_genes2000,4,3,edge04_m1,false
+Bursting-tree_vary-kon_cells1500_genes2000,4,4,edge04_m2,false
+Bursting-tree_vary-kon_cells1500_genes2000,4,5,edge04_m3,false
+Bursting-tree_vary-kon_cells1500_genes2000,4,6,edge08_m1,false
+Bursting-tree_vary-kon_cells1500_genes2000,4,7,edge08_m2,false
+Bursting-tree_vary-kon_cells1500_genes2000,4,8,edge08_m3,false
+Bursting-tree_vary-kon_cells1500_genes2000,5,0,edge02_m1,false
+Bursting-tree_vary-kon_cells1500_genes2000,5,1,edge02_m2,false
+Bursting-tree_vary-kon_cells1500_genes2000,5,2,edge02_m3,false
+Bursting-tree_vary-s_cells1000_genes500,1,0,edge01_m1,false
+Bursting-tree_vary-s_cells1000_genes500,1,1,edge01_m2,false
+Bursting-tree_vary-s_cells1000_genes500,1,2,edge01_m3,false
+Bursting-tree_vary-s_cells1000_genes500,1,3,edge03_m1,false
+Bursting-tree_vary-s_cells1000_genes500,1,4,edge03_m2,false
+Bursting-tree_vary-s_cells1000_genes500,1,5,edge03_m3,false
+Bursting-tree_vary-s_cells1000_genes500,1,6,edge07_m1,false
+Bursting-tree_vary-s_cells1000_genes500,1,7,edge07_m2,false
+Bursting-tree_vary-s_cells1000_genes500,1,8,edge07_m3,false
+Bursting-tree_vary-s_cells1000_genes500,2,0,edge01_m1,false
+Bursting-tree_vary-s_cells1000_genes500,2,1,edge01_m2,false
+Bursting-tree_vary-s_cells1000_genes500,2,2,edge01_m3,false
+Bursting-tree_vary-s_cells1000_genes500,2,3,edge03_m1,false
+Bursting-tree_vary-s_cells1000_genes500,2,4,edge03_m2,false
+Bursting-tree_vary-s_cells1000_genes500,2,5,edge03_m3,false
+Bursting-tree_vary-s_cells1000_genes500,2,6,edge08_m1,false
+Bursting-tree_vary-s_cells1000_genes500,2,7,edge08_m2,false
+Bursting-tree_vary-s_cells1000_genes500,2,8,edge08_m3,false
+Bursting-tree_vary-s_cells1000_genes500,3,0,edge01_m1,false
+Bursting-tree_vary-s_cells1000_genes500,3,1,edge01_m2,false
+Bursting-tree_vary-s_cells1000_genes500,3,2,edge01_m3,false
+Bursting-tree_vary-s_cells1000_genes500,3,3,edge04_m1,false
+Bursting-tree_vary-s_cells1000_genes500,3,4,edge04_m2,false
+Bursting-tree_vary-s_cells1000_genes500,3,5,edge04_m3,false
+Bursting-tree_vary-s_cells1000_genes500,3,6,edge05_m1,false
+Bursting-tree_vary-s_cells1000_genes500,3,7,edge05_m2,false
+Bursting-tree_vary-s_cells1000_genes500,4,0,edge01_m1,false
+Bursting-tree_vary-s_cells1000_genes500,4,1,edge01_m2,false
+Bursting-tree_vary-s_cells1000_genes500,4,2,edge01_m3,false
+Bursting-tree_vary-s_cells1000_genes500,4,3,edge04_m1,false
+Bursting-tree_vary-s_cells1000_genes500,4,4,edge04_m2,false
+Bursting-tree_vary-s_cells1000_genes500,4,5,edge04_m3,false
+Bursting-tree_vary-s_cells1000_genes500,4,6,edge06_m1,false
+Bursting-tree_vary-s_cells1000_genes500,4,7,edge06_m2,false
+Bursting-tree_vary-s_cells1000_genes500,5,0,edge02_m1,false
+Bursting-tree_vary-s_cells1000_genes500,5,1,edge02_m2,false
+Bursting-tree_vary-s_cells1000_genes500,5,2,edge02_m3,false
+Bursting-tree_vary-s_cells1200_genes1500,1,0,edge01_m1,false
+Bursting-tree_vary-s_cells1200_genes1500,1,1,edge01_m2,false
+Bursting-tree_vary-s_cells1200_genes1500,1,2,edge01_m3,false
+Bursting-tree_vary-s_cells1200_genes1500,1,3,edge03_m1,false
+Bursting-tree_vary-s_cells1200_genes1500,1,4,edge03_m2,false
+Bursting-tree_vary-s_cells1200_genes1500,1,5,edge03_m3,false
+Bursting-tree_vary-s_cells1200_genes1500,1,6,edge05_m1,false
+Bursting-tree_vary-s_cells1200_genes1500,1,7,edge05_m2,false
+Bursting-tree_vary-s_cells1200_genes1500,2,0,edge01_m1,false
+Bursting-tree_vary-s_cells1200_genes1500,2,1,edge01_m2,false
+Bursting-tree_vary-s_cells1200_genes1500,2,2,edge01_m3,false
+Bursting-tree_vary-s_cells1200_genes1500,2,3,edge03_m1,false
+Bursting-tree_vary-s_cells1200_genes1500,2,4,edge03_m2,false
+Bursting-tree_vary-s_cells1200_genes1500,2,5,edge03_m3,false
+Bursting-tree_vary-s_cells1200_genes1500,2,6,edge06_m1,false
+Bursting-tree_vary-s_cells1200_genes1500,2,7,edge06_m2,false
+Bursting-tree_vary-s_cells1200_genes1500,3,0,edge01_m1,false
+Bursting-tree_vary-s_cells1200_genes1500,3,1,edge01_m2,false
+Bursting-tree_vary-s_cells1200_genes1500,3,2,edge01_m3,false
+Bursting-tree_vary-s_cells1200_genes1500,3,3,edge04_m1,false
+Bursting-tree_vary-s_cells1200_genes1500,3,4,edge04_m2,false
+Bursting-tree_vary-s_cells1200_genes1500,3,5,edge04_m3,false
+Bursting-tree_vary-s_cells1200_genes1500,3,6,edge07_m1,false
+Bursting-tree_vary-s_cells1200_genes1500,3,7,edge07_m2,false
+Bursting-tree_vary-s_cells1200_genes1500,3,8,edge07_m3,false
+Bursting-tree_vary-s_cells1200_genes1500,4,0,edge01_m1,false
+Bursting-tree_vary-s_cells1200_genes1500,4,1,edge01_m2,false
+Bursting-tree_vary-s_cells1200_genes1500,4,2,edge01_m3,false
+Bursting-tree_vary-s_cells1200_genes1500,4,3,edge04_m1,false
+Bursting-tree_vary-s_cells1200_genes1500,4,4,edge04_m2,false
+Bursting-tree_vary-s_cells1200_genes1500,4,5,edge04_m3,false
+Bursting-tree_vary-s_cells1200_genes1500,4,6,edge08_m1,false
+Bursting-tree_vary-s_cells1200_genes1500,4,7,edge08_m2,false
+Bursting-tree_vary-s_cells1200_genes1500,4,8,edge08_m3,false
+Bursting-tree_vary-s_cells1200_genes1500,5,0,edge02_m1,false
+Bursting-tree_vary-s_cells1200_genes1500,5,1,edge02_m2,false
+Bursting-tree_vary-s_cells1200_genes1500,5,2,edge02_m3,false
+Bursting-tree_vary-s_cells1200_genes800,1,0,edge01_m1,false
+Bursting-tree_vary-s_cells1200_genes800,1,1,edge01_m2,false
+Bursting-tree_vary-s_cells1200_genes800,1,2,edge01_m3,false
+Bursting-tree_vary-s_cells1200_genes800,1,3,edge03_m1,false
+Bursting-tree_vary-s_cells1200_genes800,1,4,edge03_m2,false
+Bursting-tree_vary-s_cells1200_genes800,1,5,edge03_m3,false
+Bursting-tree_vary-s_cells1200_genes800,1,6,edge07_m1,false
+Bursting-tree_vary-s_cells1200_genes800,1,7,edge07_m2,false
+Bursting-tree_vary-s_cells1200_genes800,1,8,edge07_m3,false
+Bursting-tree_vary-s_cells1200_genes800,2,0,edge01_m1,false
+Bursting-tree_vary-s_cells1200_genes800,2,1,edge01_m2,false
+Bursting-tree_vary-s_cells1200_genes800,2,2,edge01_m3,false
+Bursting-tree_vary-s_cells1200_genes800,2,3,edge03_m1,false
+Bursting-tree_vary-s_cells1200_genes800,2,4,edge03_m2,false
+Bursting-tree_vary-s_cells1200_genes800,2,5,edge03_m3,false
+Bursting-tree_vary-s_cells1200_genes800,2,6,edge08_m1,false
+Bursting-tree_vary-s_cells1200_genes800,2,7,edge08_m2,false
+Bursting-tree_vary-s_cells1200_genes800,2,8,edge08_m3,false
+Bursting-tree_vary-s_cells1200_genes800,3,0,edge01_m1,false
+Bursting-tree_vary-s_cells1200_genes800,3,1,edge01_m2,false
+Bursting-tree_vary-s_cells1200_genes800,3,2,edge01_m3,false
+Bursting-tree_vary-s_cells1200_genes800,3,3,edge04_m1,false
+Bursting-tree_vary-s_cells1200_genes800,3,4,edge04_m2,false
+Bursting-tree_vary-s_cells1200_genes800,3,5,edge04_m3,false
+Bursting-tree_vary-s_cells1200_genes800,3,6,edge05_m1,false
+Bursting-tree_vary-s_cells1200_genes800,3,7,edge05_m2,false
+Bursting-tree_vary-s_cells1200_genes800,4,0,edge01_m1,false
+Bursting-tree_vary-s_cells1200_genes800,4,1,edge01_m2,false
+Bursting-tree_vary-s_cells1200_genes800,4,2,edge01_m3,false
+Bursting-tree_vary-s_cells1200_genes800,4,3,edge04_m1,false
+Bursting-tree_vary-s_cells1200_genes800,4,4,edge04_m2,false
+Bursting-tree_vary-s_cells1200_genes800,4,5,edge04_m3,false
+Bursting-tree_vary-s_cells1200_genes800,4,6,edge06_m1,false
+Bursting-tree_vary-s_cells1200_genes800,4,7,edge06_m2,false
+Bursting-tree_vary-s_cells1200_genes800,5,0,edge02_m1,false
+Bursting-tree_vary-s_cells1200_genes800,5,1,edge02_m2,false
+Bursting-tree_vary-s_cells1200_genes800,5,2,edge02_m3,false
+Bursting-tree_vary-s_cells1500_genes1000,1,0,edge01_m1,false
+Bursting-tree_vary-s_cells1500_genes1000,1,1,edge02_m1,false
+Bursting-tree_vary-s_cells1500_genes1000,1,2,edge02_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,1,3,edge02_m3,false
+Bursting-tree_vary-s_cells1500_genes1000,2,0,edge01_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,2,1,edge01_m3,false
+Bursting-tree_vary-s_cells1500_genes1000,2,2,edge03_m1,false
+Bursting-tree_vary-s_cells1500_genes1000,2,3,edge03_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,2,4,edge03_m3,false
+Bursting-tree_vary-s_cells1500_genes1000,2,5,edge07_m1,false
+Bursting-tree_vary-s_cells1500_genes1000,2,6,edge07_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,2,7,edge07_m3,false
+Bursting-tree_vary-s_cells1500_genes1000,3,0,edge01_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,3,1,edge01_m3,false
+Bursting-tree_vary-s_cells1500_genes1000,3,2,edge03_m1,false
+Bursting-tree_vary-s_cells1500_genes1000,3,3,edge03_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,3,4,edge03_m3,false
+Bursting-tree_vary-s_cells1500_genes1000,3,5,edge08_m1,false
+Bursting-tree_vary-s_cells1500_genes1000,3,6,edge08_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,3,7,edge08_m3,false
+Bursting-tree_vary-s_cells1500_genes1000,4,0,edge01_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,4,1,edge01_m3,false
+Bursting-tree_vary-s_cells1500_genes1000,4,2,edge04_m1,false
+Bursting-tree_vary-s_cells1500_genes1000,4,3,edge04_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,4,4,edge04_m3,false
+Bursting-tree_vary-s_cells1500_genes1000,4,5,edge05_m1,false
+Bursting-tree_vary-s_cells1500_genes1000,4,6,edge05_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,5,0,edge01_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,5,1,edge01_m3,false
+Bursting-tree_vary-s_cells1500_genes1000,5,2,edge04_m1,false
+Bursting-tree_vary-s_cells1500_genes1000,5,3,edge04_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,5,4,edge04_m3,false
+Bursting-tree_vary-s_cells1500_genes1000,5,5,edge06_m1,false
+Bursting-tree_vary-s_cells1500_genes1000,5,6,edge06_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,6,0,edge02_m1,false
+Bursting-tree_vary-s_cells1500_genes1000,6,1,edge02_m2,false
+Bursting-tree_vary-s_cells1500_genes1000,6,2,edge02_m3,false
+lineage-tracing_rep01,1,0,cluster_13,false
+lineage-tracing_rep01,1,1,cluster_36,false
+lineage-tracing_rep01,1,2,cluster_9,false
+lineage-tracing_rep01,1,3,cluster_22,false
+lineage-tracing_rep02,1,0,cluster_13,false
+lineage-tracing_rep02,1,1,cluster_36,false
+lineage-tracing_rep02,1,2,cluster_9,false
+lineage-tracing_rep02,1,3,cluster_22,false
+lineage-tracing_rep03,1,0,cluster_13,false
+lineage-tracing_rep03,1,1,cluster_36,false
+lineage-tracing_rep03,1,2,cluster_9,false
+lineage-tracing_rep03,1,3,cluster_22,false
+lineage-tracing_rep04,1,0,cluster_13,false
+lineage-tracing_rep04,1,1,cluster_36,false
+lineage-tracing_rep04,1,2,cluster_9,false
+lineage-tracing_rep04,1,3,cluster_22,false
+lineage-tracing_rep05,1,0,cluster_13,false
+lineage-tracing_rep05,1,1,cluster_36,false
+lineage-tracing_rep05,1,2,cluster_9,false
+lineage-tracing_rep05,1,3,cluster_22,false
+lineage-tracing_rep06,1,0,cluster_13,false
+lineage-tracing_rep06,1,1,cluster_36,false
+lineage-tracing_rep06,1,2,cluster_9,false
+lineage-tracing_rep06,1,3,cluster_22,false
+lineage-tracing_rep07,1,0,cluster_13,false
+lineage-tracing_rep07,1,1,cluster_36,false
+lineage-tracing_rep07,1,2,cluster_9,false
+lineage-tracing_rep07,1,3,cluster_22,false
+lineage-tracing_rep08,1,0,cluster_13,false
+lineage-tracing_rep08,1,1,cluster_36,false
+lineage-tracing_rep08,1,2,cluster_9,false
+lineage-tracing_rep08,1,3,cluster_22,false
+lineage-tracing_rep09,1,0,cluster_13,false
+lineage-tracing_rep09,1,1,cluster_36,false
+lineage-tracing_rep09,1,2,cluster_9,false
+lineage-tracing_rep09,1,3,cluster_22,false
+lineage-tracing_rep10,1,0,cluster_13,false
+lineage-tracing_rep10,1,1,cluster_36,false
+lineage-tracing_rep10,1,2,cluster_9,false
+lineage-tracing_rep10,1,3,cluster_22,false
+bifurcating-loop_cell500_gene500,1,0,sA,false
+bifurcating-loop_cell500_gene500,1,1,sB,false
+bifurcating-loop_cell500_gene500,2,0,sB,false
+bifurcating-loop_cell500_gene500,2,1,sD,false
+bifurcating-loop_cell500_gene500,3,0,sB,false
+bifurcating-loop_cell500_gene500,3,1,sC,false
+bifurcating-loop_cell500_gene1000,1,0,sA,false
+bifurcating-loop_cell500_gene1000,1,1,sB,false
+bifurcating-loop_cell500_gene1000,2,0,sB,false
+bifurcating-loop_cell500_gene1000,2,1,sD,false
+bifurcating-loop_cell500_gene1000,3,0,sB,false
+bifurcating-loop_cell500_gene1000,3,1,sC,false
+bifurcating-loop_cell500_gene10000,1,0,sA,false
+bifurcating-loop_cell500_gene10000,1,1,sB,false
+bifurcating-loop_cell500_gene10000,2,0,sB,false
+bifurcating-loop_cell500_gene10000,2,1,sD,false
+bifurcating-loop_cell500_gene10000,3,0,sB,false
+bifurcating-loop_cell500_gene10000,3,1,sC,false
+bifurcating-loop_cell1000_gene500,1,0,sA,false
+bifurcating-loop_cell1000_gene500,1,1,sB,false
+bifurcating-loop_cell1000_gene500,2,0,sB,false
+bifurcating-loop_cell1000_gene500,2,1,sD,false
+bifurcating-loop_cell1000_gene500,3,0,sB,false
+bifurcating-loop_cell1000_gene500,3,1,sC,false
+bifurcating-loop_cell1000_gene1000,1,0,sA,false
+bifurcating-loop_cell1000_gene1000,1,1,sB,false
+bifurcating-loop_cell1000_gene1000,2,0,sB,false
+bifurcating-loop_cell1000_gene1000,2,1,sD,false
+bifurcating-loop_cell1000_gene1000,3,0,sB,false
+bifurcating-loop_cell1000_gene1000,3,1,sC,false
+bifurcating-loop_cell1000_gene10000,1,0,sA,false
+bifurcating-loop_cell1000_gene10000,1,1,sB,false
+bifurcating-loop_cell1000_gene10000,2,0,sB,false
+bifurcating-loop_cell1000_gene10000,2,1,sD,false
+bifurcating-loop_cell1000_gene10000,3,0,sB,false
+bifurcating-loop_cell1000_gene10000,3,1,sC,false
+bifurcating-loop_cell1000_gene20000,1,0,sA,false
+bifurcating-loop_cell1000_gene20000,1,1,sB,false
+bifurcating-loop_cell1000_gene20000,2,0,sB,false
+bifurcating-loop_cell1000_gene20000,2,1,sD,false
+bifurcating-loop_cell1000_gene20000,3,0,sB,false
+bifurcating-loop_cell1000_gene20000,3,1,sC,false
+bifurcating-loop_cell10000_gene500,1,0,sA,false
+bifurcating-loop_cell10000_gene500,1,1,sB,false
+bifurcating-loop_cell10000_gene500,2,0,sB,false
+bifurcating-loop_cell10000_gene500,2,1,sD,false
+bifurcating-loop_cell10000_gene500,3,0,sB,false
+bifurcating-loop_cell10000_gene500,3,1,sC,false
+bifurcating-loop_cell10000_gene1000,1,0,sA,false
+bifurcating-loop_cell10000_gene1000,1,1,sB,false
+bifurcating-loop_cell10000_gene1000,2,0,sB,false
+bifurcating-loop_cell10000_gene1000,2,1,sD,false
+bifurcating-loop_cell10000_gene1000,3,0,sB,false
+bifurcating-loop_cell10000_gene1000,3,1,sC,false
+bifurcating-loop_cell10000_gene10000,1,0,sA,false
+bifurcating-loop_cell10000_gene10000,1,1,sB,false
+bifurcating-loop_cell10000_gene10000,2,0,sB,false
+bifurcating-loop_cell10000_gene10000,2,1,sD,false
+bifurcating-loop_cell10000_gene10000,3,0,sB,false
+bifurcating-loop_cell10000_gene10000,3,1,sC,false
+bifurcating-loop_cell50000_gene1000,1,0,sA,false
+bifurcating-loop_cell50000_gene1000,1,1,sB,false
+bifurcating-loop_cell50000_gene1000,2,0,sB,false
+bifurcating-loop_cell50000_gene1000,2,1,sD,false
+bifurcating-loop_cell50000_gene1000,3,0,sB,false
+bifurcating-loop_cell50000_gene1000,3,1,sC,false
+bifurcating-loop_cell100000_gene1000,1,0,sA,false
+bifurcating-loop_cell100000_gene1000,1,1,sB,false
+bifurcating-loop_cell100000_gene1000,2,0,sB,false
+bifurcating-loop_cell100000_gene1000,2,1,sD,false
+bifurcating-loop_cell100000_gene1000,3,0,sB,false
+bifurcating-loop_cell100000_gene1000,3,1,sC,false
+bifurcating_cell500_gene500,1,0,sA,false
+bifurcating_cell500_gene500,1,1,sB,false
+bifurcating_cell500_gene500,1,2,sBmid,false
+bifurcating_cell500_gene500,2,0,sBmid,false
+bifurcating_cell500_gene500,2,1,sC,false
+bifurcating_cell500_gene500,2,2,sEndC,false
+bifurcating_cell500_gene500,3,0,sBmid,false
+bifurcating_cell500_gene500,3,1,sD,false
+bifurcating_cell500_gene500,3,2,sEndD,false
+bifurcating_cell500_gene1000,1,0,sA,false
+bifurcating_cell500_gene1000,1,1,sB,false
+bifurcating_cell500_gene1000,1,2,sBmid,false
+bifurcating_cell500_gene1000,2,0,sBmid,false
+bifurcating_cell500_gene1000,2,1,sC,false
+bifurcating_cell500_gene1000,2,2,sEndC,false
+bifurcating_cell500_gene1000,3,0,sBmid,false
+bifurcating_cell500_gene1000,3,1,sD,false
+bifurcating_cell500_gene1000,3,2,sEndD,false
+bifurcating_cell500_gene10000,1,0,sA,false
+bifurcating_cell500_gene10000,1,1,sB,false
+bifurcating_cell500_gene10000,1,2,sBmid,false
+bifurcating_cell500_gene10000,2,0,sBmid,false
+bifurcating_cell500_gene10000,2,1,sC,false
+bifurcating_cell500_gene10000,2,2,sEndC,false
+bifurcating_cell500_gene10000,3,0,sBmid,false
+bifurcating_cell500_gene10000,3,1,sD,false
+bifurcating_cell500_gene10000,3,2,sEndD,false
+bifurcating_cell1000_gene500,1,0,sA,false
+bifurcating_cell1000_gene500,1,1,sB,false
+bifurcating_cell1000_gene500,1,2,sBmid,false
+bifurcating_cell1000_gene500,2,0,sBmid,false
+bifurcating_cell1000_gene500,2,1,sC,false
+bifurcating_cell1000_gene500,2,2,sEndC,false
+bifurcating_cell1000_gene500,3,0,sBmid,false
+bifurcating_cell1000_gene500,3,1,sD,false
+bifurcating_cell1000_gene500,3,2,sEndD,false
+bifurcating_cell1000_gene1000,1,0,sA,false
+bifurcating_cell1000_gene1000,1,1,sB,false
+bifurcating_cell1000_gene1000,1,2,sBmid,false
+bifurcating_cell1000_gene1000,2,0,sBmid,false
+bifurcating_cell1000_gene1000,2,1,sC,false
+bifurcating_cell1000_gene1000,2,2,sEndC,false
+bifurcating_cell1000_gene1000,3,0,sBmid,false
+bifurcating_cell1000_gene1000,3,1,sD,false
+bifurcating_cell1000_gene1000,3,2,sEndD,false
+bifurcating_cell1000_gene10000,1,0,sA,false
+bifurcating_cell1000_gene10000,1,1,sB,false
+bifurcating_cell1000_gene10000,1,2,sBmid,false
+bifurcating_cell1000_gene10000,2,0,sBmid,false
+bifurcating_cell1000_gene10000,2,1,sC,false
+bifurcating_cell1000_gene10000,2,2,sEndC,false
+bifurcating_cell1000_gene10000,3,0,sBmid,false
+bifurcating_cell1000_gene10000,3,1,sD,false
+bifurcating_cell1000_gene10000,3,2,sEndD,false
+bifurcating_cell1000_gene20000,1,0,sA,false
+bifurcating_cell1000_gene20000,1,1,sB,false
+bifurcating_cell1000_gene20000,1,2,sBmid,false
+bifurcating_cell1000_gene20000,2,0,sBmid,false
+bifurcating_cell1000_gene20000,2,1,sC,false
+bifurcating_cell1000_gene20000,2,2,sEndC,false
+bifurcating_cell1000_gene20000,3,0,sBmid,false
+bifurcating_cell1000_gene20000,3,1,sD,false
+bifurcating_cell1000_gene20000,3,2,sEndD,false
+bifurcating_cell10000_gene500,1,0,sA,false
+bifurcating_cell10000_gene500,1,1,sB,false
+bifurcating_cell10000_gene500,1,2,sBmid,false
+bifurcating_cell10000_gene500,2,0,sBmid,false
+bifurcating_cell10000_gene500,2,1,sC,false
+bifurcating_cell10000_gene500,2,2,sEndC,false
+bifurcating_cell10000_gene500,3,0,sBmid,false
+bifurcating_cell10000_gene500,3,1,sD,false
+bifurcating_cell10000_gene500,3,2,sEndD,false
+bifurcating_cell10000_gene1000,1,0,sA,false
+bifurcating_cell10000_gene1000,1,1,sB,false
+bifurcating_cell10000_gene1000,1,2,sBmid,false
+bifurcating_cell10000_gene1000,2,0,sBmid,false
+bifurcating_cell10000_gene1000,2,1,sC,false
+bifurcating_cell10000_gene1000,2,2,sEndC,false
+bifurcating_cell10000_gene1000,3,0,sBmid,false
+bifurcating_cell10000_gene1000,3,1,sD,false
+bifurcating_cell10000_gene1000,3,2,sEndD,false
+bifurcating_cell10000_gene10000,1,0,sA,false
+bifurcating_cell10000_gene10000,1,1,sB,false
+bifurcating_cell10000_gene10000,1,2,sBmid,false
+bifurcating_cell10000_gene10000,2,0,sBmid,false
+bifurcating_cell10000_gene10000,2,1,sC,false
+bifurcating_cell10000_gene10000,2,2,sEndC,false
+bifurcating_cell10000_gene10000,3,0,sBmid,false
+bifurcating_cell10000_gene10000,3,1,sD,false
+bifurcating_cell10000_gene10000,3,2,sEndD,false
+bifurcating_cell50000_gene1000,1,0,sA,false
+bifurcating_cell50000_gene1000,1,1,sB,false
+bifurcating_cell50000_gene1000,1,2,sBmid,false
+bifurcating_cell50000_gene1000,2,0,sBmid,false
+bifurcating_cell50000_gene1000,2,1,sC,false
+bifurcating_cell50000_gene1000,2,2,sEndC,false
+bifurcating_cell50000_gene1000,3,0,sBmid,false
+bifurcating_cell50000_gene1000,3,1,sD,false
+bifurcating_cell50000_gene1000,3,2,sEndD,false
+bifurcating_cell100000_gene1000,1,0,sA,false
+bifurcating_cell100000_gene1000,1,1,sB,false
+bifurcating_cell100000_gene1000,1,2,sBmid,false
+bifurcating_cell100000_gene1000,2,0,sBmid,false
+bifurcating_cell100000_gene1000,2,1,sC,false
+bifurcating_cell100000_gene1000,2,2,sEndC,false
+bifurcating_cell100000_gene1000,3,0,sBmid,false
+bifurcating_cell100000_gene1000,3,1,sD,false
+bifurcating_cell100000_gene1000,3,2,sEndD,false
+consecutive-bifurcating_cell500_gene500,1,0,sA,false
+consecutive-bifurcating_cell500_gene500,1,1,sB,false
+consecutive-bifurcating_cell500_gene500,1,2,sC,false
+consecutive-bifurcating_cell500_gene500,1,3,sCmid,false
+consecutive-bifurcating_cell500_gene500,2,0,sCmid,false
+consecutive-bifurcating_cell500_gene500,2,1,sE,false
+consecutive-bifurcating_cell500_gene500,2,2,sEndE,false
+consecutive-bifurcating_cell500_gene500,3,0,sCmid,false
+consecutive-bifurcating_cell500_gene500,3,1,sD,false
+consecutive-bifurcating_cell500_gene500,3,2,sDmid,false
+consecutive-bifurcating_cell500_gene500,4,0,sDmid,false
+consecutive-bifurcating_cell500_gene500,4,1,sF,false
+consecutive-bifurcating_cell500_gene500,4,2,sEndF,false
+consecutive-bifurcating_cell500_gene500,5,0,sDmid,false
+consecutive-bifurcating_cell500_gene500,5,1,sG,false
+consecutive-bifurcating_cell500_gene500,5,2,sEndG,false
+consecutive-bifurcating_cell500_gene1000,1,0,sA,false
+consecutive-bifurcating_cell500_gene1000,1,1,sB,false
+consecutive-bifurcating_cell500_gene1000,1,2,sC,false
+consecutive-bifurcating_cell500_gene1000,1,3,sCmid,false
+consecutive-bifurcating_cell500_gene1000,2,0,sCmid,false
+consecutive-bifurcating_cell500_gene1000,2,1,sD,false
+consecutive-bifurcating_cell500_gene1000,2,2,sEndD,false
+consecutive-bifurcating_cell500_gene1000,3,0,sCmid,false
+consecutive-bifurcating_cell500_gene1000,3,1,sE,false
+consecutive-bifurcating_cell500_gene1000,3,2,sEmid,false
+consecutive-bifurcating_cell500_gene1000,4,0,sEmid,false
+consecutive-bifurcating_cell500_gene1000,4,1,sF,false
+consecutive-bifurcating_cell500_gene1000,4,2,sEndF,false
+consecutive-bifurcating_cell500_gene1000,5,0,sEmid,false
+consecutive-bifurcating_cell500_gene1000,5,1,sG,false
+consecutive-bifurcating_cell500_gene1000,5,2,sEndG,false
+consecutive-bifurcating_cell500_gene10000,1,0,sA,false
+consecutive-bifurcating_cell500_gene10000,1,1,sB,false
+consecutive-bifurcating_cell500_gene10000,1,2,sC,false
+consecutive-bifurcating_cell500_gene10000,1,3,sCmid,false
+consecutive-bifurcating_cell500_gene10000,2,0,sCmid,false
+consecutive-bifurcating_cell500_gene10000,2,1,sD,false
+consecutive-bifurcating_cell500_gene10000,2,2,sEndD,false
+consecutive-bifurcating_cell500_gene10000,3,0,sCmid,false
+consecutive-bifurcating_cell500_gene10000,3,1,sE,false
+consecutive-bifurcating_cell500_gene10000,3,2,sEmid,false
+consecutive-bifurcating_cell500_gene10000,4,0,sEmid,false
+consecutive-bifurcating_cell500_gene10000,4,1,sF,false
+consecutive-bifurcating_cell500_gene10000,4,2,sEndF,false
+consecutive-bifurcating_cell500_gene10000,5,0,sEmid,false
+consecutive-bifurcating_cell500_gene10000,5,1,sG,false
+consecutive-bifurcating_cell500_gene10000,5,2,sEndG,false
+consecutive-bifurcating_cell1000_gene500,1,0,sA,false
+consecutive-bifurcating_cell1000_gene500,1,1,sB,false
+consecutive-bifurcating_cell1000_gene500,1,2,sC,false
+consecutive-bifurcating_cell1000_gene500,1,3,sCmid,false
+consecutive-bifurcating_cell1000_gene500,2,0,sCmid,false
+consecutive-bifurcating_cell1000_gene500,2,1,sG,false
+consecutive-bifurcating_cell1000_gene500,2,2,sEndG,false
+consecutive-bifurcating_cell1000_gene500,3,0,sCmid,false
+consecutive-bifurcating_cell1000_gene500,3,1,sD,false
+consecutive-bifurcating_cell1000_gene500,3,2,sDmid,false
+consecutive-bifurcating_cell1000_gene500,4,0,sDmid,false
+consecutive-bifurcating_cell1000_gene500,4,1,sF,false
+consecutive-bifurcating_cell1000_gene500,4,2,sEndF,false
+consecutive-bifurcating_cell1000_gene500,5,0,sDmid,false
+consecutive-bifurcating_cell1000_gene500,5,1,sE,false
+consecutive-bifurcating_cell1000_gene500,5,2,sEndE,false
+consecutive-bifurcating_cell1000_gene1000,1,0,sA,false
+consecutive-bifurcating_cell1000_gene1000,1,1,sB,false
+consecutive-bifurcating_cell1000_gene1000,1,2,sC,false
+consecutive-bifurcating_cell1000_gene1000,1,3,sCmid,false
+consecutive-bifurcating_cell1000_gene1000,2,0,sCmid,false
+consecutive-bifurcating_cell1000_gene1000,2,1,sD,false
+consecutive-bifurcating_cell1000_gene1000,2,2,sEndD,false
+consecutive-bifurcating_cell1000_gene1000,3,0,sCmid,false
+consecutive-bifurcating_cell1000_gene1000,3,1,sE,false
+consecutive-bifurcating_cell1000_gene1000,3,2,sEmid,false
+consecutive-bifurcating_cell1000_gene1000,4,0,sEmid,false
+consecutive-bifurcating_cell1000_gene1000,4,1,sF,false
+consecutive-bifurcating_cell1000_gene1000,4,2,sEndF,false
+consecutive-bifurcating_cell1000_gene1000,5,0,sEmid,false
+consecutive-bifurcating_cell1000_gene1000,5,1,sG,false
+consecutive-bifurcating_cell1000_gene1000,5,2,sEndG,false
+consecutive-bifurcating_cell1000_gene10000,1,0,sA,false
+consecutive-bifurcating_cell1000_gene10000,1,1,sB,false
+consecutive-bifurcating_cell1000_gene10000,1,2,sC,false
+consecutive-bifurcating_cell1000_gene10000,1,3,sCmid,false
+consecutive-bifurcating_cell1000_gene10000,2,0,sCmid,false
+consecutive-bifurcating_cell1000_gene10000,2,1,sD,false
+consecutive-bifurcating_cell1000_gene10000,2,2,sEndD,false
+consecutive-bifurcating_cell1000_gene10000,3,0,sCmid,false
+consecutive-bifurcating_cell1000_gene10000,3,1,sE,false
+consecutive-bifurcating_cell1000_gene10000,3,2,sEmid,false
+consecutive-bifurcating_cell1000_gene10000,4,0,sEmid,false
+consecutive-bifurcating_cell1000_gene10000,4,1,sF,false
+consecutive-bifurcating_cell1000_gene10000,4,2,sEndF,false
+consecutive-bifurcating_cell1000_gene10000,5,0,sEmid,false
+consecutive-bifurcating_cell1000_gene10000,5,1,sG,false
+consecutive-bifurcating_cell1000_gene10000,5,2,sEndG,false
+consecutive-bifurcating_cell1000_gene20000,1,0,sA,false
+consecutive-bifurcating_cell1000_gene20000,1,1,sB,false
+consecutive-bifurcating_cell1000_gene20000,1,2,sC,false
+consecutive-bifurcating_cell1000_gene20000,1,3,sCmid,false
+consecutive-bifurcating_cell1000_gene20000,2,0,sCmid,false
+consecutive-bifurcating_cell1000_gene20000,2,1,sG,false
+consecutive-bifurcating_cell1000_gene20000,2,2,sEndG,false
+consecutive-bifurcating_cell1000_gene20000,3,0,sCmid,false
+consecutive-bifurcating_cell1000_gene20000,3,1,sD,false
+consecutive-bifurcating_cell1000_gene20000,3,2,sDmid,false
+consecutive-bifurcating_cell1000_gene20000,4,0,sDmid,false
+consecutive-bifurcating_cell1000_gene20000,4,1,sF,false
+consecutive-bifurcating_cell1000_gene20000,4,2,sEndF,false
+consecutive-bifurcating_cell1000_gene20000,5,0,sDmid,false
+consecutive-bifurcating_cell1000_gene20000,5,1,sE,false
+consecutive-bifurcating_cell1000_gene20000,5,2,sEndE,false
+consecutive-bifurcating_cell10000_gene500,1,0,sA,false
+consecutive-bifurcating_cell10000_gene500,1,1,sB,false
+consecutive-bifurcating_cell10000_gene500,1,2,sC,false
+consecutive-bifurcating_cell10000_gene500,1,3,sCmid,false
+consecutive-bifurcating_cell10000_gene500,2,0,sCmid,false
+consecutive-bifurcating_cell10000_gene500,2,1,sD,false
+consecutive-bifurcating_cell10000_gene500,2,2,sEndD,false
+consecutive-bifurcating_cell10000_gene500,3,0,sCmid,false
+consecutive-bifurcating_cell10000_gene500,3,1,sE,false
+consecutive-bifurcating_cell10000_gene500,3,2,sEmid,false
+consecutive-bifurcating_cell10000_gene500,4,0,sEmid,false
+consecutive-bifurcating_cell10000_gene500,4,1,sF,false
+consecutive-bifurcating_cell10000_gene500,4,2,sEndF,false
+consecutive-bifurcating_cell10000_gene500,5,0,sEmid,false
+consecutive-bifurcating_cell10000_gene500,5,1,sG,false
+consecutive-bifurcating_cell10000_gene500,5,2,sEndG,false
+consecutive-bifurcating_cell10000_gene1000,1,0,sA,false
+consecutive-bifurcating_cell10000_gene1000,1,1,sB,false
+consecutive-bifurcating_cell10000_gene1000,1,2,sC,false
+consecutive-bifurcating_cell10000_gene1000,1,3,sCmid,false
+consecutive-bifurcating_cell10000_gene1000,2,0,sCmid,false
+consecutive-bifurcating_cell10000_gene1000,2,1,sD,false
+consecutive-bifurcating_cell10000_gene1000,2,2,sEndD,false
+consecutive-bifurcating_cell10000_gene1000,3,0,sCmid,false
+consecutive-bifurcating_cell10000_gene1000,3,1,sE,false
+consecutive-bifurcating_cell10000_gene1000,3,2,sEmid,false
+consecutive-bifurcating_cell10000_gene1000,4,0,sEmid,false
+consecutive-bifurcating_cell10000_gene1000,4,1,sF,false
+consecutive-bifurcating_cell10000_gene1000,4,2,sEndF,false
+consecutive-bifurcating_cell10000_gene1000,5,0,sEmid,false
+consecutive-bifurcating_cell10000_gene1000,5,1,sG,false
+consecutive-bifurcating_cell10000_gene1000,5,2,sEndG,false
+consecutive-bifurcating_cell50000_gene1000,1,0,sA,false
+consecutive-bifurcating_cell50000_gene1000,1,1,sB,false
+consecutive-bifurcating_cell50000_gene1000,1,2,sC,false
+consecutive-bifurcating_cell50000_gene1000,1,3,sCmid,false
+consecutive-bifurcating_cell50000_gene1000,2,0,sCmid,false
+consecutive-bifurcating_cell50000_gene1000,2,1,sE,false
+consecutive-bifurcating_cell50000_gene1000,2,2,sEndE,false
+consecutive-bifurcating_cell50000_gene1000,3,0,sCmid,false
+consecutive-bifurcating_cell50000_gene1000,3,1,sD,false
+consecutive-bifurcating_cell50000_gene1000,3,2,sDmid,false
+consecutive-bifurcating_cell50000_gene1000,4,0,sDmid,false
+consecutive-bifurcating_cell50000_gene1000,4,1,sF,false
+consecutive-bifurcating_cell50000_gene1000,4,2,sEndF,false
+consecutive-bifurcating_cell50000_gene1000,5,0,sDmid,false
+consecutive-bifurcating_cell50000_gene1000,5,1,sG,false
+consecutive-bifurcating_cell50000_gene1000,5,2,sEndG,false
+consecutive-bifurcating_cell100000_gene1000,1,0,sA,false
+consecutive-bifurcating_cell100000_gene1000,1,1,sB,false
+consecutive-bifurcating_cell100000_gene1000,1,2,sC,false
+consecutive-bifurcating_cell100000_gene1000,1,3,sCmid,false
+consecutive-bifurcating_cell100000_gene1000,2,0,sCmid,false
+consecutive-bifurcating_cell100000_gene1000,2,1,sE,false
+consecutive-bifurcating_cell100000_gene1000,2,2,sEndE,false
+consecutive-bifurcating_cell100000_gene1000,3,0,sCmid,false
+consecutive-bifurcating_cell100000_gene1000,3,1,sD,false
+consecutive-bifurcating_cell100000_gene1000,3,2,sDmid,false
+consecutive-bifurcating_cell100000_gene1000,4,0,sDmid,false
+consecutive-bifurcating_cell100000_gene1000,4,1,sF,false
+consecutive-bifurcating_cell100000_gene1000,4,2,sEndF,false
+consecutive-bifurcating_cell100000_gene1000,5,0,sDmid,false
+consecutive-bifurcating_cell100000_gene1000,5,1,sG,false
+consecutive-bifurcating_cell100000_gene1000,5,2,sEndG,false
+disconnected_cell500_gene500,1,0,left sA,false
+disconnected_cell500_gene500,1,1,left sB,false
+disconnected_cell500_gene500,1,2,left sC,false
+disconnected_cell500_gene500,1,3,left sEndC,false
+disconnected_cell500_gene500,2,0,right s1,true
+disconnected_cell500_gene500,2,1,right s2,true
+disconnected_cell500_gene500,2,2,right s3,true
+disconnected_cell500_gene1000,1,0,left sA,false
+disconnected_cell500_gene1000,1,1,left sB,false
+disconnected_cell500_gene1000,1,2,left sC,false
+disconnected_cell500_gene1000,1,3,left sEndC,false
+disconnected_cell500_gene1000,2,0,right s1,true
+disconnected_cell500_gene1000,2,1,right s2,true
+disconnected_cell500_gene1000,2,2,right s3,true
+disconnected_cell500_gene10000,1,0,left sA,false
+disconnected_cell500_gene10000,1,1,left sB,false
+disconnected_cell500_gene10000,1,2,left sC,false
+disconnected_cell500_gene10000,1,3,left sEndC,false
+disconnected_cell500_gene10000,2,0,right s1,true
+disconnected_cell500_gene10000,2,1,right s2,true
+disconnected_cell500_gene10000,2,2,right s3,true
+disconnected_cell1000_gene500,1,0,left sA,false
+disconnected_cell1000_gene500,1,1,left sB,false
+disconnected_cell1000_gene500,1,2,left sC,false
+disconnected_cell1000_gene500,1,3,left sEndC,false
+disconnected_cell1000_gene500,2,0,right s1,true
+disconnected_cell1000_gene500,2,1,right s2,true
+disconnected_cell1000_gene500,2,2,right s3,true
+disconnected_cell1000_gene1000,1,0,left sA,false
+disconnected_cell1000_gene1000,1,1,left sB,false
+disconnected_cell1000_gene1000,1,2,left sC,false
+disconnected_cell1000_gene1000,1,3,left sEndC,false
+disconnected_cell1000_gene1000,2,0,right s1,true
+disconnected_cell1000_gene1000,2,1,right s2,true
+disconnected_cell1000_gene1000,2,2,right s3,true
+disconnected_cell1000_gene10000,1,0,left sA,false
+disconnected_cell1000_gene10000,1,1,left sB,false
+disconnected_cell1000_gene10000,1,2,left sC,false
+disconnected_cell1000_gene10000,1,3,left sEndC,false
+disconnected_cell1000_gene10000,2,0,right s1,true
+disconnected_cell1000_gene10000,2,1,right s2,true
+disconnected_cell1000_gene10000,2,2,right s3,true
+disconnected_cell1000_gene20000,1,0,left sA,false
+disconnected_cell1000_gene20000,1,1,left sB,false
+disconnected_cell1000_gene20000,1,2,left sC,false
+disconnected_cell1000_gene20000,1,3,left sEndC,false
+disconnected_cell1000_gene20000,2,0,right s1,true
+disconnected_cell1000_gene20000,2,1,right s2,true
+disconnected_cell1000_gene20000,2,2,right s3,true
+disconnected_cell10000_gene500,1,0,left sA,false
+disconnected_cell10000_gene500,1,1,left sB,false
+disconnected_cell10000_gene500,1,2,left sC,false
+disconnected_cell10000_gene500,1,3,left sEndC,false
+disconnected_cell10000_gene500,2,0,right s1,true
+disconnected_cell10000_gene500,2,1,right s2,true
+disconnected_cell10000_gene500,2,2,right s3,true
+disconnected_cell10000_gene1000,1,0,left sA,false
+disconnected_cell10000_gene1000,1,1,left sB,false
+disconnected_cell10000_gene1000,1,2,left sC,false
+disconnected_cell10000_gene1000,1,3,left sEndC,false
+disconnected_cell10000_gene1000,2,0,right s1,true
+disconnected_cell10000_gene1000,2,1,right s2,true
+disconnected_cell10000_gene1000,2,2,right s3,true
+disconnected_cell10000_gene10000,1,0,left sA,false
+disconnected_cell10000_gene10000,1,1,left sB,false
+disconnected_cell10000_gene10000,1,2,left sC,false
+disconnected_cell10000_gene10000,1,3,left sEndC,false
+disconnected_cell10000_gene10000,2,0,right s1,true
+disconnected_cell10000_gene10000,2,1,right s2,true
+disconnected_cell10000_gene10000,2,2,right s3,true
+disconnected_cell50000_gene1000,1,0,left sA,false
+disconnected_cell50000_gene1000,1,1,left sB,false
+disconnected_cell50000_gene1000,1,2,left sC,false
+disconnected_cell50000_gene1000,1,3,left sEndC,false
+disconnected_cell50000_gene1000,2,0,right s1,true
+disconnected_cell50000_gene1000,2,1,right s2,true
+disconnected_cell50000_gene1000,2,2,right s3,true
+disconnected_cell100000_gene1000,1,0,left sA,false
+disconnected_cell100000_gene1000,1,1,left sB,false
+disconnected_cell100000_gene1000,1,2,left sC,false
+disconnected_cell100000_gene1000,1,3,left sEndC,false
+disconnected_cell100000_gene1000,2,0,right s1,true
+disconnected_cell100000_gene1000,2,1,right s2,true
+disconnected_cell100000_gene1000,2,2,right s3,true
+linear-simple_cell500_gene500,1,0,s1,false
+linear-simple_cell500_gene500,1,1,s2,false
+linear-simple_cell500_gene1000,1,0,s1,false
+linear-simple_cell500_gene1000,1,1,s2,false
+linear-simple_cell500_gene10000,1,0,s1,false
+linear-simple_cell500_gene10000,1,1,s2,false
+linear-simple_cell1000_gene500,1,0,s1,false
+linear-simple_cell1000_gene500,1,1,s2,false
+linear-simple_cell1000_gene1000,1,0,s1,false
+linear-simple_cell1000_gene1000,1,1,s2,false
+linear-simple_cell1000_gene10000,1,0,s1,false
+linear-simple_cell1000_gene10000,1,1,s2,false
+linear-simple_cell1000_gene20000,1,0,s1,false
+linear-simple_cell1000_gene20000,1,1,s2,false
+linear-simple_cell10000_gene500,1,0,s1,false
+linear-simple_cell10000_gene500,1,1,s2,false
+linear-simple_cell10000_gene1000,1,0,s1,false
+linear-simple_cell10000_gene1000,1,1,s2,false
+linear-simple_cell10000_gene10000,1,0,s1,false
+linear-simple_cell10000_gene10000,1,1,s2,false
+linear-simple_cell50000_gene1000,1,0,s1,false
+linear-simple_cell50000_gene1000,1,1,s2,false
+linear-simple_cell100000_gene1000,1,0,s1,false
+linear-simple_cell100000_gene1000,1,1,s2,false
+trifurcating_cell500_gene500,1,0,sA,false
+trifurcating_cell500_gene500,1,1,sB,false
+trifurcating_cell500_gene500,1,2,sC,false
+trifurcating_cell500_gene500,1,3,sCmid,false
+trifurcating_cell500_gene500,2,0,sCmid,false
+trifurcating_cell500_gene500,2,1,sD,false
+trifurcating_cell500_gene500,2,2,sEndD,false
+trifurcating_cell500_gene500,3,0,sCmid,false
+trifurcating_cell500_gene500,3,1,sE,false
+trifurcating_cell500_gene500,3,2,sEndE,false
+trifurcating_cell500_gene500,4,0,sCmid,false
+trifurcating_cell500_gene500,4,1,sF,false
+trifurcating_cell500_gene500,4,2,sEndF,false
+trifurcating_cell500_gene1000,1,0,sA,false
+trifurcating_cell500_gene1000,1,1,sB,false
+trifurcating_cell500_gene1000,1,2,sC,false
+trifurcating_cell500_gene1000,1,3,sCmid,false
+trifurcating_cell500_gene1000,2,0,sCmid,false
+trifurcating_cell500_gene1000,2,1,sD,false
+trifurcating_cell500_gene1000,2,2,sEndD,false
+trifurcating_cell500_gene1000,3,0,sCmid,false
+trifurcating_cell500_gene1000,3,1,sE,false
+trifurcating_cell500_gene1000,3,2,sEndE,false
+trifurcating_cell500_gene1000,4,0,sCmid,false
+trifurcating_cell500_gene1000,4,1,sF,false
+trifurcating_cell500_gene1000,4,2,sEndF,false
+trifurcating_cell500_gene10000,1,0,sA,false
+trifurcating_cell500_gene10000,1,1,sB,false
+trifurcating_cell500_gene10000,1,2,sC,false
+trifurcating_cell500_gene10000,1,3,sCmid,false
+trifurcating_cell500_gene10000,2,0,sCmid,false
+trifurcating_cell500_gene10000,2,1,sD,false
+trifurcating_cell500_gene10000,2,2,sEndD,false
+trifurcating_cell500_gene10000,3,0,sCmid,false
+trifurcating_cell500_gene10000,3,1,sE,false
+trifurcating_cell500_gene10000,3,2,sEndE,false
+trifurcating_cell500_gene10000,4,0,sCmid,false
+trifurcating_cell500_gene10000,4,1,sF,false
+trifurcating_cell500_gene10000,4,2,sEndF,false
+trifurcating_cell1000_gene500,1,0,sA,false
+trifurcating_cell1000_gene500,1,1,sB,false
+trifurcating_cell1000_gene500,1,2,sC,false
+trifurcating_cell1000_gene500,1,3,sCmid,false
+trifurcating_cell1000_gene500,2,0,sCmid,false
+trifurcating_cell1000_gene500,2,1,sD,false
+trifurcating_cell1000_gene500,2,2,sEndD,false
+trifurcating_cell1000_gene500,3,0,sCmid,false
+trifurcating_cell1000_gene500,3,1,sE,false
+trifurcating_cell1000_gene500,3,2,sEndE,false
+trifurcating_cell1000_gene500,4,0,sCmid,false
+trifurcating_cell1000_gene500,4,1,sF,false
+trifurcating_cell1000_gene500,4,2,sEndF,false
+trifurcating_cell1000_gene1000,1,0,sA,false
+trifurcating_cell1000_gene1000,1,1,sB,false
+trifurcating_cell1000_gene1000,1,2,sC,false
+trifurcating_cell1000_gene1000,1,3,sCmid,false
+trifurcating_cell1000_gene1000,2,0,sCmid,false
+trifurcating_cell1000_gene1000,2,1,sD,false
+trifurcating_cell1000_gene1000,2,2,sEndD,false
+trifurcating_cell1000_gene1000,3,0,sCmid,false
+trifurcating_cell1000_gene1000,3,1,sE,false
+trifurcating_cell1000_gene1000,3,2,sEndE,false
+trifurcating_cell1000_gene1000,4,0,sCmid,false
+trifurcating_cell1000_gene1000,4,1,sF,false
+trifurcating_cell1000_gene1000,4,2,sEndF,false
+trifurcating_cell1000_gene10000,1,0,sA,false
+trifurcating_cell1000_gene10000,1,1,sB,false
+trifurcating_cell1000_gene10000,1,2,sC,false
+trifurcating_cell1000_gene10000,1,3,sCmid,false
+trifurcating_cell1000_gene10000,2,0,sCmid,false
+trifurcating_cell1000_gene10000,2,1,sD,false
+trifurcating_cell1000_gene10000,2,2,sEndD,false
+trifurcating_cell1000_gene10000,3,0,sCmid,false
+trifurcating_cell1000_gene10000,3,1,sE,false
+trifurcating_cell1000_gene10000,3,2,sEndE,false
+trifurcating_cell1000_gene10000,4,0,sCmid,false
+trifurcating_cell1000_gene10000,4,1,sF,false
+trifurcating_cell1000_gene10000,4,2,sEndF,false
+trifurcating_cell1000_gene20000,1,0,sA,false
+trifurcating_cell1000_gene20000,1,1,sB,false
+trifurcating_cell1000_gene20000,1,2,sC,false
+trifurcating_cell1000_gene20000,1,3,sCmid,false
+trifurcating_cell1000_gene20000,2,0,sCmid,false
+trifurcating_cell1000_gene20000,2,1,sD,false
+trifurcating_cell1000_gene20000,2,2,sEndD,false
+trifurcating_cell1000_gene20000,3,0,sCmid,false
+trifurcating_cell1000_gene20000,3,1,sE,false
+trifurcating_cell1000_gene20000,3,2,sEndE,false
+trifurcating_cell1000_gene20000,4,0,sCmid,false
+trifurcating_cell1000_gene20000,4,1,sF,false
+trifurcating_cell1000_gene20000,4,2,sEndF,false
+trifurcating_cell10000_gene500,1,0,sA,false
+trifurcating_cell10000_gene500,1,1,sB,false
+trifurcating_cell10000_gene500,1,2,sC,false
+trifurcating_cell10000_gene500,1,3,sCmid,false
+trifurcating_cell10000_gene500,2,0,sCmid,false
+trifurcating_cell10000_gene500,2,1,sD,false
+trifurcating_cell10000_gene500,2,2,sEndD,false
+trifurcating_cell10000_gene500,3,0,sCmid,false
+trifurcating_cell10000_gene500,3,1,sE,false
+trifurcating_cell10000_gene500,3,2,sEndE,false
+trifurcating_cell10000_gene500,4,0,sCmid,false
+trifurcating_cell10000_gene500,4,1,sF,false
+trifurcating_cell10000_gene500,4,2,sEndF,false
+trifurcating_cell10000_gene1000,1,0,sA,false
+trifurcating_cell10000_gene1000,1,1,sB,false
+trifurcating_cell10000_gene1000,1,2,sC,false
+trifurcating_cell10000_gene1000,1,3,sCmid,false
+trifurcating_cell10000_gene1000,2,0,sCmid,false
+trifurcating_cell10000_gene1000,2,1,sD,false
+trifurcating_cell10000_gene1000,2,2,sEndD,false
+trifurcating_cell10000_gene1000,3,0,sCmid,false
+trifurcating_cell10000_gene1000,3,1,sE,false
+trifurcating_cell10000_gene1000,3,2,sEndE,false
+trifurcating_cell10000_gene1000,4,0,sCmid,false
+trifurcating_cell10000_gene1000,4,1,sF,false
+trifurcating_cell10000_gene1000,4,2,sEndF,false

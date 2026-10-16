@@ -1,166 +1,120 @@
-# VeloVAE Script
+# VeloVAE
 
-## Installation
-
-```bash
-git clone https://github.com/welch-lab/VeloVAE.git
-cd VeloVAE && pip install -e .
-pip install scanpy scvelo pandas numpy matplotlib scipy
-```
-
-## Usage
-
-### Real Data (Default Configuration)
-
-For real biological data with UMAP embeddings:
+Run VeloVAE on real or simulated scRNA data and save velocity, model time, and
+plots. The separate repeated-training entry preprocesses once and fits
+independent models. Install [VeloVAE](https://github.com/welch-lab/VeloVAE) and
+its dependencies, including Scanpy, scVelo, PyTorch, NumPy, pandas, SciPy, and
+Matplotlib:
 
 ```bash
-python VeloVAE.py \
-    --input data.h5ad \
-    --output-dir ./output \
-    --fig-dir ./figures \
-    --cluster-key celltype
+git clone https://github.com/welch-lab/VeloVAE.git ../VeloVAE
+python -m pip install -e ../VeloVAE
 ```
 
-### Simulated Data
+## Inputs
 
-For simulated single-cell trajectory data with `X_dimred` basis:
+Each H5AD needs `layers['spliced']`, `layers['unspliced']`, an annotation
+column in `obs`, and coordinates in `obsm`. Supply `--cluster-key` and the
+actual `--dimred-key` (default `X_umap`). Existing finite 2D coordinates are
+preserved. If that key is missing, this single-run entry computes UMAP and
+stores it under the requested key; provide the original coordinates when
+comparing methods in a common basis. The repeated-training entry requires
+existing coordinates.
+
+## Run
+
+Commands below run from the repository root. For real data:
 
 ```bash
-python VeloVAE.py \
-    --input simulated.h5ad \
-    --output-dir ./output \
-    --fig-dir ./figures \
-    --cluster-key milestone \
-    --dimred-key X_dimred \
-    --dim-z 4 \
-    --zero-threshold \
-    --hvg-scheme simulated
+python Benchmarked_tools/VeloVAE/VeloVAE.py \
+  --input data/sample.h5ad --output-dir results/velovae \
+  --fig-dir figures/velovae --cluster-key cell_type --device auto
 ```
 
-> **Simulated data should explicitly set the following options:**
-> - `--dimred-key X_dimred`: uses the pre-computed simulation coordinates.
-> - `--dim-z 4`: reduces the latent cell state dimension from the default 5 to 4,
->   reflecting the relatively simpler state complexity of these synthetic trajectories
->   compared with real biological datasets.
-> - `--zero-threshold`: sets `min_shared_counts = 0` and `min_shared_cells = 0`
->   because dyngen-generated simulated data often have low expression counts and the
->   default VeloVAE filtering thresholds can otherwise be overly strict.
-> - `--hvg-scheme simulated`: uses the simulated-data HVG rule
->   (`500 / 2000 / 4000 / 5000`) instead of the real-data rule (`500 / 2000`).
-
-### Batch Mode
+For simulated data, supply the simulation settings explicitly:
 
 ```bash
-python VeloVAE.py \
-    --metadata-file datasets.csv \
-    --output-dir ./output \
-    --fig-dir ./figures
+python Benchmarked_tools/VeloVAE/VeloVAE.py \
+  --input data/simulation.h5ad --output-dir results/velovae \
+  --fig-dir figures/velovae --cluster-key milestone --dimred-key X_dimred \
+  --dim-z 4 --zero-threshold --hvg-scheme simulated --device auto
 ```
 
-## Parameters
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `--input` | - | Input H5AD file (single-file mode) |
-| `--metadata-file` | - | Metadata file for batch processing |
-| `--output-dir` | Required | Output directory for H5AD files |
-| `--fig-dir` | Required | Output directory for figures |
-| `--cluster-key` | Required | Cell type/milestone column name in `adata.obs` |
-| `--dimred-key` | `X_umap` | Dimensionality reduction key in `adata.obsm`<br>Use `X_umap` for real data, `X_dimred` for simulated data |
-| `--dim-z` | `5` | Latent dimension<br>`5` for real data, `4` for simulated data |
-| `--zero-threshold` | `False` | Set `min_shared_counts/cells=0` in preprocessing<br>**REQUIRED** for simulated data |
-| `--hvg-scheme` | `real` | HVG selection rule<br>`real`: `500 / 2000`; `simulated`: `500 / 2000 / 4000 / 5000` |
-| `--device` | `cuda:0` | PyTorch device (`cuda:0`, `cpu`, etc.) |
-| `--n-jobs` | `1` | Number of parallel jobs for post-analysis |
-
-## Metadata File Format
-
-Required columns: `dataset_name`, `file_path`, `cluster_key`
-
-Optional columns with defaults:
-- `dimred_key` → `X_umap`
-- `dim_z` → `5`
-- `zero_threshold` → `False`
-- `hvg_scheme` → `real`
-
-### Example CSV
+For several inputs, all five CSV columns below are required. Relative
+`file_path` values resolve from the CSV directory. Dataset names must be
+unique path components.
 
 ```csv
-dataset_name,file_path,cluster_key,dimred_key,dim_z,zero_threshold,hvg_scheme
-pancreas_real,/data/pancreas.h5ad,celltype,X_umap,5,False,real
-bifurcating_sim,/data/bifurcating_cell1000_gene1000_dataset.h5ad,milestone,X_dimred,4,True,simulated
-cycle_simple_sim,/data/cycle-simple_cell5000_gene1000_dataset.h5ad,milestone,X_dimred,4,True,simulated
+dataset_name,file_path,modality,cluster_key,dimred_key
+sample,data/sample.h5ad,real,cell_type,X_umap
+simulation,data/simulation.h5ad,sim,milestone,X_dimred
 ```
 
-## Output
-
-### H5AD Files
-- `{output_dir}/{dataset_name}/VeloVAE_{dataset_name}_plot.h5ad`
-
-### Figures
-All figures are saved in both PNG and PDF formats under `{fig_dir}/`:
-- `png/VeloVAE_{dataset_name}_{basis}.png` - Scatter plot with velocity overlay
-- `png/VeloVAE_{dataset_name}_stream.png` - Stream plot
-- `png/VeloVAE_{dataset_name}_grid.png` - Grid plot
-- `png/VeloVAE_{dataset_name}_pseudotime.png` - Pseudotime visualization
-- `pdf/` - Corresponding PDF versions
-
-### Output Data Keys
-
-The output H5AD file contains:
-
-**`.obs` columns:**
-- `vae_time` - Inferred pseudotime
-- `vae_time_normalized` - Normalized pseudotime [0, 1]
-
-**`.obsm` keys:**
-- `vae_z` - Latent cell state
-- `vae_velocity_{basis}` - Velocity embedding in the specified basis
-
-**`.layers`:**
-- `vae_velocity` - RNA velocity in gene space
-- `vae_uhat`, `vae_shat` - Predicted unspliced/spliced counts
-
-**`.var` columns:**
-- `vae_alpha`, `vae_beta`, `vae_gamma` - Kinetic parameters
-
-## Important Notes
-
-### Highly Variable Gene Selection
-
-The number of highly variable genes (`n_gene`) is determined automatically by
-`determine_preprocessing_params()` based on the selected `--hvg-scheme` and the
-total gene count.
-
-| HVG scheme | Rule |
-|------------|------|
-| `real` | `n_vars < 1,500` → 500 HVGs; `n_vars ≥ 1,500` → 2,000 HVGs |
-| `simulated` | `n_vars < 1,500` → 500; `< 10,000` → 2,000; `< 50,000` → 4,000; `≥ 50,000` → 5,000 |
-
-The `real` scheme reflects the conventional choice of 2,000 HVGs for most real
-datasets, with a reduced setting of 500 only when the input itself contains fewer
-than 1,500 genes. The `simulated` scheme is intended for synthetic datasets with
-much broader gene-count ranges.
-
-### Dimensionality Reduction Basis
-
-The script **does not modify** the original dimensionality reduction key in `adata.obsm`. This preserves data integrity for downstream analysis:
-
-- For real data: Use `--dimred-key X_umap` (default) to use UMAP embeddings
-- For simulated data: Use `--dimred-key X_dimred` to use pre-computed simulation coordinates
-
-If the specified key is not found, UMAP will be computed and stored under that key.
-
-### Velocity Embedding Keys
-
-VeloVAE stores velocity embeddings using the naming convention:
-```
-{method}_velocity_{basis}
+```bash
+python Benchmarked_tools/VeloVAE/VeloVAE.py \
+  --metadata-file datasets.csv --output-dir results/velovae \
+  --fig-dir figures/velovae --device auto
 ```
 
-For example:
-- With `--dimred-key X_umap` → `adata.obsm['vae_velocity_umap']`
-- With `--dimred-key X_dimred` → `adata.obsm['vae_velocity_dimred']`
+Optional CSV fields `dim_z`, `zero_threshold`, and `hvg_scheme` override the
+per-modality defaults. Empty fields use defaults: `5,false,real` for `real`
+and `4,true,simulated` for `sim`. Boolean fields accept true/false, 1/0, or
+yes/no. Missing files and failed datasets are reported and cause a nonzero
+exit status after the remaining datasets have been attempted.
 
-This ensures compatibility with downstream evaluation metrics that expect specific basis names.
+## Outputs
+
+For one input, the result is
+`<output-dir>/VeloVAE_<input_stem_without_dataset_suffix>_plot.h5ad`.
+CSV mode adds a `<dataset_name>/` directory. Result filenames derive from the
+input filename, not the CSV name. Figures are PNG/PDF scatter, stream, grid,
+and model-time plots under `<fig-dir>/png/` and `pdf/`; CSV mode adds a
+dataset-name directory. Model diagnostics are under the dataset output's
+`figure/` directory. Existing filenames can be overwritten by the single-run
+entry; choose a fresh output directory for a separate analysis.
+
+| H5AD location | Main outputs |
+| --- | --- |
+| `layers` | `vae_velocity`, `vae_uhat`, `vae_shat` |
+| `obsm` | `vae_z`, `vae_velocity_<basis>` |
+| `obs` | `vae_time`, `vae_time_normalized` |
+| `var` | `vae_alpha`, `vae_beta`, `vae_gamma` |
+
+`vae_time_normalized` rescales model time to `[0,1]`; a constant time becomes
+zero. It is distinct from scVelo velocity pseudotime.
+
+## Independent repeated training
+
+Use the same five required CSV fields with
+[`Batch_run/velovae_robust.py`](../../Batch_run/velovae_robust.py):
+
+```bash
+python Batch_run/velovae_robust.py --input-csv datasets.csv \
+  --output-dir repeated/velovae --runs 5 --device auto
+```
+
+Each result is
+`<output-dir>/<modality>/<dataset_name>/VeloVAE_<dataset_name>_r<run>.h5ad`.
+Existing results are skipped. Shared preprocessing uses `--preprocess-seed`;
+run indices start at 1 and use `--base-seed + run_index`. The driver derives
+settings from `modality` and does not read the single-run optional overrides.
+It removes jointly empty/duplicate simulation profiles and degenerate moment
+genes before ODE initialization. It saves scVelo velocity pseudotime as well
+as model time.
+
+## Preprocessing and advanced options
+
+The single-run entry removes duplicate `X` rows via a dense DataFrame; this
+can use substantial memory. `--zero-threshold` disables shared-count/cell
+gene thresholds. HVG targets depend on the input gene count:
+
+| Scheme | Requested HVGs |
+| --- | --- |
+| `real` | Below 1,500 genes: 500; otherwise 2,000 |
+| `simulated` | Below 1,500: 500; below 10,000: 2,000; below 50,000: 4,000; otherwise 5,000 |
+
+PCA uses 30 components below 15,000 cells, otherwise 50. Batch sizes are 64
+below 1,500 cells, 128 below 15,000, and 256 otherwise. Small inputs still
+need enough cells/genes for the upstream PCA and training routines.
+`--device` accepts `auto` (default), `cpu`, or a PyTorch CUDA device;
+`--n-jobs` controls single-run post-analysis parallelism (default 1).

@@ -1,59 +1,71 @@
 # Evaluation
 
-Run the evaluation script after collecting each method’s results into the configured result directories. The script reads per-method outputs, computes the metrics, and writes CSV summaries and figures to the designated output folder.
-- **Inputs**  
-  Per-method velocity outputs and any required ground‑truth or reference data (e.g., simulated trajectories, annotated cell states).
+Choose an entry below after collecting the methods' result H5AD files.
+Each metric has its own input contract and output files. Install its listed
+dependencies in a metric environment; tool-specific environments can use
+different package versions.
 
-- **Outputs**  
-  Numeric metrics and summary tables (e.g., accuracy, concordance, peak/shape statistics), plus plots that visualize method performance across datasets.
+| Entry | Use | Main inputs beyond the result H5AD |
+| --- | --- | --- |
+| [CBDir](Cross-Boundary%20Direction%20Correctness/README.md) | Direction toward a neighboring target state | Coordinates, annotations, projected velocity, directed paths |
+| [ICCoh](In-Cluster%20Coherence/README.md) | Velocity coherence within annotated states | Cell-by-gene velocity and neighbor connectivities |
+| [Transition score](Transition%20score/README.md) | Velocity-graph values along directed state edges | Velocity graph, neighbor connectivities, annotations, directed paths |
+| [Angle consistency](Angle-consistency/README.md) | Agreement with reference trajectory tangents | 2D coordinates, projected velocity, paths; reference NPZ for dedicated simulation models |
+| [Groundtruth correlation](Groundtruth-correlation/README.md) | Predicted versus true velocity | Actual true velocity in the chosen comparison space |
+| [Spatial velocity/time consistency](Spatial%20consistency/README.md) | Local velocity coherence and spatial time autocorrelation | Spatial coordinates, velocity layer, numeric time column |
+| [Consistency score](Consistency%20score/README.md) | Consistency analysis | See the entry's own configuration |
+| [Multirun stability](Multirun%20stability%20analysis/README.md) | Compare repeated model fits | Repeated results; see the entry's README |
+| [Result plots](Result-plot/README.md) | Plot method results | Result H5AD; see the entry's README |
 
-# Profiling with Scalene
-You can run the performance profiling using either a local environment or our provided Docker images.
-### Option 1: Local Environment
-We recommend referring to the official Scalene GitHub repository for installation guidelines (`pip install scalene`). Please ensure all dependencies and the specific single-cell tools you wish to profile (e.g., scVelo, UnitVelo, Velocyto) are installed according to their respective guidelines before running our profiling scripts.
-### Option 2: Docker (Recommended)
-Alternatively, you can use our provided Docker images to run the profiling in an isolated container environment. This is highly recommended to prevent background host processes from interfering with CPU and memory measurements.
+## Prepare a manifest and run
 
-**Steps to run with Docker:**
-1. Ensure the Docker image is loaded and the container is running with appropriate permissions.
-2. Open the `scalene.sh` script.
-3. Modify the `TARGET_METHOD` and `TARGET_SCRIPT` variables to match the specific tool you intend to profile.
-4. Update the `DATA_CSV` or `INPUT_DATASETS` arrays to point to your target `.h5ad` files.
+CBDir, ICCoh, Transition score, and Angle consistency use the common manifest
+fields `method,id,path,vkey,data_type`, with `data_type=real|sim`. Declare
+`cluster_key` and `basis_name` explicitly when possible. `modality` uses
+`rna|atac|spatial|lineage`; defaults and additional required fields differ by
+metric. Relative result paths resolve from the manifest directory.
+Groundtruth correlation uses a separate schema, including `dataset_id` and
+`score_space`; follow its README.
 
-**Configuration Example (`scalene.sh`):**
+```csv
+method,id,path,vkey,data_type,basis_name,cluster_key,modality
+MyMethod,1,results/sample.h5ad,velocity,real,umap,ClusterName,rna
+```
+
+From the repository root, for example:
 
 ```bash
-# Define the target method and execution script
-TARGET_METHOD="scVelo-dynamical"
-TARGET_SCRIPT=".../scalene/scvelo_D_sim.py"
-# Define data inputs and output directory
-DATA_CSV=".../sim_data_forDocker.csv"
-SAVE_DIR=".../scalene/output"
+python "Evaluation/Cross-Boundary Direction Correctness/cbdir.py" \
+  --manifest inputs.csv --output-dir results/cbdir
 ```
-**Profiling Parameters in `scalene.sh`**
 
-This project includes customizable profiling arguments inside `scalene.sh` to help standardize CPU, memory, and GPU tracking across different tool evaluations. Adjusting these parameters makes it easier to balance profiling precision with execution overhead, ensuring fair comparisons between algorithms.
----
-**Why adjust profiling parameters**
-- **Precision vs. Overhead**: High-frequency sampling (e.g., 1 Byte) captures exact memory peaks but severely slows down execution. Adjusted thresholds keep profiling times reasonable.
-- **Hardware Targeting**: Different algorithms utilize hardware differently. Toggling GPU tracking ensures accurate VRAM allocation monitoring for deep learning tools (like VeloVI or UnitVelo) without burdening pure CPU tools.
-- **Reproducibility**: Fixed tracking windows make memory and time experiments easier to reproduce consistently across different datasets.
----
-**How to configure parameters**
-Before you run `scalene.sh`, open the script and adjust the core variables and `SCALENE_ARGS` to match your hardware and desired profiling granularity.
----
-**Example configuration**
+The included [`differentiation_paths.csv`](differentiation_paths.csv) supplies
+ordered study paths for CBDir, Transition score, and Angle consistency. For
+new IDs, pass your own path table using the option documented by each entry.
+The required columns are `dataset_id,path_id,position,label,closed`; positions
+start at zero. Real cell-cycle paths are open; simulated cycles may close.
 
-Edit the variables in `scalene.sh` to reflect your profiling needs. Example:
+## Interpret outputs
 
-```bash
-# GPU profiling switch (1: enable GPU profiling, 0: CPU only)
-ENABLE_GPU=1
-# Scalene core tracking arguments
-# Note: 16777216 Bytes = 16MB sampling window
-SCALENE_ARGS="--memory --malloc-threshold 16777216"
-```
-- **ENABLE_GPU**: Set to `1` to include GPU memory and utilization tracking, or `0` to isolate CPU metrics.
-- **SCALENE_ARGS**: Command-line arguments passed directly to the python profiler module.
-- **--memory**: Instructs Scalene to profile memory usage and identify line-by-line memory leaks.
-- **--malloc-threshold**: Sets the allocation sampling window in bytes (e.g., `1048576` for 1MB). Lower values increase accuracy; higher values improve profiling execution speed.
+Read per-cell/edge coverage alongside aggregate scores. Metrics differ in
+their denominators, zero-vector rules, and handling of NaN. Scores from
+different coordinate bases or neighbor graphs need care when compared.
+CBDir, ICCoh, and Transition score reuse valid input neighbors. Spatial
+velocity/time consistency instead defines its own symmetric, binary
+14-nearest-neighbor spatial graph. Its optional `--esvc` diagnostic is off by
+default and was not used in the second-revision paper.
+
+## Profile a tool with Scalene
+
+[`run_scalene.sh`](run_scalene.sh) is a separate, legacy profiling driver.
+It requires `--data-csv`, `--results-csv`, `--target-script`, `--target-method`,
+and `--save-dir`; its dataset CSV uses `ID,path` and its existing-result CSV
+uses `method,ID,result_path`. It passes one positional H5AD path to the target
+script, so entries using named CLI options need a wrapper. `--enable-gpu` and
+`--scalene-args` control profiling. Inspect its default `--profile-only` list
+before targeting another tool.
+
+The driver's cleanup currently calls `pkill -9 python`. Run it only in an
+isolated container/process namespace, or adapt cleanup before use. This driver
+is not part of the metric workflow above. See [Docker instructions](../Dockerfile/README.md)
+for container setup.

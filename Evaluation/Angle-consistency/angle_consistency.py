@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Angle Consistency (Rose Plot) metric for RNA velocity.
+Angle Consistency (Rose Plot) metric for projected cell velocity.
 
 This module implements a reproducible metric that compares predicted RNA velocity
 directions against reference differentiation directions in a low-dimensional embedding.
@@ -44,7 +44,8 @@ from anndata import AnnData
 from matplotlib.patches import Wedge
 from scipy.interpolate import splprep, splev
 from scipy.interpolate import PchipInterpolator
-from scipy.sparse import csr_matrix
+from scipy.ndimage import gaussian_filter1d
+from scipy.sparse import block_diag, csr_matrix, issparse
 from scipy.sparse.csgraph import dijkstra
 from scipy.spatial.distance import pdist
 from sklearn.cluster import KMeans
@@ -206,6 +207,189 @@ def _parse_delimited_differentiation_paths(value: Optional[str]) -> Optional[Lis
   return paths
 
 
+DEFAULT_PATHS_CSV = Path(__file__).resolve().parents[1] / "differentiation_paths.csv"
+
+
+def load_differentiation_segments(
+  dataset: str, path_csv: Optional[Union[str, Path]] = None,
+) -> Optional[List[Tuple[List[str], bool]]]:
+  """Read ordered paths for one dataset from the shared public path table."""
+  source = Path(path_csv) if path_csv is not None else DEFAULT_PATHS_CSV
+  if not source.is_file():
+    raise FileNotFoundError(f"Differentiation path table not found: {source}")
+  table = pd.read_csv(source, dtype=str, keep_default_na=False)
+  required = {"dataset_id", "path_id", "position", "label", "closed"}
+  if not required.issubset(table.columns):
+    raise ValueError(f"{source} requires columns {sorted(required)}")
+  selected = table.loc[table["dataset_id"] == str(dataset)]
+  if selected.empty:
+    normalized = normalize_dataset_name(str(dataset))
+    selected = table.loc[table["dataset_id"] == normalized]
+  if selected.empty:
+    return None
+  segments = []
+  for path_id, group in selected.groupby("path_id", sort=False):
+    positions = pd.to_numeric(group["position"], errors="raise")
+    if positions.isna().any() or sorted(positions.tolist()) != list(range(len(group))):
+      raise ValueError(f"Invalid positions for dataset {dataset}, path {path_id}")
+    flags = set(group["closed"].str.lower())
+    if len(flags) != 1 or not flags.issubset({"true", "false"}):
+      raise ValueError(f"Invalid closed flag for dataset {dataset}, path {path_id}")
+    labels = group.assign(_position=positions).sort_values("_position")["label"].tolist()
+    if len(labels) < 2 or any(not label.strip() for label in labels):
+      raise ValueError(f"Invalid labels for dataset {dataset}, path {path_id}")
+    if any(left == right for left, right in zip(labels, labels[1:])) or (flags == {"true"} and labels[0] == labels[-1]):
+      raise ValueError(f"Path {dataset}/{path_id} repeats an edge endpoint")
+    segments.append((labels, flags == {"true"}))
+  return segments
+
+
+def _basis_key(basis_name: str) -> str:
+  return "spatial" if basis_name == "spatial" else f"X_{basis_name}"
+
+
+def valid_graph(matrix, n_cells: int, *, require_edges: bool = False):
+    """Validate a graph and remove stored zeros before enumerating neighbors."""
+    if matrix is None or getattr(matrix, "shape", None) != (n_cells, n_cells):
+        return None
+    try:
+        graph = csr_matrix(matrix, copy=True)
+        graph.sum_duplicates()
+        graph.eliminate_zeros()
+        if not np.isfinite(graph.data).all() or (require_edges and graph.nnz == 0):
+            return None
+    except (TypeError, ValueError):
+        return None
+    return graph
+
+
+def connectivities(adata, coord_key: str, n_neighbors: int, *, for_projection: bool = False) -> csr_matrix:
+    """Reuse valid input neighbors for every modality; build only missing/invalid graphs.
+
+    Scoring only needs connectivities. scVelo graph construction additionally
+    needs nonempty distance rows and standard neighbor keys, even when the
+    input stores its matrices under custom keys.
+    """
+    metadata = adata.uns.get("neighbors", {})
+    metadata = metadata if isinstance(metadata, dict) else {}
+    graph = None
+    for key in dict.fromkeys((metadata.get("connectivities_key", "connectivities"), "connectivities")):
+        candidate = valid_graph(adata.obsp.get(key), adata.n_obs, require_edges=True)
+        if candidate is not None and not np.any(candidate.data < 0):
+            graph = candidate
+            break
+    distances = None
+    if for_projection:
+        for key in dict.fromkeys((metadata.get("distances_key", "distances"), "distances")):
+            candidate = valid_graph(adata.obsp.get(key), adata.n_obs, require_edges=True)
+            if candidate is not None and not np.any(candidate.data < 0) and np.all(np.diff(candidate.indptr) > 0):
+                distances = candidate
+                break
+    if graph is None or (for_projection and distances is None):
+        if coord_key not in adata.obsm:
+            raise KeyError(f"Missing obsm[{coord_key!r}] for neighbor graph construction.")
+        coords = np.asarray(adata.obsm[coord_key])
+        if (coords.ndim != 2 or coords.shape[0] != adata.n_obs or coords.shape[1] < 2
+                or not np.isfinite(coords).all()):
+            raise ValueError(f"obsm[{coord_key!r}] has invalid coordinates.")
+        if adata.n_obs < 3:
+            raise ValueError("Building neighbors needs at least three cells.")
+        sc.pp.neighbors(adata, use_rep=coord_key, n_neighbors=min(n_neighbors, adata.n_obs - 1))
+        metadata = adata.uns["neighbors"]
+        graph = valid_graph(adata.obsp[metadata["connectivities_key"]], adata.n_obs, require_edges=True)
+        distances = valid_graph(adata.obsp[metadata["distances_key"]], adata.n_obs, require_edges=True)
+        if graph is None or (for_projection and (distances is None or np.any(np.diff(distances.indptr) == 0))):
+            raise ValueError("Neighbor construction did not produce usable graphs.")
+    if for_projection:
+        adata.obsp["connectivities"] = graph
+        adata.obsp["distances"] = distances
+        metadata = dict(metadata)
+        metadata.update(connectivities_key="connectivities", distances_key="distances")
+        params = metadata.get("params", {})
+        params = dict(params) if isinstance(params, dict) else {}
+        params.setdefault("n_neighbors", int(np.diff(distances.indptr).max()) + 1)
+        metadata["params"] = params
+        adata.uns["neighbors"] = metadata
+    return graph
+
+
+def prepare_expression(adata, xkey: str) -> None:
+    """Calculate missing moments on existing neighbors without replacing a saved Ms."""
+    if xkey:
+        if xkey not in adata.layers:
+            raise KeyError(f"Missing declared expression layer {xkey!r}.")
+        return
+    for target, source in (("Ms", "M_s"), ("Mu", "M_u")):
+        if target not in adata.layers and source in adata.layers:
+            adata.layers[target] = adata.layers[source].copy()
+    if "Ms" not in adata.layers and {"spliced", "unspliced"}.issubset(adata.layers):
+        scv.pp.moments(adata, n_neighbors=None)
+    if "Ms" not in adata.layers and "spliced" not in adata.layers:
+        raise KeyError("Building a velocity graph needs Ms, spliced, or an explicit xkey.")
+
+
+def projection_graph(adata, vkey: str, xkey: str, coord_key: str, n_neighbors: int, n_jobs: int = 1) -> None:
+    """Use a validated positive/negative pair belonging to the declared velocity key."""
+    keys = (f"{vkey}_graph", f"{vkey}_graph_neg")
+    pair = []
+    for key in keys:
+        graph = valid_graph(adata.obsp.get(key), adata.n_obs)
+        if graph is None:
+            graph = valid_graph(adata.uns.get(key), adata.n_obs)
+        pair.append(graph)
+    if any(graph is None for graph in pair):
+        if vkey not in adata.layers:
+            raise KeyError(f"Rebuilding velocity graphs needs layers[{vkey!r}].")
+        connectivities(adata, coord_key, n_neighbors, for_projection=True)
+        prepare_expression(adata, xkey)
+        # Remove invalid cached copies so scVelo cannot select stale obsp data.
+        for key in keys:
+            adata.uns.pop(key, None)
+            adata.obsp.pop(key, None)
+        options = {"vkey": vkey, "n_jobs": n_jobs, "show_progress_bar": False, "approx": False}
+        if xkey:
+            options["xkey"] = xkey
+        scv.tl.velocity_graph(adata, **options)
+        pair = [valid_graph(adata.uns.get(key), adata.n_obs) for key in keys]
+        if any(graph is None for graph in pair):
+            raise ValueError(f"scVelo did not create valid velocity graphs for {vkey!r}.")
+    for key, graph in zip(keys, pair):
+        adata.uns[key] = graph
+        if key in adata.obsp:
+            adata.obsp[key] = graph
+
+
+def _directed_segment_edges(segments: List[Tuple[List[str], bool]]) -> List[Tuple[str, str]]:
+  """Return each declared directed edge once, preserving path-table order."""
+  return list(dict.fromkeys(
+    (source, target)
+    for path, closed in segments
+    for source, target in zip(path, path[1:] + (path[:1] if closed else []))
+  ))
+
+
+def _resolve_modality(data_type: str, dataset: str, modality: Optional[str]) -> str:
+  if modality:
+    value = str(modality).strip().lower()
+    if value not in {"rna", "atac", "spatial", "lineage"}:
+      raise ValueError(f"Unknown modality '{modality}' (expected rna|atac|spatial|lineage)")
+    return value
+  if data_type == "real" and str(dataset).isdigit():
+    number = int(dataset)
+    if 55 <= number <= 72:
+      return "spatial"
+    if 75 <= number <= 91:
+      return "atac"
+    if 92 <= number <= 95:
+      return "lineage"
+  if data_type == "sim":
+    if re.match(r"^\d{2}_(?:linear|bifurcation[35])_cell", str(dataset)):
+      return "atac"
+    if "chickenheart" in str(dataset).lower():
+      return "spatial"
+  return "rna"
+
+
 def _coerce_float(value: Any) -> float:
   if value is None:
     return float("nan")
@@ -335,6 +519,9 @@ def run_unified_angle_consistency(
   benchmark_total_csv_path: Optional[str] = None,
   error_log_path: Optional[str] = None,
   basis_name: Optional[str] = None,
+  modality: Optional[str] = None,
+  path_csv: Optional[Union[str, Path]] = None,
+  annotation_h5ad: Optional[Union[str, Path]] = None,
   # Real-only
   cluster_key: Optional[str] = None,
   differentiation_paths: Optional[Union[List[str], List[List[str]]]] = None,
@@ -361,6 +548,20 @@ def run_unified_angle_consistency(
   output_dir = str(output_dir_path)
   method = str(method)
   dataset = str(dataset)
+  for field, value in (("method", method), ("dataset", dataset)):
+    if not value or value in {".", ".."} or Path(value).name != value or "\\" in value:
+      return {"status": "error", "message": f"{field} must be one nonempty path component"}
+  resolved_modality = _resolve_modality(data_type_norm, dataset, modality)
+  if differentiation_paths is not None:
+    raw_paths = differentiation_paths
+    if raw_paths and isinstance(raw_paths[0], str):
+      raw_paths = [raw_paths]
+    path_segments = [(list(path), False) for path in raw_paths]
+  else:
+    try:
+      path_segments = load_differentiation_segments(dataset, path_csv)
+    except (OSError, ValueError) as e:
+      return {"status": "error", "message": str(e)}
 
   try:
     n_jobs_int = int(n_jobs)
@@ -378,8 +579,26 @@ def run_unified_angle_consistency(
   except Exception as e:
     return {"status": "error", "message": f"Failed to read h5ad: {e}"}
 
+  if data_type_norm == "sim" and resolved_modality == "atac" and annotation_h5ad:
+    annotation_path = Path(annotation_h5ad)
+    if not annotation_path.is_file():
+      return {"status": "error", "message": f"Annotation h5ad not found: {annotation_path}"}
+    try:
+      source = sc.read_h5ad(str(annotation_path), backed="r")
+    except Exception as e:
+      return {"status": "error", "message": f"Failed to read annotation h5ad: {e}"}
+    try:
+      missing_cells = adata.obs_names.difference(source.obs_names)
+      if len(missing_cells):
+        return {"status": "error", "message": f"Annotation h5ad lacks {len(missing_cells)} input cell IDs"}
+      for column in ("pseudo_celltype", "celltype", "cell_type"):
+        if column not in adata.obs and column in source.obs:
+          adata.obs[column] = source.obs[column].reindex(adata.obs_names).to_numpy()
+    finally:
+      source.file.close()
+
   if data_type_norm == "real":
-    resolved_real_basis = basis_name or "umap"
+    resolved_real_basis = basis_name or ("spatial" if resolved_modality == "spatial" else "umap")
     result = analyze_single_dataset(
       adata=adata,
       output_dir=output_dir,
@@ -389,7 +608,7 @@ def run_unified_angle_consistency(
       n_jobs=n_jobs_int,
       basis_name=resolved_real_basis,
       cluster_key=cluster_key,
-      differentiation_paths=differentiation_paths,
+      differentiation_paths=[path for path, _ in path_segments] if path_segments else None,
       benchmark_csv=None,
       benchmark_total_csv=None,
     )
@@ -437,31 +656,63 @@ def run_unified_angle_consistency(
       return {"status": "error", "message": f"Invalid topology_type '{topology_type}': {e}.{hint}"}
 
   gt_restore_ok = False
-  try:
-    gt_restore_ok, _ = add_ground_truth_velocity_dimred(
-      adata=adata,
-      dataset_id=dataset,
-      method_name=method,
-      velocity_key=velocity_key,
-      raise_on_failure=False,
-      reference_dir=resolved_reference_dir,
+  if resolved_modality == "atac":
+    atac_edges = _directed_segment_edges(path_segments or [])
+    require_atac_gt = gt_velocity_enhancement is True or (
+      gt_velocity_enhancement is None and len(atac_edges) == 1
     )
-  except Exception:
-    # add_ground_truth_velocity_dimred(raise_on_failure=False) should not raise, but keep it robust.
-    gt_restore_ok = False
+    if require_atac_gt:
+      if "true_velocity_tsne" not in adata.obsm:
+        return {"status": "error", "message": "ATAC reference guidance requires obsm['true_velocity_tsne']; use --no-gt-velocity-enhancement for geometry-only curves"}
+      gt = np.asarray(adata.obsm["true_velocity_tsne"])
+      if gt.shape != (adata.n_obs, 2):
+        return {"status": "error", "message": "ATAC true_velocity_tsne must be n_cells x 2"}
+      invalid_gt = ~np.isfinite(gt)
+      if np.any(invalid_gt) and not np.all(invalid_gt.any(axis=1) == invalid_gt.all(axis=1)):
+        return {"status": "error", "message": "ATAC true_velocity_tsne has partially non-finite rows"}
+      adata.obsm["ground_truth_velocity_tsne"] = gt
+      gt_restore_ok = True
+  elif resolved_modality != "spatial":
+    try:
+      gt_restore_ok, _ = add_ground_truth_velocity_dimred(
+        adata=adata, dataset_id=dataset, method_name=method,
+        velocity_key=velocity_key, raise_on_failure=False,
+        reference_dir=resolved_reference_dir,
+      )
+    except Exception:
+      gt_restore_ok = False
 
-  resolved_milestone_key = milestone_key
+  if gt_velocity_enhancement is True and not gt_restore_ok:
+    return {"status": "error", "message": "Requested ground-truth guidance is unavailable; supply a matching reference with true velocity"}
+
+  resolved_milestone_key = cluster_key or milestone_key
+  if resolved_modality == "spatial" and resolved_milestone_key == "milestone" and "cell_type" in adata.obs:
+    resolved_milestone_key = "cell_type"
   normalized_dataset = normalize_dataset_name(dataset)
   inferred_topology = topology_type
+  if inferred_topology is None and resolved_modality == "atac":
+    inferred_topology = "atac-paths"
+  elif inferred_topology is None and resolved_modality == "spatial":
+    inferred_topology = "chickenheart"
   if inferred_topology is None:
-    inferred_topology = infer_topology_from_dataset_name(normalized_dataset, adata, milestone_key)
+    try:
+      inferred_topology = infer_topology_from_dataset_name(normalized_dataset, adata, milestone_key)
+    except ValueError as e:
+      if path_segments:
+        inferred_topology = "custom"
+      else:
+        return {"status": "error", "message": str(e)}
   normalized_topology = normalize_topology_type(inferred_topology)
-  if normalized_topology == "lineage-tracing" and milestone_key == "milestone":
+  if normalized_topology == "lineage-tracing" and not cluster_key and milestone_key == "milestone":
     resolved_milestone_key = "synthetic_celllabel"
-  elif normalized_topology == "bursting-tree" and milestone_key == "milestone":
+  elif normalized_topology == "bursting-tree" and not cluster_key and milestone_key == "milestone":
     resolved_milestone_key = "pop"
 
-  sim_basis_name = "umap" if normalized_topology == "lineage-tracing" else (basis_name or "dimred")
+  sim_basis_name = "umap" if normalized_topology == "lineage-tracing" else (basis_name or ("tsne" if resolved_modality == "atac" else "spatial" if resolved_modality == "spatial" else "dimred"))
+  if resolved_modality == "atac" and sim_basis_name != "tsne":
+    return {"status": "error", "message": "ATAC simulation uses basis_name='tsne'"}
+  if resolved_modality == "atac" and not path_segments:
+    return {"status": "error", "message": f"No ATAC differentiation paths for {dataset}; provide --path-csv or --differentiation-paths"}
   if not compute_velocity_embeddings_generic(adata, velocity_key, sim_basis_name, n_jobs=n_jobs_int):
     return {
       "status": "error",
@@ -470,7 +721,9 @@ def run_unified_angle_consistency(
 
   # Default behavior (semantic match to sim_roseplot.py CLI):
   # enable GT-based enhancements iff GT restore succeeds.
-  if gt_velocity_enhancement is None:
+  if resolved_modality == "atac":
+    use_gt_enhance = gt_restore_ok
+  elif gt_velocity_enhancement is None:
     use_gt_enhance = bool(gt_restore_ok)
   elif bool(gt_velocity_enhancement):
     use_gt_enhance = bool(gt_restore_ok)
@@ -482,7 +735,7 @@ def run_unified_angle_consistency(
       base_dir=output_dir,
       tool=method,
       dataset=dataset,
-      topology_type=topology_type,
+      topology_type=inferred_topology,
       velocity_key=velocity_key,
       milestone_key=resolved_milestone_key,
       n_jobs=n_jobs_int,
@@ -493,6 +746,8 @@ def run_unified_angle_consistency(
       reference_curves_dir=reference_curves_dir,
       use_gt_velocity_enhancement=use_gt_enhance,
       differentiation_paths=differentiation_paths,
+      path_segments=path_segments,
+      modality=resolved_modality,
     )
   except Exception as e:
     hint = ""
@@ -534,6 +789,7 @@ def run_unified_angle_consistency(
     "dataset": str(sim_result.get("dataset_name", dataset)),
     "pdf_path": sim_result.get("rose_pdf_path"),
     "png_path": sim_result.get("rose_png_path"),
+    "reference_curve_png_path": sim_result.get("reference_curve_png_path"),
     "total_ratio_0_60": total_ratio_sim,
     "topology_type": sim_result.get("topology_type"),
     "basis_name": sim_result.get("embedding_basis"),
@@ -566,6 +822,8 @@ def run_batch_from_csv(
   default_n_jobs: int = 1,
   default_basis_name: Optional[str] = None,
   default_reference_dir: Optional[str] = None,
+  default_modality: Optional[str] = None,
+  path_csv: Optional[Union[str, Path]] = None,
   plot_reference_curves: bool = False,
   default_gt_velocity_enhancement: Optional[bool] = None,
 ) -> Dict[str, Any]:
@@ -586,6 +844,8 @@ def run_batch_from_csv(
   - milestone_key
   - topology_type
   - reference_dir
+  - modality
+  - annotation_h5ad
   """
   output_dir_path = Path(output_dir)
   resolved_error_log_path = error_log_path or str(output_dir_path / "errors.log")
@@ -600,6 +860,11 @@ def run_batch_from_csv(
     df = pd.read_csv(csv_path, dtype=str)
   except Exception as e:
     return {"status": "error", "message": f"Failed to read CSV: {e}"}
+  if df.empty or not {"method", "id", "path"}.issubset(df.columns):
+    return {"status": "error", "message": "CSV needs at least one row and columns method,id,path"}
+  identities = df[["method", "id"]].fillna("").apply(lambda column: column.str.strip())
+  if identities.duplicated().any():
+    return {"status": "error", "message": "CSV repeats a method/id pair; use separate output directories for repetitions"}
 
   ok: List[Dict[str, Any]] = []
   bad: List[Dict[str, Any]] = []
@@ -632,27 +897,10 @@ def run_batch_from_csv(
     return v
 
   def _resolve_existing_path(raw: str, *, csv_parent: Path, expect_dir: Optional[bool] = None) -> str:
-    """
-    Resolve relative paths in CSV against the CSV file directory when possible.
+    """Resolve every relative manifest path against the manifest directory."""
+    path = Path(raw).expanduser()
+    return str(path if path.is_absolute() else (csv_parent / path).resolve())
 
-    - If raw is absolute, return it.
-    - If raw is relative and (csv_parent / raw) exists, return the resolved path.
-    - Otherwise, return raw unchanged (so callers can still interpret it elsewhere).
-    """
-    if not raw:
-      return raw
-    p = Path(str(raw))
-    if p.is_absolute():
-      return str(p)
-
-    candidate = (csv_parent / p).resolve()
-    if not candidate.exists():
-      return str(raw)
-    if expect_dir is True and not candidate.is_dir():
-      return str(raw)
-    if expect_dir is False and not candidate.is_file():
-      return str(raw)
-    return str(candidate)
 
   for idx, row in df.iterrows():
     method = _pick_first_present(row, ["method"])
@@ -680,6 +928,7 @@ def run_batch_from_csv(
     cluster_key = _pick_first_present(row, ["cluster_key"])
     differentiation_paths_raw = _pick_first_present(row, ["differentiation_paths"])
     basis_name = _pick_first_present(row, ["basis_name"]) or default_basis_name
+    modality = _pick_first_present(row, ["modality"]) or default_modality
 
     csv_parent = csv_path.parent
     if path:
@@ -688,9 +937,12 @@ def run_batch_from_csv(
     reference_dir = _pick_first_present(row, ["reference_dir"]) or default_reference_dir
     if reference_dir:
       reference_dir = _resolve_existing_path(reference_dir, csv_parent=csv_parent, expect_dir=True)
+    annotation_h5ad = _pick_first_present(row, ["annotation_h5ad"])
+    if annotation_h5ad:
+      annotation_h5ad = _resolve_existing_path(annotation_h5ad, csv_parent=csv_parent, expect_dir=False)
 
     if not method or not dataset or not path:
-      bad.append({"row": int(idx), "error": "Missing required columns: method, id, path, vkey."})
+      bad.append({"row": int(idx), "error": "Missing required values: method, id, path."})
       continue
     if not data_type:
       bad.append({"row": int(idx), "method": method, "dataset": dataset, "error": "Missing data_type (real|sim)."})
@@ -725,9 +977,12 @@ def run_batch_from_csv(
         basis_name=basis_name,
         cluster_key=cluster_key,
         differentiation_paths=differentiation_paths,
-        milestone_key=milestone_key,
+        milestone_key=cluster_key if data_type and _normalize_data_type(data_type) == "sim" and cluster_key else milestone_key,
         topology_type=topology_type,
         reference_dir=reference_dir,
+        modality=modality,
+        path_csv=path_csv,
+        annotation_h5ad=annotation_h5ad,
         plot_reference_curves=plot_ref,
         reference_curves_dir=reference_curves_dir,
         gt_velocity_enhancement=gt_enhance,
@@ -753,7 +1008,7 @@ def run_batch_from_csv(
 
 def main() -> int:
   parser = argparse.ArgumentParser(
-    description="Unified RNA velocity angle-consistency metric (real + simulation)."
+    description="Unified angle-consistency metric (real + simulation; RNA, ATAC, spatial, lineage)."
   )
 
   input_group = parser.add_mutually_exclusive_group(required=True)
@@ -761,6 +1016,9 @@ def main() -> int:
   input_group.add_argument("--csv-file", help="Input CSV path (batch mode).")
 
   parser.add_argument("--data-type", help="Dataset type: real|sim (required for single mode; optional for CSV if CSV has a data_type column).")
+  parser.add_argument("--modality", choices=["rna", "atac", "spatial", "lineage"], help="Data modality; inferred from study IDs when omitted.")
+  parser.add_argument("--path-csv", help="Differentiation path table; default: Evaluation/differentiation_paths.csv.")
+  parser.add_argument("--annotation-h5ad", help="ATAC simulation: paired h5ad supplying missing cell annotations by obs_names.")
   parser.add_argument("--method", help="Method name (required for single mode).")
   parser.add_argument("--dataset", help="Dataset name/id (required for single mode).")
   parser.add_argument("--output-dir", required=True, help="Output directory root for plots.")
@@ -780,14 +1038,14 @@ def main() -> int:
   parser.add_argument(
     "--basis-name",
     default=None,
-    help="Low-dimensional basis name. Defaults: real=umap, sim=dimred, lineage-tracing=umap.",
+    help="Basis name. Defaults: real=umap (spatial=spatial), sim=dimred (ATAC=tsne, spatial=spatial), lineage-tracing=umap.",
   )
 
   # Real-only options
-  parser.add_argument("--cluster-key", help="Real data: cluster/celltype column name in adata.obs (optional).")
+  parser.add_argument("--cluster-key", help="Annotation column in adata.obs; also overrides simulation milestone-key.")
   parser.add_argument(
     "--differentiation-paths",
-    help="Real data or unknown simulated topology: encode paths as A|B|C;D|E|F.",
+    help="Override CSV paths for one dataset as A|B|C;D|E|F.",
   )
 
   # Sim-only options
@@ -803,14 +1061,14 @@ def main() -> int:
     dest="gt_velocity_enhancement",
     action="store_true",
     default=None,
-    help="Simulation: force-enable optional GT-velocity-based guide-point tweaks (requires GT restore).",
+    help="Enable GT curve guidance for RNA or ATAC simulation; ATAC branches default to geometry-only curves.",
   )
   gt_group.add_argument(
     "--no-gt-velocity-enhancement",
     dest="gt_velocity_enhancement",
     action="store_false",
     default=None,
-    help="Simulation: disable GT-velocity-based guide-point tweaks (default: auto when GT is available).",
+    help="Disable GT curve guidance for RNA or ATAC simulation.",
   )
 
   args = parser.parse_args()
@@ -835,6 +1093,8 @@ def main() -> int:
       default_n_jobs=args.n_jobs,
       default_basis_name=args.basis_name,
       default_reference_dir=args.reference_dir,
+      default_modality=args.modality,
+      path_csv=args.path_csv,
       plot_reference_curves=bool(args.plot_reference_curves),
       default_gt_velocity_enhancement=args.gt_velocity_enhancement,
     )
@@ -888,6 +1148,9 @@ def main() -> int:
     milestone_key=args.milestone_key,
     topology_type=args.topology_type,
     reference_dir=args.reference_dir,
+    modality=args.modality,
+    path_csv=args.path_csv,
+    annotation_h5ad=args.annotation_h5ad,
     plot_reference_curves=bool(args.plot_reference_curves),
     reference_curves_dir=args.reference_curves_dir,
     gt_velocity_enhancement=args.gt_velocity_enhancement,
@@ -930,108 +1193,23 @@ Author: RNA Velocity Benchmark Team
 # Default Configuration
 # =============================================================================
 
-# Default cluster key mapping for known datasets
-# Users can override by passing cluster_key parameter
+# Study IDs use the second-revision numbering. Path labels are checked first.
 DEFAULT_CLUSTER_KEYS: Dict[str, str] = {
-    # ClusterName
     "1": "ClusterName",
-    # cell_type
-    "2": "cell_type", "3": "cell_type", "4": "cell_type", "6": "cell_type",
-    "8": "cell_type", "9": "cell_type", "10": "cell_type", "14": "cell_type",
-    "18": "cell_type", "19": "cell_type", "20": "cell_type", "21": "cell_type",
-    "22": "cell_type", "23": "cell_type", "25": "cell_type", "27": "cell_type",
-    "28": "cell_type", "33": "cell_type", "34": "cell_type", "35": "cell_type",
-    "37": "cell_type", "38": "cell_type", "39": "cell_type", "42": "cell_type",
-    "44": "cell_type", "46": "cell_type", "49": "cell_type", "50": "cell_type",
-    "51": "cell_type", "52": "cell_type", "53": "cell_type", "54": "cell_type",
-    "55": "cell_type", "56": "cell_type", "57": "cell_type", "59": "cell_type",
-    "58": "Class",
-    # Celltype / celltype / type2
-    "5": "Celltype", "11": "celltype", "13": "type2",
-    "15": "Annotation", "17": "celltype", "24": "celltype", "26": "celltype",
-    "43": "celltype", "47": "celltype", "48": "original_clusters",
-    # clusters
-    "7": "clusters", "40": "clusters", "41": "clusters",
-    # phase
-    "29": "phase", "30": "phase", "31": "phase", "32": "phase",
-    # Special types
-    "12": "cell_cycle_phase", "45": "lineage_cat",
-    "16": "time", "36": "time",
-}
-
-# Default differentiation paths for known datasets
-# Format: dataset_id -> list of cell type sequences (single or multiple paths)
-DEFAULT_DIFFERENTIATION_PATHS: Dict[str, Any] = {
-    # Single-path datasets
-    "1": ["RadialGlia", "nIPC", "Nbl1", "ImmGranule1", "Granule"],
-    "2": ["sympathoblasts", "Schwann cell precursors", "chromaffin"],
-    "5": ["TA.Early", "Enterocyte.Progenitor",
-          "Enterocyte.Immature.Proximal", "Enterocyte.Mature.Proximal"],
-    "6": ["Radial glia", "Neuroblast", "Immature neuron", "Neuron"],
-    "7": ["Ductal", "Ngn3 low EP", "Ngn3 high EP", "Pre-endocrine"],
-    "8": ["DIplotene/Secondary spermatocytes", "Early Round spermatids",
-          "Mid Round spermatids", "Late Round spermatids"],
-    "10": ["NF Oligo", "OPC", "Oligo"],
-    "11": ["Blood progenitors 1", "Blood progenitors 2",
-           "Erythroid1", "Erythroid2", "Erythroid3"],
-    "12": ["M", "M-G1", "G1-S", "S", "G2-M"],
-    "13": ["MEMP", "Early Erythroid", "Mid  Erythroid", "Late Erythroid"],
-    "14": ["Stem cells", "TA cells", "Enterocytes"],
-    "15": ["Neuroblast", "AC/HC"],
-    "17": ["COPs", "NFOLs", "MFOLs"],
-    "24": ["RG, Astro, OPC", "IPC", "V-SVZ", "Upper Layer", "Deeper Layer"],
-    "25": ["embryonic day 3", "embryonic day 4", "embryonic day 5",
-           "embryonic day 6", "embryonic day 7"],
-    "26": ["TAC-1", "TAC-2", "IRS"],
-    "28": ["HSC", "MPP", "LMPP", "MEP", "Erythrocyte"],
-    "34": ["Early mesenchyme", "Limb mesenchyme",
-           "Chondrocyte progenitors", "Chondrocytes and osteoblasts"],
-    "35": ["Epididymal cells  ", "Embryonic stem cells  ",
-           "Hematopoietic stem cells  "],
-    "37": ["Neural progenitors", "Sensory progenitors"],
-    "40": ["Undifferentiated", "DC-like-monocyte"],
-    "42": ["Acinar", "Ductal"],
-    "43": ["Blood progenitors 1", "Blood progenitors 2",
-           "Erythroid1", "Erythroid2", "Erythroid3"],
-    "45": ["5", "6", "7", "8", "9", "10", "11", "12"],
-    "46": ["Pre-EMT", "Early EMT 1", "Mesenchymal-1",
-           "Mesenchymal-2", "AT1-like"],
-    "47": ["CD34+", "CD19+ B"],
-    "48": ["HSCs #1.", "HSCs #2", "LMPPs #1", "LMPPs #2",
-           "Myel. prog. #1", "Myel. prog. #2", "Myel. prog. #3"],
-    "49": ["Quiescent-like", "ILC2-like", "ILC3-like"],
-    "50": ["HSC", "MEP-like", "Ery"],
-    "51": ["spermatocytes", "round spermatids", "elongating spermatids"],
-    "52": ["Immature myocardial cells", "Cardiomyocytes-1"],
-    "53": ["Ectoderm", "Neural tube", "Radial glia", "Neuroblast", "Neuron"],
-    "57": ["Immature myocardial cells", "Cardiomyocytes-1"],
-    "58": ["Gastrulation", "Ectoderm", "Neural tube", "Neuroblast", "Neuron"],
-
-    # Multi-path datasets (list of lists)
-    # Dataset 27: supports both "nlPC/ExN" and "nIPC/ExN" variants
-    "27": [["ExM", "RG/Astro", "nlPC/ExN"], ["ExDp", "SP", "mGPC/OPC"]],
-    "33": [["Neural stem cells", "Gliogenic progenitors"],
-           ["Differentiating GABA interneurons", "GABA interneurons"]],
-    "38": [["Neuronal progenitor cells", "Neuronal cells"],
-           ["Neural progenitor cells", "Interneuron cells"]],
-    "39": [["Granulocyte macrophage progenitor", "CD14+ monocyte", "CD16+ monocyte"],
-           ["Hematopoietic stem cells", "Erythroid progenitor"]],
-    "41": [["OPC", "OL"], ["Radial Glia-like", "Astrocytes"],
-           ["Neuroblast", "Granule immature"]],
-    "44": [["Angioblasts", "Primitive blood"],
-           ["Visceral endoderm", "Gut endoderm"]],
-    "54": [["Lateral plate mesoderm", "Splanchnic mesoderm", "Cardiomyocytes"],
-           ["NMP", "Mixed mesenchymal mesoderm", "Haematoendothelial progenitors",
-            "Blood progenitors", "Erythroid"]],
-    "55": [["Lateral plate mesoderm", "Splanchnic mesoderm", "Cardiomyocytes"],
-           ["NMP", "Mixed mesenchymal mesoderm", "Haematoendothelial progenitors",
-            "Blood progenitors", "Erythroid"]],
-    "56": [["Lateral plate mesoderm", "Splanchnic mesoderm", "Cardiomyocytes"],
-           ["NMP", "Mixed mesenchymal mesoderm", "Haematoendothelial progenitors",
-            "Blood progenitors", "Erythroid"]],
-    "59": [["Lateral plate mesoderm", "Splanchnic mesoderm", "Cardiomyocytes"],
-           ["NMP", "Mixed mesenchymal mesoderm", "Haematoendothelial progenitors",
-            "Blood progenitors", "Erythroid"]],
+    **{str(i): "cell_type" for i in (2, 3, 4, 6, 8, 9, 10, 14, 18, 19, 20, 21, 22, 23, 25, 31, 32, 33, 35, 36, 37, 40, 42, 44, 47, 48, 49, 50, 52)},
+    "5": "Celltype", "7": "clusters", "11": "celltype",
+    "12": "cell_cycle_phase", "13": "type2", "15": "Annotation",
+    "16": "time", "17": "celltype", "24": "celltype",
+    "26": "celltype", "27": "phase", "28": "phase",
+    "29": "phase", "30": "phase", "34": "time",
+    "38": "clusters", "39": "clusters", "41": "celltype",
+    "43": "lineage_cat", "45": "celltype", "46": "original_clusters",
+    "51": "Class", "53": "celltype", "54": "celltype",
+    "55": "cell_type",
+    **{str(i): "cluster_annotations" for i in range(56, 64)},
+    **{str(i): "Annotation" for i in range(64, 67)},
+    **{str(i): "cell_type" for i in range(67, 73)},
+    **{str(i): "atac_annotation" for i in range(92, 96)},
 }
 
 # Cell type name variants that should be treated as equivalent
@@ -1043,31 +1221,37 @@ CELLTYPE_VARIANTS: Dict[str, List[str]] = {
 
 # Special label formatting for long cell type names
 LABEL_FORMATTING: Dict[str, Dict[str, str]] = {
+    "2": {"Schwann cell precursors": "Schwann cell\nprecursors"},
     "5": {
         "Enterocyte.Progenitor": "Enterocyte\nProgenitor",
         "Enterocyte.Immature.Proximal": "Enterocyte\nImmature.Proximal",
         "Enterocyte.Mature.Proximal": "Enterocyte\nMature.Proximal",
+        "Enterocyte.Progenitor.Early": "Enterocyte\nProgenitor.Early",
+        "Enterocyte.Progenitor.Late": "Enterocyte\nProgenitor.Late",
+        "Enterocyte.Immature.Distal": "Enterocyte\nImmature.Distal",
+        "Enterocyte.Mature.Distal": "Enterocyte\nMature.Distal",
     },
-    "8": {"DIplotene/Secondary spermatocytes": "DIplotene/Secondary\nspermatocytes"},
-    "33": {"Differentiating GABA interneurons": "Differentiating\nGABA interneurons"},
-    "34": {
+    "8": {
+        "DIplotene/Secondary spermatocytes": "DIplotene/Secondary\nspermatocytes",
+        "Early Round spermatids": "Early Round\nspermatids",
+    },
+    "31": {"Differentiating GABA interneurons": "Differentiating\nGABA interneurons"},
+    "32": {
         "Chondrocyte progenitors": "Chondrocyte\nprogenitors",
         "Chondrocytes and osteoblasts": "Chondrocytes & osteoblasts",
     },
-    "39": {"Granulocyte macrophage progenitor": "Granulocyte\nmacrophage progenitor"},
-    "54": {
-        "Mixed mesenchymal mesoderm": "Mixed mesenchymal\nmesoderm",
-        "Haematoendothelial progenitors": "Haematoendothelial\nprogenitors",
+    "33": {"Embryonic stem cells  ": "Embryonic stem\ncells"},
+    "36": {
+        "Neuronal progenitor cells": "Neuronal progenitor\ncells",
+        "Neural progenitor cells": "Neural progenitor\ncells",
     },
-    "55": {
-        "Mixed mesenchymal mesoderm": "Mixed mesenchymal\nmesoderm",
-        "Haematoendothelial progenitors": "Haematoendothelial\nprogenitors",
+    "37": {
+        "Granulocyte macrophage progenitor": "Granulocyte\nmacrophage progenitor",
+        "Hematopoietic stem cells": "Hematopoietic\nstem cells",
     },
-    "56": {
-        "Mixed mesenchymal mesoderm": "Mixed mesenchymal\nmesoderm",
-        "Haematoendothelial progenitors": "Haematoendothelial\nprogenitors",
-    },
-    "59": {
+    "45": {"CD8+/CD45RA+ Naive Cytotoxic": "CD8+/CD45RA+\nNaive Cytotoxic"},
+    "50": {"Immature myocardial cells": "Immature myocardial\ncells"},
+    "52": {
         "Mixed mesenchymal mesoderm": "Mixed mesenchymal\nmesoderm",
         "Haematoendothelial progenitors": "Haematoendothelial\nprogenitors",
     },
@@ -1206,161 +1390,6 @@ def resolve_differentiation_paths(
 # Data Preprocessing Functions
 # =============================================================================
 
-def fix_sparse_matrix_format(adata: sc.AnnData) -> sc.AnnData:
-    """Convert dense matrices in obsp to sparse CSR format."""
-    for key in ["connectivities", "distances"]:
-        if key in adata.obsp and isinstance(adata.obsp[key], np.ndarray):
-            adata.obsp[key] = csr_matrix(adata.obsp[key])
-    return adata
-
-
-def fix_data_types(adata: sc.AnnData) -> Optional[sc.AnnData]:
-    """
-    Fix data type issues in AnnData object.
-
-    - Normalizes integer count matrices
-    - Ensures var_names and obs_names are strings
-    """
-    try:
-        # Handle integer count matrices
-        if adata.X.dtype.kind in ["i", "u"]:
-            logging.info(f"Normalizing integer matrix (dtype: {adata.X.dtype})")
-            scv.pp.filter_and_normalize(adata)
-        elif adata.X.dtype.kind != "f":
-            logging.error(f"Invalid X matrix dtype: {adata.X.dtype}")
-            return None
-
-        # Ensure string indices
-        adata.var_names = adata.var_names.astype(str)
-        adata.obs_names = adata.obs_names.astype(str)
-
-        return adata
-    except Exception as e:
-        logging.error(f"Data type fix failed: {e}")
-        return None
-
-
-def robust_neighbors_computation(adata: sc.AnnData) -> Optional[sc.AnnData]:
-    """Compute neighbors with error handling."""
-    try:
-        if adata.n_vars == 0:
-            logging.error("No genes in data")
-            return None
-
-        fixed_adata = fix_data_types(adata)
-        if fixed_adata is None:
-            return None
-
-        scv.pp.neighbors(fixed_adata)
-        return fix_sparse_matrix_format(fixed_adata)
-    except Exception as e:
-        logging.error(f"Neighbors computation failed: {e}")
-        return None
-
-
-def repair_neighbor_graph(
-    adata: sc.AnnData,
-    vkey: str,
-    n_jobs: int
-) -> Tuple[bool, sc.AnnData]:
-    """Repair corrupted neighbor graph by removing isolated/duplicate cells."""
-    try:
-        # Remove isolated cells (zero neighbors)
-        if "connectivities" in adata.obsp:
-            neighbor_counts = np.array(
-                adata.obsp["connectivities"].sum(axis=1)
-            ).flatten()
-            isolated_mask = neighbor_counts == 0
-            n_isolated = isolated_mask.sum()
-
-            if n_isolated > 0:
-                logging.warning(f"Removing {n_isolated} isolated cells")
-                adata = adata[~isolated_mask].copy()
-
-        # Remove duplicate cells
-        scv.pp.remove_duplicate_cells(adata)
-
-        # Recompute neighbors and velocity graph
-        scv.pp.neighbors(adata)
-        scv.tl.velocity_graph(adata, vkey=vkey, n_jobs=n_jobs)
-
-        return True, adata
-    except Exception as e:
-        logging.error(f"Neighbor graph repair failed: {e}")
-        return False, adata
-
-
-def robust_velocity_graph_computation(
-    adata: sc.AnnData,
-    vkey: str = "velocity",
-    n_jobs: int = 1,
-) -> Tuple[bool, sc.AnnData]:
-    """
-    Compute velocity graph with fallback strategies.
-
-    Handles:
-    - WRITEBACKIFCOPY errors (fallback to single-core)
-    - Corrupted neighbor graphs (repair and retry)
-    - show_progress_bar compatibility issues
-    """
-    def _try_compute(n_jobs: int) -> Tuple[bool, Optional[Exception]]:
-        try:
-            scv.tl.velocity_graph(adata, vkey=vkey, n_jobs=n_jobs,
-                                  show_progress_bar=False)
-            return True, None
-        except TypeError as e:
-            if "show_progress_bar" in str(e):
-                scv.tl.velocity_graph(adata, vkey=vkey, n_jobs=n_jobs)
-                return True, None
-            return False, e
-        except Exception as e:
-            return False, e
-
-    try:
-        requested_jobs = int(n_jobs)
-    except Exception:
-        requested_jobs = 1
-    requested_jobs = max(requested_jobs, 1)
-    adata = fix_sparse_matrix_format(adata)
-
-    try:
-        # Try requested parallelism first (default: 1 for reproducibility)
-        success, error = _try_compute(requested_jobs)
-        if success:
-            return True, adata
-
-        if isinstance(error, ValueError):
-            error_str = str(error).lower()
-
-            # WRITEBACKIFCOPY error: retry with single core
-            if "writebackifcopy" in error_str and "read-only" in error_str:
-                logging.warning("WRITEBACKIFCOPY error, retrying single-core")
-                success, _ = _try_compute(1)
-                return success, adata
-
-            # Corrupted neighbor graph: repair and retry
-            if "neighbor graph" in error_str and "corrupted" in error_str:
-                logging.warning("Corrupted neighbor graph, attempting repair")
-                repaired, repaired_adata = repair_neighbor_graph(adata, vkey, requested_jobs)
-                if repaired:
-                    return True, repaired_adata
-                if requested_jobs != 1:
-                    return repair_neighbor_graph(repaired_adata, vkey, 1)
-                return False, repaired_adata
-
-        # Generic fallback: if requested_jobs != 1, retry single-core once.
-        if requested_jobs != 1:
-            success, _ = _try_compute(1)
-            return success, adata
-
-        logging.error(f"Velocity graph computation failed: {error}")
-        return False, adata
-
-    except Exception as e:
-        logging.error(f"Velocity graph computation error: {e}")
-        return False, adata
-
-
 # =============================================================================
 # Basis Handling Functions
 # =============================================================================
@@ -1374,8 +1403,11 @@ def ensure_real_basis(
 
     The public script does not compute low-dimensional coordinates on the fly.
     """
-    basis_key = f"X_{basis_name}"
+    basis_key = _basis_key(basis_name)
     if basis_key in adata.obsm:
+        values = np.asarray(adata.obsm[basis_key])
+        if values.shape != (adata.n_obs, 2) or not np.isfinite(values).all():
+            return False, f"obsm[{basis_key!r}] must contain finite 2D coordinates"
         return True, basis_name
 
     if basis_name != "umap":
@@ -1397,57 +1429,12 @@ def ensure_velocity_embedding(
     vkey: str = "velocity",
     n_jobs: int = 1,
 ) -> Tuple[bool, sc.AnnData]:
-    """
-    Ensure velocity embedding exists in the requested low-dimensional basis.
-
-    Computes velocity_graph and velocity_embedding if needed.
-    """
-    velocity_dimred_key = f"{vkey}_{basis_name}"
-
-    if velocity_dimred_key in adata.obsm:
-        return True, adata
-
-    # Handle layer name variants (M_u -> Mu, M_s -> Ms)
-    if "M_u" in adata.layers and "Mu" not in adata.layers:
-        adata.layers["Mu"] = adata.layers["M_u"].copy()
-    if "M_s" in adata.layers and "Ms" not in adata.layers:
-        adata.layers["Ms"] = adata.layers["M_s"].copy()
-
-    # Ensure moments (Ms, Mu layers)
-    if "Ms" not in adata.layers or "Mu" not in adata.layers:
-        fixed_adata = robust_neighbors_computation(adata)
-        if fixed_adata is None:
-            logging.error(f"Neighbors failed: {tool}_{dataset}")
-            return False, adata
-
-        try:
-            scv.pp.moments(fixed_adata)
-            adata = fixed_adata
-        except Exception as e:
-            logging.error(f"Moments computation failed: {tool}_{dataset}: {e}")
-            return False, adata
-    else:
-        # Ensure neighbor graph exists
-        if "neighbors" not in adata.uns or "connectivities" not in adata.obsp:
-            fixed_adata = robust_neighbors_computation(adata)
-            if fixed_adata is None:
-                return False, adata
-            adata = fixed_adata
-        else:
-            adata = fix_sparse_matrix_format(adata)
-
-    # Compute velocity graph
-    success, adata = robust_velocity_graph_computation(adata, vkey, n_jobs=n_jobs)
-    if not success:
-        logging.error(f"Velocity graph failed: {tool}_{dataset}")
-        return False, adata
-
-    # Compute velocity embedding
+    """Reuse a saved projection or project the declared velocity graph pair."""
     try:
-        scv.tl.velocity_embedding(adata, basis=basis_name, vkey=vkey)
+        ensure_velocity_embedding_sim(adata, vkey, basis_name, n_jobs=n_jobs)
         return True, adata
-    except Exception as e:
-        logging.error(f"Velocity embedding failed: {tool}_{dataset}: {e}")
+    except (KeyError, TypeError, ValueError) as exc:
+        logging.error("Velocity embedding failed: %s_%s: %s", tool, dataset, exc)
         return False, adata
 
 
@@ -1485,7 +1472,8 @@ def detect_cluster_key(adata: sc.AnnData) -> Optional[str]:
 def get_cluster_key(
     adata: sc.AnnData,
     dataset: str,
-    user_cluster_key: Optional[str] = None
+    user_cluster_key: Optional[str] = None,
+    paths: Optional[List[List[str]]] = None,
 ) -> Optional[str]:
     """
     Get cluster key, with user override support.
@@ -1493,8 +1481,28 @@ def get_cluster_key(
     Priority: user_cluster_key > default for dataset > auto-detect
     """
     # User override
-    if user_cluster_key and user_cluster_key in adata.obs.columns:
+    if user_cluster_key:
+        if user_cluster_key not in adata.obs.columns:
+            raise KeyError(f"Cluster key not found in obs: {user_cluster_key}")
         return user_cluster_key
+
+    if paths:
+        required = {str(label) for path in paths for label in path}
+        matching = [
+            col for col in adata.obs.columns
+            if required.issubset(set(adata.obs[col].dropna().astype(str)))
+        ]
+        if matching:
+            preferred = DEFAULT_CLUSTER_KEYS.get(extract_numeric_prefix(dataset))
+            if preferred in matching:
+                return preferred
+            if len(matching) == 1:
+                return matching[0]
+            raise ValueError(f"Multiple annotation columns match dataset {dataset}: {matching}; specify cluster_key")
+        if "time" in adata.obs and all(re.fullmatch(r"\d+h", label) for label in required):
+            observed = set(adata.obs["time"].dropna().astype(str))
+            if {label[:-1] for label in required}.issubset(observed):
+                return "time"
 
     # Default for dataset
     num_prefix = extract_numeric_prefix(dataset)
@@ -1506,24 +1514,36 @@ def get_cluster_key(
     return detect_cluster_key(adata)
 
 
+def normalize_spatial_cluster_labels(adata: sc.AnnData, dataset: str, cluster_key: str) -> None:
+    """Match dataset 69's numbered neuron labels to its declared Neuron path node."""
+    if extract_numeric_prefix(dataset) != "69":
+        return
+    labels = adata.obs[cluster_key].astype(str)
+    neuron_mask = labels.str.fullmatch(r"Neuron_\d+")
+    if neuron_mask.any():
+        adata.obs[cluster_key] = labels.mask(neuron_mask, "Neuron")
+        logging.info("%s: grouped %d Neuron_* cells under Neuron", dataset, int(neuron_mask.sum()))
+
+
 def process_time_column(
     adata: sc.AnnData,
     cluster_key: str,
-    dataset: str
+    dataset: str,
+    paths: Optional[List[List[str]]] = None,
 ) -> None:
     """
     Process time-based cluster column: add units and sort.
 
-    Handles datasets 18 and 37 which may have numeric-only time values.
+    Adds hours only when the declared path uses hour labels and obs is numeric.
     """
     if cluster_key not in adata.obs:
         return
 
-    num_prefix = extract_numeric_prefix(dataset)
     unique_vals = adata.obs[cluster_key].astype(str).unique().tolist()
 
-    # Add 'h' unit for datasets 18/37 if all numeric
-    if num_prefix in ["18", "37"] and cluster_key.lower() == "time":
+    path_labels = {label for path in (paths or []) for label in path}
+    expects_hours = bool(path_labels) and all(re.fullmatch(r"\d+h", x) for x in path_labels)
+    if expects_hours and cluster_key.lower() == "time":
         if all(str(x).isdigit() for x in unique_vals if str(x) != "nan"):
             adata.obs[cluster_key] = (
                 adata.obs[cluster_key].astype(str)
@@ -1561,14 +1581,10 @@ def validate_differentiation_paths(
     """
     Validate differentiation paths against available clusters.
 
-    For time/phase data: filter to available clusters without raising errors.
-    For other data: raise error if any expected cell type is missing.
+    Keep only contiguous available subpaths; do not bridge a missing label.
 
     Returns list of validated paths (always list of lists).
     """
-    is_time_or_phase = cluster_key.lower() in ["time", "phase"] or \
-                       set(["G1", "S", "G2M"]).issubset(set(available_clusters))
-
     # Normalize to list of lists
     if not paths:
         return []
@@ -1580,26 +1596,15 @@ def validate_differentiation_paths(
 
     valid_paths = []
     for idx, path in enumerate(paths):
-        available_in_path = [c for c in path if c in available_clusters]
-        missing = [c for c in path if c not in available_clusters]
+        available_indices = [i for i, label in enumerate(path) if label in available_clusters]
+        if len(available_indices) < 2:
+            continue
+        if available_indices != list(range(available_indices[0], available_indices[-1] + 1)):
+            continue
+        valid_paths.append([path[i] for i in available_indices])
 
-        if is_time_or_phase:
-            # For time/phase: just use what's available
-            if available_in_path:
-                valid_paths.append(available_in_path)
-        else:
-            # For cell type data: require all specified types
-            if missing:
-                raise ValueError(
-                    f"Dataset '{dataset}' path {idx+1} missing cell types: {missing}"
-                )
-            if len(available_in_path) < 2:
-                raise ValueError(
-                    f"Dataset '{dataset}' path {idx+1} has only "
-                    f"{len(available_in_path)} cell types (need >=2)"
-                )
-            valid_paths.append(available_in_path)
-
+    if not valid_paths:
+        raise ValueError(f"Dataset '{dataset}' has no contiguous differentiation path with at least two observed labels")
     return valid_paths
 
 
@@ -1619,7 +1624,7 @@ def calculate_reference_directions(
     For each cell, finds the closest point on the trajectory spline
     and returns the tangent direction at that point.
     """
-    basis_key = f"X_{basis_name}"
+    basis_key = _basis_key(basis_name)
     if basis_key not in adata.obsm:
         raise KeyError(f"Missing basis coordinates: adata.obsm['{basis_key}']")
 
@@ -1677,10 +1682,8 @@ def calculate_reference_directions(
         center_coords = np.array([c[1] for c in centers])
         center_clusters = [c[0] for c in centers]
 
-        # Handle cyclic data (phase)
-        is_cycle = is_phase and all(
-            str(c) in ["G1", "S", "G2M"] for c in center_clusters
-        )
+        # Real phase trajectories are open, including G1 -> S -> G2M.
+        is_cycle = False
         if is_cycle and len(center_coords) == 3:
             center_coords = np.vstack([center_coords, center_coords[0]])
 
@@ -1731,7 +1734,7 @@ def calculate_reference_directions_from_basic_paths(
     This path intentionally does not use topology-specific guide points or
     smoothing heuristics from the built-in public topologies.
     """
-    embedding_key = f"X_{basis_name}"
+    embedding_key = _basis_key(basis_name)
     if embedding_key not in adata.obsm:
         raise KeyError(f"Missing basis coordinates: adata.obsm['{embedding_key}']")
 
@@ -2044,41 +2047,42 @@ def analyze_single_dataset(
             return {"status": "error", "message": str(basis_result)}
         resolved_basis_name = str(basis_result)
 
-        # Remove duplicates
+        # Keep all input cells. Identical expression rows can still have distinct
+        # annotations or predicted embedding velocities.
         adata.obs_names_make_unique()
-        if hasattr(adata, 'to_df'):
-            try:
-                adata = adata[~adata.to_df().duplicated(), :]
-            except Exception:
-                pass
 
         # Ensure velocity embedding
         velocity_dimred_key = f"{velocity_key}_{resolved_basis_name}"
-        if velocity_dimred_key not in adata.obsm:
-            success, adata = ensure_velocity_embedding(
-                adata, dataset, tool, resolved_basis_name, velocity_key, n_jobs=n_jobs
-            )
-            if not success:
-                return {"status": "error",
-                       "message": "Velocity embedding computation failed"}
+        success, adata = ensure_velocity_embedding(
+            adata, dataset, tool, resolved_basis_name, velocity_key, n_jobs=n_jobs
+        )
+        if not success:
+            return {"status": "error", "message": "Velocity embedding computation failed"}
 
-        # Get cluster key
-        resolved_cluster_key = get_cluster_key(adata, dataset, cluster_key)
+        paths = differentiation_paths
+        if paths and isinstance(paths[0], str):
+            paths = [paths]
+        # Match the annotation against the declared second-revision path labels.
+        spatial_69_key = (
+            DEFAULT_CLUSTER_KEYS.get("69")
+            if resolved_basis_name == "spatial" and extract_numeric_prefix(dataset) == "69" and not cluster_key
+            else None
+        )
+        resolved_cluster_key = (
+            spatial_69_key if spatial_69_key is not None and spatial_69_key in adata.obs.columns
+            else get_cluster_key(adata, dataset, cluster_key, paths)
+        )
         if resolved_cluster_key is None:
             return {"status": "error", "message": "No valid cluster key found"}
 
+        if resolved_basis_name == "spatial":
+            normalize_spatial_cluster_labels(adata, dataset, resolved_cluster_key)
+
         # Process time column if needed
-        process_time_column(adata, resolved_cluster_key, dataset)
+        process_time_column(adata, resolved_cluster_key, dataset, paths)
 
         # Get available clusters
         available_clusters = adata.obs[resolved_cluster_key].unique().astype(str).tolist()
-
-        # Get differentiation paths
-        if differentiation_paths is None:
-            paths = DEFAULT_DIFFERENTIATION_PATHS.get(num_prefix) or \
-                   DEFAULT_DIFFERENTIATION_PATHS.get(dataset)
-        else:
-            paths = differentiation_paths
 
         # For time/phase data without predefined paths
         is_time_or_phase = resolved_cluster_key.lower() in ["time", "phase"] or \
@@ -2130,14 +2134,14 @@ def analyze_single_dataset(
             ref = reference_dirs[i]
             pred = predicted_vels[i]
 
-            if np.all(ref == 0) or np.all(pred == 0):
+            if not np.isfinite(ref).all() or not np.isfinite(pred).all():
+                continue
+            ref_norm = float(np.linalg.norm(ref))
+            pred_norm = float(np.linalg.norm(pred))
+            if ref_norm < 1e-6 or pred_norm < 1e-6:
                 continue
 
-            norm_prod = np.linalg.norm(ref) * np.linalg.norm(pred)
-            if norm_prod < 1e-6:
-                continue
-
-            cos_val = np.clip(np.dot(ref, pred) / norm_prod, -1, 1)
+            cos_val = np.clip(np.dot(ref, pred) / (ref_norm * pred_norm), -1, 1)
             cosine_sim[i] = cos_val
             angles[i] = np.degrees(np.arccos(cos_val))
 
@@ -2388,6 +2392,9 @@ def normalize_topology_type(topology_type: str) -> str:
         "linear-linear": "linear-linear",
         "lineage_tracing": "lineage-tracing",
         "lineage-tracing": "lineage-tracing",
+        "atac-paths": "atac-paths",
+        "chickenheart": "chickenheart",
+        "custom": "custom",
         "bursting_tree": "bursting-tree",
         "bursting-tree": "bursting-tree",
     }
@@ -2509,41 +2516,32 @@ def determine_embedding_basis(adata: AnnData, velocity_key: str) -> BasisType:
 
 
 def ensure_velocity_embedding_sim(adata: AnnData, velocity_key: str, basis: BasisType, n_jobs: int = 1) -> None:
-    """Ensure {velocity_key}_{basis} exists in adata.obsm; compute it if missing."""
-    velocity_embedding_key = f"{velocity_key}_{basis}"
-
-    if velocity_embedding_key not in adata.obsm:
-        xkey_to_use = None
-        if 'Ms' in adata.layers:
-            xkey_to_use = 'Ms'
-        elif 'spliced' in adata.layers:
-            xkey_to_use = 'spliced'
-        elif 'M_total' in adata.layers:
-            xkey_to_use = 'M_total'
-
-        try:
-            if xkey_to_use is not None:
-                scv.tl.velocity_graph(adata, vkey=velocity_key, xkey=xkey_to_use, n_jobs=int(n_jobs))
-            else:
-                scv.tl.velocity_graph(adata, vkey=velocity_key, n_jobs=int(n_jobs))
-        except ValueError as e:
-            error_msg = str(e)
-            if "neighbor graph seems to be corrupted" in error_msg or "Consider recomputing via pp.neighbors" in error_msg:
-                adata.obs_names_make_unique()
-                duplicated_mask = adata.to_df().duplicated()
-                if duplicated_mask.any():
-                    adata._inplace_subset_obs(~duplicated_mask)
-
-                sc.pp.neighbors(adata)
-
-                if xkey_to_use is not None:
-                    scv.tl.velocity_graph(adata, vkey=velocity_key, xkey=xkey_to_use, n_jobs=int(n_jobs))
-                else:
-                    scv.tl.velocity_graph(adata, vkey=velocity_key, n_jobs=int(n_jobs))
-            else:
-                raise ValueError(f"Failed to compute velocity graph: {str(e)}") from e
-
-        scv.tl.velocity_embedding(adata, basis=basis, vkey=velocity_key)
+    """Preserve cells and valid graphs when filling a missing 2D projection."""
+    coord_key = _basis_key(basis)
+    if coord_key not in adata.obsm:
+        raise KeyError(f"Missing obsm[{coord_key!r}].")
+    coords = np.asarray(adata.obsm[coord_key])
+    if coords.shape != (adata.n_obs, 2) or not np.isfinite(coords).all():
+        raise ValueError(f"obsm[{coord_key!r}] must contain finite 2D coordinates.")
+    key = f"{velocity_key}_{basis}"
+    if key in adata.obsm:
+        if np.asarray(adata.obsm[key]).shape != coords.shape:
+            raise ValueError(f"obsm[{key!r}] does not match the coordinate dimensions.")
+        return
+    if velocity_key not in adata.layers:
+        raise KeyError(f"Missing both obsm[{key!r}] and layers[{velocity_key!r}].")
+    alias = f"X_{basis}"
+    if alias != coord_key:
+        # scVelo requires X_<basis>; the public spatial key remains spatial.
+        adata.obsm[alias] = coords.copy()
+    xkey = "M_total" if not {"Ms", "M_s", "spliced"}.intersection(adata.layers) and "M_total" in adata.layers else ""
+    projection_graph(adata, velocity_key, xkey, coord_key, 30, n_jobs=n_jobs)
+    # scVelo's projection uses np.array on the velocity layer.
+    if issparse(adata.layers[velocity_key]):
+        adata.layers[velocity_key] = adata.layers[velocity_key].toarray()
+    scv.tl.velocity_embedding(adata, basis=basis, vkey=velocity_key)
+    if key not in adata.obsm or np.asarray(adata.obsm[key]).shape != coords.shape:
+        raise ValueError(f"scVelo did not create an aligned obsm[{key!r}].")
 
 
 # ============================================================================
@@ -2551,13 +2549,15 @@ def ensure_velocity_embedding_sim(adata: AnnData, velocity_key: str, basis: Basi
 # ============================================================================
 
 
-def build_lineage_tracing_knn_graph(points: np.ndarray, n_neighbors: int = 12) -> csr_matrix:
+def build_lineage_tracing_knn_graph(
+    points: np.ndarray, n_neighbors: int = 12, *, symmetric_sum: bool = False,
+) -> csr_matrix:
     """Build an undirected KNN distance graph for lineage-tracing coordinates."""
     n_cells = len(points)
     if n_cells < 2:
         raise ValueError("lineage-tracing requires at least two points to build a KNN graph.")
 
-    n_neighbors = max(2, min(int(n_neighbors), n_cells - 1))
+    n_neighbors = max(1, min(int(n_neighbors), n_cells - 1))
     nn = NearestNeighbors(n_neighbors=n_neighbors + 1)
     nn.fit(points)
     distances, indices = nn.kneighbors(points)
@@ -2570,9 +2570,13 @@ def build_lineage_tracing_knn_graph(points: np.ndarray, n_neighbors: int = 12) -
         rows.append(i)
         cols.append(int(j))
         data.append(float(dist))
+        if symmetric_sum:
+          rows.append(int(j))
+          cols.append(i)
+          data.append(float(dist))
 
     graph = csr_matrix((data, (rows, cols)), shape=(n_cells, n_cells))
-    return graph.maximum(graph.T)
+    return graph if symmetric_sum else graph.maximum(graph.T)
 
 
 def reconstruct_lineage_tracing_path(predecessors: np.ndarray, start_idx: int, end_idx: int) -> np.ndarray:
@@ -2588,7 +2592,9 @@ def reconstruct_lineage_tracing_path(predecessors: np.ndarray, start_idx: int, e
     return np.asarray(path, dtype=int)
 
 
-def densify_lineage_tracing_polyline(points: np.ndarray, points_per_segment: int = 20) -> np.ndarray:
+def densify_lineage_tracing_polyline(
+    points: np.ndarray, points_per_segment: int = 20, *, include_terminal: bool = False,
+) -> np.ndarray:
     """Densify a polyline by linear interpolation."""
     if len(points) <= 1:
       return points.copy()
@@ -2597,8 +2603,10 @@ def densify_lineage_tracing_polyline(points: np.ndarray, points_per_segment: int
     for i in range(len(points) - 1):
       start = points[i]
       end = points[i + 1]
-      t = np.linspace(0.0, 1.0, points_per_segment, endpoint=(i == len(points) - 2))
+      t = np.linspace(0.0, 1.0, points_per_segment, endpoint=(i == len(points) - 2 and not include_terminal))
       chunks.append(start[None, :] + (end - start)[None, :] * t[:, None])
+    if include_terminal:
+      chunks.append(points[-1][None, :])
     return np.vstack(chunks)
 
 
@@ -2606,32 +2614,56 @@ def fit_lineage_tracing_spline(
     guide_points: np.ndarray,
     n_samples: int = 200,
     smoothing: float = 0.05,
+    *,
+    smoothing_scale: str = "point_count",
 ) -> np.ndarray:
     """Fit a smooth 2D spline through guide points."""
+    if len(guide_points) == 1 and smoothing_scale == "path_length":
+      return np.repeat(guide_points, n_samples, axis=0)
     if len(guide_points) <= 2:
       return densify_lineage_tracing_polyline(guide_points, points_per_segment=max(12, n_samples))
 
     k = min(3, len(guide_points) - 1)
+    smoothing_weight = (
+      float(np.linalg.norm(np.diff(guide_points, axis=0), axis=1).sum())
+      if smoothing_scale == "path_length" else float(len(guide_points))
+    )
     try:
       tck, _ = splprep(
         [guide_points[:, 0], guide_points[:, 1]],
-        s=float(max(smoothing, 0.0)) * len(guide_points),
+        s=float(max(smoothing, 0.0)) * smoothing_weight,
         k=k,
         per=False,
       )
       u_dense = np.linspace(0.0, 1.0, n_samples)
       return np.column_stack(splev(u_dense, tck))
     except Exception:
+      if smoothing_scale == "path_length":
+        raise
       return densify_lineage_tracing_polyline(
         guide_points,
         points_per_segment=max(12, n_samples // max(1, len(guide_points) - 1)),
       )
 
 
-def compress_lineage_tracing_path_points(path_points: np.ndarray, n_anchors: int = 9) -> np.ndarray:
-    """Reduce a dense path to evenly spaced anchor points."""
+def compress_lineage_tracing_path_points(
+    path_points: np.ndarray, n_anchors: int = 9, *, spacing: str = "index",
+) -> np.ndarray:
+    """Reduce a dense path to anchor points spaced by index or arc length."""
     if len(path_points) <= n_anchors:
       return path_points.copy()
+    if spacing == "arc_length":
+      cumulative = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(path_points, axis=0), axis=1))])
+      if cumulative[-1] < 1e-8:
+        return path_points[[0, -1]]
+      positions = np.linspace(0.0, cumulative[-1], n_anchors)
+      anchor_idx = [int(np.argmin(np.abs(cumulative - position))) for position in positions]
+      guides = path_points[anchor_idx]
+      deduped = [guides[0]]
+      for point in guides[1:]:
+        if np.linalg.norm(point - deduped[-1]) > 1e-6:
+          deduped.append(point)
+      return np.asarray(deduped, dtype=float)
     anchor_idx = np.linspace(0, len(path_points) - 1, n_anchors).round().astype(int)
     return path_points[anchor_idx]
 
@@ -2640,6 +2672,8 @@ def filter_lineage_tracing_core_points(
     points: np.ndarray,
     n_neighbors: int = 12,
     keep_ratio: float = 0.9,
+    *,
+    quantile_cutoff: bool = False,
 ) -> np.ndarray:
     """Keep the densest subset of points to reduce outliers in lineage-tracing."""
     if len(points) <= max(20, n_neighbors + 1):
@@ -2650,6 +2684,10 @@ def filter_lineage_tracing_core_points(
     nn.fit(points)
     distances, _ = nn.kneighbors(points)
     mean_neighbor_distance = distances[:, 1:].mean(axis=1)
+    if quantile_cutoff:
+      cutoff = float(np.quantile(mean_neighbor_distance, keep_ratio))
+      kept = points[mean_neighbor_distance <= cutoff]
+      return points if len(kept) < max(12, int(len(points) * 0.55)) else kept
     keep_n = max(n_neighbors + 1, int(np.ceil(len(points) * keep_ratio)))
     keep_idx = np.argsort(mean_neighbor_distance)[:keep_n]
     return points[np.sort(keep_idx)]
@@ -2658,19 +2696,29 @@ def filter_lineage_tracing_core_points(
 def nearest_lineage_tracing_point_to_set(points: np.ndarray, target_points: np.ndarray) -> Tuple[int, float]:
     """Return the point index nearest to any target point."""
     distances = np.linalg.norm(points[:, None, :] - target_points[None, :, :], axis=2)
-    flat_idx = int(np.argmin(distances))
-    point_idx, target_idx = np.unravel_index(flat_idx, distances.shape)
+    point_idx, target_idx = np.unravel_index(int(np.argmin(distances)), distances.shape)
     return int(point_idx), float(distances[point_idx, target_idx])
+
+
+def nearest_atac_point_to_set(points: np.ndarray, target_points: np.ndarray) -> Tuple[int, float]:
+    """Find the nearest ATAC point without allocating a dense pairwise distance matrix."""
+    distances, _ = NearestNeighbors(n_neighbors=1).fit(target_points).kneighbors(points)
+    point_idx = int(np.argmin(distances[:, 0]))
+    return point_idx, float(distances[point_idx, 0])
 
 
 def choose_best_lineage_tracing_graph(
     points: np.ndarray,
     neighbor_options: Tuple[int, ...] = (8, 10, 12, 16, 20, 24),
+    *,
+    symmetric_sum: bool = False,
 ) -> Dict[str, Any]:
     """Choose the KNN graph with the best connectivity coverage."""
     best_result = None
     for neighbors in neighbor_options:
-      graph = build_lineage_tracing_knn_graph(points, n_neighbors=min(neighbors, len(points) - 1))
+      graph = build_lineage_tracing_knn_graph(
+        points, n_neighbors=min(neighbors, len(points) - 1), symmetric_sum=symmetric_sum
+      )
       distances = dijkstra(graph, directed=False, indices=0, return_predecessors=False)
       finite_ratio = float(np.mean(np.isfinite(distances)))
       if best_result is None or finite_ratio > best_result["finite_ratio"]:
@@ -2691,7 +2739,9 @@ def build_lineage_tracing_internal_curve(
     start_from_near: bool = True,
 ) -> Dict[str, Any]:
     """Build one internal lineage-tracing curve segment from a point cloud."""
-    graph_info = choose_best_lineage_tracing_graph(points)
+    # The scRNA lineage reference sums reciprocal KNN distances. ATAC
+    # keeps the union-distance graph and its own branch construction.
+    graph_info = choose_best_lineage_tracing_graph(points, symmetric_sum=True)
     graph = graph_info["graph"]
 
     near_idx, _ = nearest_lineage_tracing_point_to_set(points, near_target_points)
@@ -2709,8 +2759,10 @@ def build_lineage_tracing_internal_curve(
     if not start_from_near:
       path_points = path_points[::-1]
 
-    guide_points = compress_lineage_tracing_path_points(path_points, n_anchors=n_anchors)
-    curve = fit_lineage_tracing_spline(guide_points, n_samples=n_samples, smoothing=smoothing)
+    guide_points = compress_lineage_tracing_path_points(path_points, n_anchors=n_anchors, spacing="arc_length")
+    curve = fit_lineage_tracing_spline(
+      guide_points, n_samples=n_samples, smoothing=smoothing, smoothing_scale="path_length"
+    )
     return {
       "start_point": path_points[0],
       "end_point": path_points[-1],
@@ -2733,12 +2785,21 @@ def build_lineage_tracing_bridge_curve(
     end_idx = int(np.argmin(np.linalg.norm(points - end_target, axis=1)))
     start_point = points[start_idx]
     end_point = points[end_idx]
-    center_point = np.median(points, axis=0)
+    median_point = np.median(points, axis=0)
+    center_point = points[int(np.argmin(np.linalg.norm(points - median_point, axis=1)))]
 
-    guide_points = np.vstack([start_point, center_point, end_point])
+    direct_length = float(np.linalg.norm(end_point - start_point))
+    via_center_length = float(
+      np.linalg.norm(center_point - start_point) + np.linalg.norm(end_point - center_point)
+    )
+    if direct_length <= 1e-8 or via_center_length <= direct_length * 1.08:
+      guide_points = np.vstack([start_point, center_point, end_point])
+    else:
+      guide_points = np.vstack([start_point, end_point])
     curve = densify_lineage_tracing_polyline(
       guide_points,
       points_per_segment=max(12, n_samples // max(1, len(guide_points) - 1)),
+      include_terminal=True,
     )
     return {
       "start_point": start_point,
@@ -2755,7 +2816,7 @@ def build_lineage_tracing_reference_model(
     basis: BasisType = "umap",
 ) -> Dict[str, Any]:
     """Build the three-part lineage-tracing reference model using KNN + Dijkstra paths."""
-    embedding_key = f"X_{basis}"
+    embedding_key = _basis_key(basis)
     if embedding_key not in adata.obsm:
       raise ValueError(f"lineage-tracing is missing basis coordinates: {embedding_key}")
 
@@ -2772,8 +2833,12 @@ def build_lineage_tracing_reference_model(
     cluster36_points = coords_2d[labels == "cluster_36"]
     cluster1336_points = np.vstack([cluster13_points, cluster36_points])
 
-    cluster1336_core_points = filter_lineage_tracing_core_points(cluster1336_points, n_neighbors=12, keep_ratio=0.90)
-    cluster9_core_points = filter_lineage_tracing_core_points(cluster9_points, n_neighbors=10, keep_ratio=0.88)
+    cluster1336_core_points = filter_lineage_tracing_core_points(
+      cluster1336_points, n_neighbors=12, keep_ratio=0.90, quantile_cutoff=True
+    )
+    cluster9_core_points = filter_lineage_tracing_core_points(
+      cluster9_points, n_neighbors=10, keep_ratio=0.88, quantile_cutoff=True
+    )
 
     cluster1336_model = build_lineage_tracing_internal_curve(
       cluster1336_core_points,
@@ -2800,10 +2865,12 @@ def build_lineage_tracing_reference_model(
     connector_1336_to_9 = densify_lineage_tracing_polyline(
       np.vstack([cluster1336_model["curve"][-1], cluster9_model["curve"][0]]),
       points_per_segment=18,
+      include_terminal=True,
     )
     connector_9_to_22 = densify_lineage_tracing_polyline(
       np.vstack([cluster9_model["curve"][-1], cluster22_model["curve"][0]]),
       points_per_segment=18,
+      include_terminal=True,
     )
 
     full_curve = np.vstack([
@@ -2823,7 +2890,7 @@ def calculate_reference_directions_for_lineage_tracing(
 ) -> np.ndarray:
     """Calculate lineage-tracing reference directions using the sampled KNN/Dijkstra reference curve."""
     model = build_lineage_tracing_reference_model(adata, milestone_key, basis)
-    coords_2d = np.asarray(adata.obsm[f"X_{basis}"])[:, :2]
+    coords_2d = np.asarray(adata.obsm[_basis_key(basis)])[:, :2]
     reference_directions = np.zeros((adata.n_obs, 2), dtype=float)
     curve = model["full_curve"]
     path_cells_mask = adata.obs[milestone_key].astype(str).isin(model["path"]).to_numpy()
@@ -2840,6 +2907,149 @@ def calculate_reference_directions_for_lineage_tracing(
     return reference_directions
 
 
+def calculate_atac_path_knn_reference(
+    adata: AnnData,
+    label_key: str,
+    segments: List[Tuple[List[str], bool]],
+    gt_velocity_key: str = "ground_truth_velocity_tsne",
+    use_gt_shape_guidance: bool = False,
+) -> Tuple[np.ndarray, List[Tuple[str, str, np.ndarray]]]:
+    """Build directed KNN/Dijkstra curves for each ATAC path edge."""
+    coords = np.asarray(adata.obsm["X_tsne"], dtype=float)
+    if coords.shape != (adata.n_obs, 2):
+        raise ValueError("ATAC X_tsne must be n_cells x 2")
+    if use_gt_shape_guidance:
+        gt_velocity = np.asarray(adata.obsm[gt_velocity_key], dtype=float)
+        if gt_velocity.shape != coords.shape:
+            raise ValueError("ATAC true_velocity_tsne must be n_cells x 2")
+        finite_gt = np.isfinite(gt_velocity).all(axis=1) & (np.linalg.norm(gt_velocity, axis=1) > 1e-6)
+    labels = adata.obs[label_key].astype(str).to_numpy()
+    finite_coords = np.isfinite(coords).all(axis=1)
+    edges = _directed_segment_edges(segments)
+    branching = len(edges) > 1
+    if not edges:
+        raise ValueError("ATAC differentiation paths contain no directed edge")
+
+    reference = np.zeros((adata.n_obs, 2), dtype=float)
+    best_distance = np.full(adata.n_obs, np.inf)
+    curves: List[Tuple[str, str, np.ndarray]] = []
+    for source, target in edges:
+        source_mask = (labels == source) & finite_coords
+        target_mask = (labels == target) & finite_coords
+        if not source_mask.any() or not target_mask.any():
+            raise ValueError(f"ATAC path {source} -> {target} has no cells in one endpoint label")
+        edge_mask = source_mask | target_mask
+        if use_gt_shape_guidance and not (finite_gt & edge_mask).any():
+            raise ValueError(f"ATAC path {source} -> {target} has no finite, nonzero true velocity for guidance")
+
+        source_points = filter_lineage_tracing_core_points(coords[source_mask])
+        target_points = filter_lineage_tracing_core_points(coords[target_mask])
+        if len(source_points) < 2 or len(target_points) < 2:
+            raise ValueError(f"ATAC path {source} -> {target} has too few cells for a KNN curve")
+        source_near, _ = nearest_atac_point_to_set(source_points, target_points)
+        target_near, _ = nearest_atac_point_to_set(target_points, source_points)
+
+        source_graph = choose_best_lineage_tracing_graph(source_points)["graph"]
+        target_graph = choose_best_lineage_tracing_graph(target_points)["graph"]
+        source_dist = dijkstra(source_graph, directed=False, indices=source_near)
+        target_dist = dijkstra(target_graph, directed=False, indices=target_near)
+        source_reachable = np.where(np.isfinite(source_dist))[0]
+        target_reachable = np.where(np.isfinite(target_dist))[0]
+        source_tip = int(source_reachable[np.argmax(source_dist[source_reachable])])
+        target_tip = int(target_reachable[np.argmax(target_dist[target_reachable])])
+
+        points = np.vstack([source_points, target_points])
+        # A joint KNN graph can jump between nearby folds or between labels
+        # before the actual branch point. Keep branching labels separate.
+        if branching:
+            graph = block_diag((source_graph, target_graph), format="csr").tolil()
+        else:
+            graph = choose_best_lineage_tracing_graph(points)["graph"]
+            graph = graph.maximum(block_diag((source_graph, target_graph), format="csr")).tolil()
+        bridge_start = source_near
+        bridge_end = len(source_points) + target_near
+        bridge_distance = max(float(np.linalg.norm(points[bridge_start] - points[bridge_end])), 1e-12)
+        graph[bridge_start, bridge_end] = bridge_distance
+        graph[bridge_end, bridge_start] = bridge_distance
+        graph = graph.tocsr()
+        end = len(source_points) + target_tip
+        distances, predecessors = dijkstra(graph, directed=False, indices=source_tip, return_predecessors=True)
+        if not np.isfinite(distances[end]):
+            raise ValueError(f"ATAC KNN graph disconnected between {source} and {target}")
+        path_points = points[reconstruct_lineage_tracing_path(predecessors, source_tip, end)]
+        if len(path_points) < 2:
+            raise ValueError(f"ATAC KNN path {source} -> {target} is degenerate")
+        if branching:
+            # Arc-length interpolation preserves the repeated turns that a
+            # fixed set of nine spline anchors erased in long ATAC branches.
+            cumulative = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(path_points, axis=0), axis=1))])
+            keep = np.concatenate([[True], np.diff(cumulative) > 1e-8])
+            cumulative = cumulative[keep]
+            path_points = path_points[keep]
+            if len(path_points) < 2:
+                raise ValueError(f"ATAC KNN path {source} -> {target} has zero length")
+            arc = np.linspace(0.0, cumulative[-1], max(100, len(path_points) * 2))
+            curve = np.column_stack([
+                np.interp(arc, cumulative, path_points[:, axis]) for axis in range(2)
+            ])
+            curve = gaussian_filter1d(curve, sigma=1.5, axis=0, mode="nearest")
+            curve[0], curve[-1] = path_points[0], path_points[-1]
+        else:
+            guide = compress_lineage_tracing_path_points(path_points, n_anchors=9)
+            if use_gt_shape_guidance:
+                guide = guide.copy()
+                gt_points = coords[edge_mask & finite_gt]
+                gt_vectors = gt_velocity[edge_mask & finite_gt]
+                _, nearest_indices = NearestNeighbors(n_neighbors=1).fit(gt_points).kneighbors(guide[1:-1])
+                for idx, neighbor_idx in enumerate(nearest_indices[:, 0], start=1):
+                    velocity = gt_vectors[neighbor_idx]
+                    norm = float(np.linalg.norm(velocity))
+                    adjacent_step = min(
+                        float(np.linalg.norm(guide[idx] - guide[idx - 1])),
+                        float(np.linalg.norm(guide[idx + 1] - guide[idx])),
+                    )
+                    shift = min(0.1 * norm, 0.3 * adjacent_step)
+                    if shift > 0:
+                        guide[idx] += (velocity / norm) * shift
+            curve = fit_lineage_tracing_spline(guide, n_samples=220, smoothing=0.05)
+        if branching and use_gt_shape_guidance:
+            gt_points = coords[edge_mask & finite_gt]
+            gt_vectors = gt_velocity[edge_mask & finite_gt]
+            anchor_indices = np.linspace(1, len(curve) - 2, min(21, len(curve) - 2)).round().astype(int)
+            _, nearest_indices = NearestNeighbors(n_neighbors=1).fit(gt_points).kneighbors(curve[anchor_indices])
+            shifts = np.zeros((len(anchor_indices) + 2, 2), dtype=float)
+            for offset, (curve_idx, neighbor_idx) in enumerate(zip(anchor_indices, nearest_indices[:, 0]), start=1):
+                velocity = gt_vectors[neighbor_idx]
+                norm = float(np.linalg.norm(velocity))
+                left = max(0, curve_idx - 5)
+                right = min(len(curve) - 1, curve_idx + 5)
+                local_step = min(
+                    float(np.linalg.norm(curve[curve_idx] - curve[left])),
+                    float(np.linalg.norm(curve[right] - curve[curve_idx])),
+                )
+                shifts[offset] = (velocity / norm) * min(0.1 * norm, 0.3 * local_step)
+            guide_indices = np.concatenate([[0], anchor_indices, [len(curve) - 1]])
+            curve += np.column_stack([
+                np.interp(np.arange(len(curve)), guide_indices, shifts[:, axis]) for axis in range(2)
+            ])
+        curves.append((source, target, curve))
+
+        eligible = np.where(edge_mask)[0]
+        near_curve = NearestNeighbors(n_neighbors=1).fit(curve)
+        distances_to_curve, curve_indices = near_curve.kneighbors(coords[eligible])
+        for cell_idx, distance, curve_idx in zip(eligible, distances_to_curve[:, 0], curve_indices[:, 0]):
+            if distance >= best_distance[cell_idx]:
+                continue
+            left = max(int(curve_idx) - 1, 0)
+            right = min(int(curve_idx) + 1, len(curve) - 1)
+            tangent = curve[right] - curve[left]
+            norm = float(np.linalg.norm(tangent))
+            if norm > 1e-6:
+                reference[cell_idx] = tangent / norm
+                best_distance[cell_idx] = distance
+    return reference, curves
+
+
 # ============================================================================
 # SECTION 6 — SIMULATED DATA: BURSTING-TREE REFERENCE CURVE & DIRECTIONS
 # ============================================================================
@@ -2847,7 +3057,7 @@ def calculate_reference_directions_for_lineage_tracing(
 
 def get_bursting_embedding(adata: AnnData, basis: BasisType) -> np.ndarray:
     """Return Bursting-tree embedding coordinates, preferring X_{basis} and falling back to X_tsne."""
-    embedding_key = f"X_{basis}"
+    embedding_key = _basis_key(basis)
     if embedding_key in adata.obsm:
       return np.asarray(adata.obsm[embedding_key])
     if basis == "dimred" and "X_tsne" in adata.obsm:
@@ -3311,7 +3521,8 @@ def get_expected_milestones_for_topology(topology_type: str, dataset_name: str =
         ]
         variant3_patterns = [
             "consecutive-bifurcating_cell1000_gene500",
-            "consecutive-bifurcating_cell1000_gene50000"
+            "consecutive-bifurcating_cell1000_gene50000",
+            "consecutive-bifurcating_cell1000_gene20000",
         ]
 
         if any(pattern in normalized_name for pattern in variant2_patterns + variant3_patterns):
@@ -3519,7 +3730,8 @@ def get_trajectory_segments_for_topology(
 
         variant3_patterns = [
             "consecutive-bifurcating_cell1000_gene500",
-            "consecutive-bifurcating_cell1000_gene50000"
+            "consecutive-bifurcating_cell1000_gene50000",
+            "consecutive-bifurcating_cell1000_gene20000",
         ]
         if any(pattern in normalized_name for pattern in variant3_patterns):
             return [
@@ -5126,7 +5338,8 @@ def calculate_reference_directions_from_trajectory(
     dataset_name: str,
     basis: BasisType = 'dimred',
     use_gt_velocity_enhancement: bool = False,
-    ground_truth_velocity_key: str = "ground_truth_velocity"
+    ground_truth_velocity_key: str = "ground_truth_velocity",
+    trajectory_segments: Optional[List[Tuple[List[str], bool]]] = None,
 ) -> np.ndarray:
     """
     Fit trajectory curve(s) from milestone centers and compute per-cell reference directions.
@@ -5137,7 +5350,7 @@ def calculate_reference_directions_from_trajectory(
     - use_gt_velocity_enhancement=True:
       insert intermediate guide points using ground-truth velocity direction (optional for simulations).
     """
-    embedding_key = f"X_{basis}"
+    embedding_key = _basis_key(basis)
     if embedding_key not in adata.obsm:
         raise ValueError(f"Embedding '{embedding_key}' not found in adata.obsm")
 
@@ -5154,7 +5367,7 @@ def calculate_reference_directions_from_trajectory(
 
     standardize_milestone_column(adata, milestone_key)
 
-    segments = get_trajectory_segments_for_topology(
+    segments = trajectory_segments if trajectory_segments is not None else get_trajectory_segments_for_topology(
         topology_type, adata, milestone_key, dataset_name
     )
 
@@ -5583,7 +5796,8 @@ def plot_reference_curves_visualization(
     basis: BasisType,
     png_path: str,
     tool: str,
-    use_gt_velocity_enhancement: bool = False
+    use_gt_velocity_enhancement: bool = False,
+    trajectory_segments: Optional[List[Tuple[List[str], bool]]] = None,
 ) -> None:
     """
     Visualize fitted reference trajectory curves (debug/QA plot).
@@ -5599,7 +5813,7 @@ def plot_reference_curves_visualization(
         use_gt_velocity_enhancement: Whether to apply optional GT-velocity-based guide-point tweaks.
     """
     # Embedding
-    embedding_key = f"X_{basis}"
+    embedding_key = _basis_key(basis)
     x_embedding = adata.obsm[embedding_key]
 
     # Normalize milestone names (must be done before get_trajectory_segments_for_topology
@@ -5616,7 +5830,7 @@ def plot_reference_curves_visualization(
             use_gt_velocity_enhancement = False
 
     # Trajectory segments (use segments, not full paths, to avoid re-drawing shared trunks)
-    segments = get_trajectory_segments_for_topology(
+    segments = trajectory_segments if trajectory_segments is not None else get_trajectory_segments_for_topology(
         topology_type, adata, milestone_key, dataset_name
     )
 
@@ -6009,6 +6223,8 @@ def analyze_simulation_velocity_consistency(
     reference_curves_dir: Optional[str] = None,
     reference_dir: Optional[str] = None,
     differentiation_paths: Optional[List[List[str]]] = None,
+    path_segments: Optional[List[Tuple[List[str], bool]]] = None,
+    modality: str = "rna",
 ) -> AnalysisResult:
     """
     Analyze velocity direction consistency for a simulated dataset.
@@ -6048,12 +6264,12 @@ def analyze_simulation_velocity_consistency(
 
     try:
         has_high_dim_velocity = velocity_key in adata.layers
-        has_low_dim_velocity = f"{velocity_key}_dimred" in adata.obsm or f"{velocity_key}_umap" in adata.obsm
+        has_low_dim_velocity = f"{velocity_key}_{basis_name}" in adata.obsm
 
         if not has_high_dim_velocity and not has_low_dim_velocity:
             raise ValueError(
                 f"Predicted velocity '{velocity_key}' is missing in both adata.layers and adata.obsm "
-                f"({velocity_key}_dimred / {velocity_key}_umap)."
+                f"({velocity_key}_{basis_name})."
             )
 
         if topology_type is None:
@@ -6066,6 +6282,8 @@ def analyze_simulation_velocity_consistency(
         normalized_topology = normalize_topology_type(topology_type)
         is_bursting = normalized_topology == "bursting-tree"
         is_lineage = normalized_topology == "lineage-tracing"
+        is_atac = modality == "atac"
+        atac_curves = None
 
         if is_lineage:
             if "synthetic_celllabel" not in adata.obs.columns:
@@ -6093,19 +6311,32 @@ def analyze_simulation_velocity_consistency(
             analysis_milestone_key = "edge_id"
             reference_milestone_key = get_bursting_reference_key(adata)
             basis = basis_name
+        elif is_atac:
+            if milestone_key != "milestone":
+                analysis_milestone_key = milestone_key
+            else:
+                analysis_milestone_key = next(
+                    (key for key in ("pseudo_celltype", "celltype", "cell_type") if key in adata.obs), None
+                )
+            if analysis_milestone_key not in adata.obs:
+                raise KeyError("ATAC simulation requires pseudo_celltype, celltype, cell_type, or an explicit milestone_key")
+            reference_milestone_key = analysis_milestone_key
+            basis = basis_name
         else:
-            if milestone_key not in adata.obs.columns:
-                raise KeyError(f"Milestone key '{milestone_key}' not found in adata.obs")
-            analysis_milestone_key = resolve_simulation_milestone_key(
-                adata=adata,
-                dataset_name=dataset_name,
-                topology_type=normalized_topology,
-                requested_milestone_key=milestone_key,
-            )
+            if milestone_key in adata.obs:
+                analysis_milestone_key = milestone_key
+            elif normalized_topology == "chickenheart" and "cell_type" in adata.obs:
+                analysis_milestone_key = "cell_type"
+            else:
+                analysis_milestone_key = resolve_simulation_milestone_key(
+                    adata=adata, dataset_name=dataset_name,
+                    topology_type=normalized_topology,
+                    requested_milestone_key=milestone_key,
+                )
             reference_milestone_key = analysis_milestone_key
             basis = basis_name
 
-        basis_key = f"X_{basis}"
+        basis_key = _basis_key(basis)
         if basis_key not in adata.obsm:
             raise ValueError(f"Missing low-dimensional basis coordinates: adata.obsm['{basis_key}']")
 
@@ -6118,7 +6349,7 @@ def analyze_simulation_velocity_consistency(
                     f"Low-dimensional velocity result expected but '{velocity_embedding_key}' is missing in adata.obsm"
                 )
 
-        if use_gt_velocity_enhancement:
+        if use_gt_velocity_enhancement and not is_atac:
             gt_velocity_dimred_key = f"{ground_truth_velocity_key}_dimred"
             gt_velocity_basis_key = f"{ground_truth_velocity_key}_{basis}"
 
@@ -6131,7 +6362,25 @@ def analyze_simulation_velocity_consistency(
                 # No GT velocity available (neither low-dim nor high-dim); disable enhancement.
                 use_gt_velocity_enhancement = False
 
-        if is_bursting:
+        if is_atac:
+            if not path_segments:
+                raise ValueError("ATAC simulation requires differentiation paths")
+            if basis != "tsne":
+                raise ValueError("ATAC simulation requires X_tsne")
+            ordered_valid_milestones_for_plot = list(dict.fromkeys(
+                label for path, _ in path_segments for label in path
+            ))
+            missing = set(ordered_valid_milestones_for_plot) - set(adata.obs[analysis_milestone_key].dropna().astype(str))
+            if missing:
+                raise ValueError(
+                    f"ATAC obs['{analysis_milestone_key}'] does not match path labels: {sorted(missing)}"
+                )
+            reference_directions, atac_curves = calculate_atac_path_knn_reference(
+                adata, analysis_milestone_key, path_segments,
+                gt_velocity_key=f"{ground_truth_velocity_key}_tsne",
+                use_gt_shape_guidance=use_gt_velocity_enhancement,
+            )
+        elif is_bursting:
             available_display_milestones = adata.obs[analysis_milestone_key].astype(str).unique()
             expected_display_milestones = get_bursting_expected_display_milestones(
                 dataset_name,
@@ -6181,29 +6430,45 @@ def analyze_simulation_velocity_consistency(
         else:
             standardize_milestone_column(adata, analysis_milestone_key)
             available_milestones = adata.obs[analysis_milestone_key].unique()
+            normalized_segments = None
+            if path_segments:
+                normalized_segments = [
+                    ([normalize_milestone_names(label) for label in path], closed)
+                    for path, closed in path_segments
+                ]
 
-            try:
+            if normalized_topology in {"chickenheart", "custom"}:
+                if normalized_segments is None:
+                    raise ValueError("Spatial chickenheart simulation requires a path in the shared CSV")
+                expected_milestones = list(dict.fromkeys(label for path, _ in normalized_segments for label in path))
+            else:
                 expected_milestones = get_expected_milestones_for_topology(normalized_topology, dataset_name)
+            try:
                 validated_milestones = validate_milestones_for_simulation(
                     expected_milestones, available_milestones, dataset_name
                 )
                 ensure_milestone_order(adata, analysis_milestone_key, validated_milestones)
                 ordered_valid_milestones_for_plot = [ms for ms in expected_milestones if ms in validated_milestones]
-                reference_directions = calculate_reference_directions_from_trajectory(
-                    adata=adata,
-                    milestone_key=reference_milestone_key,
-                    topology_type=normalized_topology,
-                    dataset_name=dataset_name,
-                    basis=basis,
-                    use_gt_velocity_enhancement=use_gt_velocity_enhancement,
-                    ground_truth_velocity_key=ground_truth_velocity_key,
-                )
-            except Exception:
-                if not differentiation_paths:
-                    raise ValueError(
-                        "Unknown or unsupported simulated topology. "
-                        "Please provide differentiation_paths for user-defined simulated data."
+                if normalized_topology == "custom":
+                    reference_directions = calculate_reference_directions_from_basic_paths(
+                        adata=adata, milestone_key=reference_milestone_key,
+                        differentiation_paths=[path for path, _ in normalized_segments],
+                        basis_name=basis,
                     )
+                else:
+                    reference_directions = calculate_reference_directions_from_trajectory(
+                        adata=adata,
+                        milestone_key=reference_milestone_key,
+                        topology_type=normalized_topology,
+                        dataset_name=dataset_name,
+                        basis=basis,
+                        use_gt_velocity_enhancement=use_gt_velocity_enhancement,
+                        ground_truth_velocity_key=ground_truth_velocity_key,
+                        trajectory_segments=normalized_segments,
+                    )
+            except ValueError:
+                if not differentiation_paths:
+                    raise
                 validated_milestones = validate_milestones_for_simulation(
                     [milestone for path in differentiation_paths for milestone in path],
                     available_milestones,
@@ -6237,8 +6502,7 @@ def analyze_simulation_velocity_consistency(
             pred_vel = predicted_velocities_embedding[i]
             ref_dir = reference_directions[i]
 
-            # Skip zero vectors
-            if np.all(pred_vel == 0) or np.all(ref_dir == 0):
+            if not np.isfinite(pred_vel).all() or not np.isfinite(ref_dir).all():
                 continue
 
             # Norms
@@ -6302,7 +6566,30 @@ def analyze_simulation_velocity_consistency(
                 f"{normalized_filename}_reference_curves.png"
             )
 
-            if is_bursting:
+            if is_atac:
+                fig, ax = plt.subplots(figsize=(9, 8))
+                coords = np.asarray(adata.obsm["X_tsne"])
+                cell_labels = adata.obs[analysis_milestone_key].astype(str).to_numpy()
+                for label_idx, label in enumerate(dict.fromkeys(cell_labels)):
+                    mask = cell_labels == label
+                    ax.scatter(
+                        coords[mask, 0], coords[mask, 1], s=4, alpha=0.25,
+                        color=PALETTE_34[label_idx % len(PALETTE_34)], label=f"cells: {label}",
+                    )
+                for source, target, curve in atac_curves:
+                    line, = ax.plot(curve[:, 0], curve[:, 1], linewidth=2, label=f"{source} -> {target}")
+                    middle = len(curve) // 2
+                    ax.annotate(
+                        "", xy=curve[min(middle + 5, len(curve) - 1)],
+                        xytext=curve[max(middle - 5, 0)],
+                        arrowprops={"arrowstyle": "->", "color": line.get_color(), "lw": 2},
+                    )
+                ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), fontsize=8)
+                ax.set_aspect("equal", adjustable="datalim")
+                fig.tight_layout()
+                fig.savefig(reference_curve_png_path, dpi=200)
+                plt.close(fig)
+            elif is_bursting:
                 plot_bursting_reference_curves_visualization(
                     adata=adata,
                     display_key=analysis_milestone_key,
@@ -6312,6 +6599,18 @@ def analyze_simulation_velocity_consistency(
                     method_name=tool,
                     dataset_name=dataset_name,
                 )
+            elif is_lineage:
+                coords = np.asarray(adata.obsm["X_umap"])
+                curve = build_lineage_tracing_reference_model(
+                    adata, analysis_milestone_key, basis
+                )["full_curve"]
+                fig, ax = plt.subplots(figsize=(9, 8))
+                ax.scatter(coords[:, 0], coords[:, 1], s=3, alpha=0.2, color="grey")
+                ax.plot(curve[:, 0], curve[:, 1], linewidth=2, color="black")
+                ax.set_aspect("equal", adjustable="datalim")
+                fig.tight_layout()
+                fig.savefig(reference_curve_png_path, dpi=200)
+                plt.close(fig)
             else:
                 plot_reference_curves_visualization(
                     adata=adata,
@@ -6320,8 +6619,9 @@ def analyze_simulation_velocity_consistency(
                     dataset_name=dataset_name,
                     basis=basis,
                     png_path=reference_curve_png_path,
-                    method_name=tool,
-                    use_gt_velocity_enhancement=use_gt_velocity_enhancement
+                    tool=tool,
+                    use_gt_velocity_enhancement=use_gt_velocity_enhancement,
+                    trajectory_segments=normalized_segments if not is_lineage else None,
                 )
 
         # Per-milestone summary stats
@@ -6386,9 +6686,9 @@ def resolve_reference_dir(reference_dir: Optional[str]) -> Optional[str]:
     return None
 
 _unified_logger = None
-_bursting_meta_cache: Dict[str, pd.DataFrame] = {}
-_bursting_reference_cache: Dict[str, Dict[str, Any]] = {}
-_lineage_tracing_reference_cache: Dict[str, Dict[str, Any]] = {}
+_bursting_meta_cache: Dict[Tuple[str, str], pd.DataFrame] = {}
+_bursting_reference_cache: Dict[Tuple[str, str], Dict[str, Any]] = {}
+_lineage_tracing_reference_cache: Dict[Tuple[str, str], Dict[str, Any]] = {}
 
 
 def get_unified_logger(log_file: Optional[str] = None) -> logging.Logger:
@@ -6535,48 +6835,36 @@ def match_cell_indices(
     """Match adata cell names to npz cell indices."""
     adjust_numeric_index = False
 
+    raw_adata_names = np.asarray(adata_cell_names).astype(str)
     normalized_adata_names = np.array([
         normalize_cell_name(str(n), adjust_numeric_index=adjust_numeric_index)
-        for n in adata_cell_names
+        for n in raw_adata_names
     ])
-
-    npz_name_to_idx = {str(name): idx for idx, name in enumerate(npz_cell_names)}
-
-    adata_indices = []
-    npz_indices = []
-
-    for adata_idx, name in enumerate(normalized_adata_names):
-        if name in npz_name_to_idx:
-            adata_indices.append(adata_idx)
-            npz_indices.append(npz_name_to_idx[name])
-
-    matched_count = len(adata_indices)
-    total_count = len(normalized_adata_names)
-
-    if matched_count == total_count:
-        return np.arange(total_count), np.array(npz_indices), "Exact match via cell_names"
-
-    # Try cell_names_unique
+    total_count = len(raw_adata_names)
+    candidates = [("cell_names", npz_cell_names)]
     if npz_cell_names_unique is not None:
-        npz_unique_to_idx = {str(name): idx for idx, name in enumerate(npz_cell_names_unique)}
+        candidates.append(("cell_names_unique", npz_cell_names_unique))
 
-        adata_indices_unique = []
-        npz_indices_unique = []
+    best_adata_indices = []
+    best_npz_indices = []
+    for names in (raw_adata_names, normalized_adata_names):
+        for source_name, source_names in candidates:
+            source_to_idx = {str(name): idx for idx, name in enumerate(source_names)}
+            adata_indices = []
+            npz_indices = []
+            for adata_idx, name in enumerate(names):
+                if name in source_to_idx:
+                    adata_indices.append(adata_idx)
+                    npz_indices.append(source_to_idx[name])
+            if len(adata_indices) == total_count:
+                return np.arange(total_count), np.array(npz_indices), f"Exact match via {source_name}"
+            if len(adata_indices) > len(best_adata_indices):
+                best_adata_indices = adata_indices
+                best_npz_indices = npz_indices
 
-        for adata_idx, name in enumerate(normalized_adata_names):
-            if name in npz_unique_to_idx:
-                adata_indices_unique.append(adata_idx)
-                npz_indices_unique.append(npz_unique_to_idx[name])
-
-        matched_count_unique = len(adata_indices_unique)
-
-        if matched_count_unique == total_count:
-            return np.arange(total_count), np.array(npz_indices_unique), "Exact match via cell_names_unique"
-
-        if matched_count_unique > matched_count:
-            adata_indices = adata_indices_unique
-            npz_indices = npz_indices_unique
-            matched_count = matched_count_unique
+    adata_indices = best_adata_indices
+    npz_indices = best_npz_indices
+    matched_count = len(adata_indices)
 
     if matched_count > 0:
         match_ratio = matched_count / total_count
@@ -6659,6 +6947,10 @@ def add_lineage_tracing_reference_umap(
             adata._inplace_subset_obs(adata_indices)
 
         source_basis_subset = source_basis[source_indices]
+        previous = adata.obsm.get("X_umap")
+        changed = previous is None or not check_dimred_consistency(np.asarray(previous), source_basis_subset)
+        if changed and velocity_key not in adata.layers:
+            raise ValueError("Reference coordinates changed; reprojection needs the predicted velocity layer")
         celltype_subset = None if source_celltype is None else source_celltype[source_indices]
 
         if celltype_subset is not None:
@@ -6798,6 +7090,10 @@ def add_bursting_metadata(
         adata.obs["pop"] = aligned_meta["pop_raw"].to_numpy()
 
         x_dimred_ref = reference_payload["X_basis"][ref_indices]
+        previous = adata.obsm.get("X_dimred")
+        changed = previous is None or not check_dimred_consistency(np.asarray(previous), x_dimred_ref)
+        if changed and velocity_key not in adata.layers:
+            raise ValueError("Reference coordinates changed; reprojection needs the predicted velocity layer")
         gt_dimred_ref = reference_payload["ground_truth_velocity_dimred"]
         adata.obsm["ground_truth_velocity_dimred"] = gt_dimred_ref[ref_indices]
 
@@ -6834,7 +7130,8 @@ def load_lineage_tracing_reference_payload(
 ) -> Dict[str, Any]:
     """Load and cache the lineage-tracing reference payload."""
     normalized_id = normalize_dataset_name(dataset_id)
-    cached = _lineage_tracing_reference_cache.get(normalized_id)
+    cache_key = (normalized_id, str(Path(reference_dir or "").expanduser().resolve()))
+    cached = _lineage_tracing_reference_cache.get(cache_key)
     if cached is not None:
         return {
             "cell_names": cached["cell_names"].copy(),
@@ -6866,7 +7163,7 @@ def load_lineage_tracing_reference_payload(
             else np.asarray(npz_data["celltype"]).astype(str)
         ),
     }
-    _lineage_tracing_reference_cache[normalized_id] = payload
+    _lineage_tracing_reference_cache[cache_key] = payload
     return {
         "cell_names": payload["cell_names"].copy(),
         "cell_names_unique": None if payload["cell_names_unique"] is None else payload["cell_names_unique"].copy(),
@@ -6886,7 +7183,8 @@ def load_bursting_reference_payload(
 ) -> Dict[str, Any]:
     """Load and cache the Bursting-tree reference payload."""
     normalized_id = normalize_dataset_name(dataset_id)
-    cached = _bursting_reference_cache.get(normalized_id)
+    cache_key = (normalized_id, str(Path(reference_dir or "").expanduser().resolve()))
+    cached = _bursting_reference_cache.get(cache_key)
     if cached is not None:
         return {key: (value.copy() if hasattr(value, "copy") else value) for key, value in cached.items()}
 
@@ -6919,7 +7217,7 @@ def load_bursting_reference_payload(
         "X_basis": np.asarray(npz_data["X_basis"])[:, :2].copy(),
         "ground_truth_velocity_dimred": np.asarray(npz_data["gt_dimred"])[:, :2].copy(),
     }
-    _bursting_reference_cache[normalized_id] = payload
+    _bursting_reference_cache[cache_key] = payload
     return {key: (value.copy() if hasattr(value, "copy") else value) for key, value in payload.items()}
 
 
@@ -6929,7 +7227,8 @@ def load_bursting_meta_table(
 ) -> pd.DataFrame:
     """Load and cache the Bursting-tree metadata table."""
     normalized_id = normalize_dataset_name(dataset_id)
-    cached = _bursting_meta_cache.get(normalized_id)
+    cache_key = (normalized_id, str(Path(reference_dir or "").expanduser().resolve()))
+    cached = _bursting_meta_cache.get(cache_key)
     if cached is not None:
         return cached.copy()
 
@@ -6944,7 +7243,7 @@ def load_bursting_meta_table(
         "milestone": payload["milestone"],
     })
     meta_df = meta_df.set_index("cell_id", drop=False)
-    _bursting_meta_cache[normalized_id] = meta_df.copy()
+    _bursting_meta_cache[cache_key] = meta_df.copy()
     return meta_df.copy()
 
 
@@ -7043,7 +7342,9 @@ def add_ground_truth_velocity_dimred(
     # If name matching fails, try position-based matching (only when sizes are identical)
     if adata_indices is None:
         if len(adata_cell_names) == len(cell_names):
-            existing_dimred = adata.obsm.get('X_dimred') or adata.obsm.get('X_umap')
+            existing_dimred = adata.obsm.get('X_dimred')
+            if existing_dimred is None:
+                existing_dimred = adata.obsm.get('X_umap')
 
             if existing_dimred is not None and check_dimred_consistency(existing_dimred, X_dimred_npz):
                 adata_indices = np.arange(len(adata_cell_names))
@@ -7097,6 +7398,8 @@ def add_ground_truth_velocity_dimred(
     vkey_umap = f"{velocity_key}_umap"
 
     if existing_dimred is not None and not check_dimred_consistency(existing_dimred, X_dimred_subset):
+        if velocity_key not in adata.layers:
+            raise ValueError("Reference coordinates changed; reprojection needs the predicted velocity layer")
         dimred_mismatch = True
 
         has_vkey_dimred = vkey_dimred in adata.obsm
@@ -7143,9 +7446,6 @@ def compute_velocity_embeddings_generic(
     n_jobs: int = 1,
 ) -> bool:
     """Compute a missing low-dimensional velocity embedding with generic fallbacks."""
-    if velocity_key not in adata.layers:
-        return True
-
     try:
         ensure_velocity_embedding_sim(adata, velocity_key, basis_name, n_jobs=n_jobs)
         return True

@@ -1,22 +1,21 @@
-# Docker environments
-This repository provides Dockerfiles to build tool-specific images for single-cell analysis workflows. Each image includes an SSH server and a non-root user to simplify remote access and reproducible execution.
+### Overview
+This repository provides Dockerfiles to build tool-specific images for single‑cell analysis workflows. Each image includes an SSH server and a non‑root user to simplify remote access and reproducible execution.
 
 ---
 
 ## Build an image for a specific tool
-To build an image for a tool, change into its directory containing `Dockerfile` and `start.sh`, then run:
+To build an image for a tool, change into the tool’s directory with the key file `Dockerfile` and run:
 
 ```bash
-docker build -t tool-name:tag .
+docker build -t TOOL-name:tag .
 ```
 
-This produces an image named `tool-name` with the specified `tag`.
+This will produce a Docker image named `TOOL-name` with the specified `tag`.
 
 ---
 
 ### SSH user and customization
-The recipes include an SSH service and a non-root user. Check the selected
-Dockerfile for supported build arguments. A typical recipe accepts:
+All images include an external SSH service and a non‑root user. You can customize the default user and credentials by editing these build arguments in the Dockerfile:
 
 ```dockerfile
 ARG USERNAME=user1
@@ -36,11 +35,11 @@ Example for creating the `unitvelo` environment and installing packages:
 
 ```dockerfile
 RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
 RUN conda create -n unitvelo --yes python=3.9.0 && \
-    /bin/bash -c "source $CONDA_DIR/bin/activate unitvelo && \
-    pip install unitvelo GPUtil pynvml scvelo==0.2.5 tensorflow==2.4.1 numba==0.57.1 numpy==1.21.1"
+/bin/bash -c "source $CONDA_DIR/bin/activate unitvelo && \
+   pip install unitvelo GPUtil pynvml scvelo==0.2.5 tensorflow==2.4.1 numba==0.57.1 numpy==1.21.1"
 ```
 
 Edit the package list and versions to suit your requirements.
@@ -53,18 +52,18 @@ Edit the package list and versions to suit your requirements.
 
 ```bash
 docker run --gpus all -it --rm \
-  -v /path/to/data:/workspace/data \
-  tool-name:tag
+-v /path/to/data:/workspace/data \
+TOOL-name:tag
 ```
 
 ### With SSH Access
 
 ```bash
-docker run --gpus all -dit \
-  -p 127.0.0.1:2222:22 \
-  -v /path/to/data:/workspace/data \
-  --name tool-name-container \
-  tool-name:tag
+docker run --gpus all -d \
+-p 2222:22 \
+-v /path/to/data:/workspace/data \
+--name TOOL-name-container \
+TOOL-name:tag
 ```
 
 Connect via SSH:
@@ -74,20 +73,16 @@ ssh UserNameYouSet@localhost -p 2222
 
 ### Important notes about entrypoint and startup scripts
 - **docker-entrypoint.sh**  
-  Some recipes use this script for extra startup setup. Inspect the selected
-  script before changing its `ENTRYPOINT`; host directories are mounted using
-  `docker run -v`, as in the examples above:
+This script is used to mount local paths into the container at runtime. If your environment does not support this behavior, comment out or remove the related lines in the Dockerfile:
 
-  ```dockerfile
-  COPY docker-entrypoint.sh /usr/local/bin/
-  RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-  ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-  ```
+```dockerfile
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+```
 
 - **start.sh**  
-  Some recipes use `start.sh` to start SSH and open Bash. An explicit command
-  after the image name replaces the default `CMD`; check the selected recipe's
-  entrypoint and environment name.
+Use `start.sh` for container startup tasks such as starting the SSH daemon or applying runtime source code modifications. We recommend placing any runtime operations you need inside this script so they run automatically when the container starts.
 
 ---
 

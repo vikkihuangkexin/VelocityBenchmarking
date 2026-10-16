@@ -87,10 +87,3 @@ ATAC and Spatial use `stability_mode = downsampling_only`.
 | `usability_rules.csv` | 24 subcategories with category/subcategory weights (Table S7) |
 | `{scRNA,ATAC,Spatial}_usability_items.csv` | per-method item scores, `evidence_note`, `source_url` (Table S8) |
 
-  `output_file` and records sha256 for both the archive and each member; it also
-  notes the rename applied on import (`_sim_` -> `_simulation_`) and that spatial
-  perturbations were routed to `downsampling/` only.
-- Reference consumers: `Figure_code/config/{scRNA,ATAC,Spatial}.json`,
-  `Figure_code/figures/Figure3/config/input_manifest.json`,
-  `Figure_code/prepare_multimodal_inputs.py`, and `Figure_code/common/inputs.py`
-  (strict readers with no silent fallbacks).

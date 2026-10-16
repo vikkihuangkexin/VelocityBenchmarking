@@ -1,0 +1,147 @@
+{
+  "schema_version": 2,
+  "profile": "ATAC",
+  "transition_version": "v1",
+  "methods_csv": "measurements_raw/ATAC/methods.csv",
+  "real_id_map_csv": "measurements_raw/ATAC/real_dataset_ids.csv",
+  "excluded_methods": [],
+  "method_aliases": {},
+  "data_type_weighting": "balanced",
+  "accuracy_metrics": [
+    "Angle consistency",
+    "CBDir",
+    "Transition V1",
+    "Ground-truth correlation"
+  ],
+  "consistency_metrics": [
+    "Consistency score",
+    "ICCoh"
+  ],
+  "measurement_inputs": [
+    {
+      "path": "measurements_raw/ATAC/measurement/summary/AngleConsistency_ATAC_real_02_summary.csv",
+      "metric": "Angle consistency",
+      "data_type": "real",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/ATAC/measurement/summary/AngleConsistency_ATAC_simulation_02_summary.csv",
+      "metric": "Angle consistency",
+      "data_type": "simulation",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/ATAC/measurement/summary/CBDir_ATAC_real_02_summary.csv",
+      "metric": "CBDir",
+      "data_type": "real",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/ATAC/measurement/summary/CBDir_ATAC_simulation_02_summary.csv",
+      "metric": "CBDir",
+      "data_type": "simulation",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/ATAC/measurement/summary/TransitionScore_ATAC_real_02_summary.csv",
+      "metric": "Transition V1",
+      "data_type": "real",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/ATAC/measurement/summary/TransitionScore_ATAC_simulation_02_summary.csv",
+      "metric": "Transition V1",
+      "data_type": "simulation",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/ATAC/measurement/summary/GroundTruthCorrelation_ATAC_simulation_02_summary.csv",
+      "metric": "Ground-truth correlation",
+      "data_type": "simulation",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/ATAC/measurement/summary/ConsistencyScore_ATAC_real_02_summary.csv",
+      "metric": "Consistency score",
+      "data_type": "real",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/ATAC/measurement/summary/ConsistencyScore_ATAC_simulation_02_summary.csv",
+      "metric": "Consistency score",
+      "data_type": "simulation",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/ATAC/measurement/summary/ICCoh_ATAC_real_02_summary.csv",
+      "metric": "ICCoh",
+      "data_type": "real",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/ATAC/measurement/summary/ICCoh_ATAC_simulation_02_summary.csv",
+      "metric": "ICCoh",
+      "data_type": "simulation",
+      "role": "summary"
+    }
+  ],
+  "resource_csvs": [
+    "scalability/ATAC_runtime.csv",
+    "scalability/ATAC_cpu_ram.csv",
+    "scalability/ATAC_gpu_vram.csv"
+  ],
+  "resource_protocols": [
+    "top_ATAC"
+  ],
+  "resource_components": [
+    "runtime_seconds",
+    "ram_gb"
+  ],
+  "resource_units": {
+    "runtime_seconds": "seconds",
+    "ram_gb": "GB",
+    "vram_gb": "GB"
+  },
+  "usability_items_csv": "usability/ATAC_usability_items.csv",
+  "usability_rules_csv": "usability/usability_rules.csv",
+  "usability_category_weights": {
+    "Installability": 0.25,
+    "Code quality": 0.25,
+    "Usage guidance": 0.2,
+    "Maintenance": 0.15,
+    "Publication quality": 0.15
+  },
+  "usability_expected_item_counts": {
+    "Installability": 6,
+    "Code quality": 5,
+    "Usage guidance": 5,
+    "Maintenance": 5,
+    "Publication quality": 3
+  },
+  "downsampling_inputs": [
+    {
+      "path": "measurements_raw/ATAC/measurement/downsampling/GroundTruthCorrelation_ATAC_downsampling_02_summary.csv",
+      "metric": "Ground-truth correlation",
+      "data_type": "simulation",
+      "role": "downsampling"
+    }
+  ],
+  "downsampling_groups": {
+    "cell": "_downsample(?:60|70|80|90|95)_r[12]$"
+  },
+  "stability_mode": "downsampling_only",
+  "stability_weights": {
+    "downsampling": 1
+  },
+  "batch_sd_inputs": [],
+  "overall_weights": {
+    "accuracy": 0.65,
+    "consistency": 0.1,
+    "scalability": 0.1,
+    "stability": 0.075,
+    "usability": 0.075
+  },
+  "overall_missing_policy": "strict",
+  "allow_missing_sources": false,
+  "source_note": "17 real tasks, 25 ordinary simulated tasks including four sparse tasks, and ten cell-downsampling tasks. r1/r2 remain literal replicate labels without an inferred biological meaning."
+}

@@ -1,0 +1,5 @@
+task_order,dataset_id,topology,sparsity_label,task_label,shape,offset,nominal_cells,nominal_genes
+1,22_linear_cell10000_gene20000_sparse90,linear,sparse90,Linear | sparse90,21,-0.18,10000,20000
+2,23_linear_cell10000_gene20000_sparse97,linear,sparse97,Linear | sparse97,24,-0.06,10000,20000
+3,24_bifurcation3_cell10000_gene20000_sparse90,bifurcation3,sparse90,Bifurcation3 | sparse90,22,0.06,10000,20000
+4,25_bifurcation3_cell10000_gene20000_sparse97,bifurcation3,sparse97,Bifurcation3 | sparse97,23,0.18,10000,20000

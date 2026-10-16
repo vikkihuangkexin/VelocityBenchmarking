@@ -1,0 +1,78 @@
+method,protocol,measure,dataset_id,unit,clean_value,raw_token,value_status,cells,genes,data_type,source_locator,source_workbook
+TopoVelo,top_Spatial,vram_gb,cell_scaling_cell1000_gene9836,GB,3.738,3.738,valid_positive,1000,9836,real,Table S6!B30,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,vram_gb,cell_scaling_cell1000_gene9836,GB,5.8470000000000004,5.847,valid_positive,1000,9836,real,Table S6!B32,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,vram_gb,cell_scaling_cell1000_gene9836,GB,,NA,missing_marker,1000,9836,real,Table S6!B33,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,vram_gb,cell_scaling_cell1000_gene9836,GB,,,method_not_provided,1000,9836,real,,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,vram_gb,cell_scaling_cell1000_gene9836,GB,5.9080000000000004,5.908,valid_positive,1000,9836,real,Table S6!B28,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,vram_gb,cell_scaling_cell1000_gene9836,GB,9.9879999999999995,9.988,valid_positive,1000,9836,real,Table S6!B29,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,vram_gb,cell_scaling_cell1000_gene9836,GB,1.9279999999999999,1.928,valid_positive,1000,9836,real,Table S6!B31,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,vram_gb,cell_scaling_cell2000_gene9836,GB,2.5310000000000001,2.531,valid_positive,2000,9836,real,Table S6!C30,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,vram_gb,cell_scaling_cell2000_gene9836,GB,23.382999999999999,23.383,valid_positive,2000,9836,real,Table S6!C32,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,vram_gb,cell_scaling_cell2000_gene9836,GB,,NA,missing_marker,2000,9836,real,Table S6!C33,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,vram_gb,cell_scaling_cell2000_gene9836,GB,,,method_not_provided,2000,9836,real,,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,vram_gb,cell_scaling_cell2000_gene9836,GB,5.9080000000000004,5.908,valid_positive,2000,9836,real,Table S6!C28,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,vram_gb,cell_scaling_cell2000_gene9836,GB,7.0650000000000004,7.065,valid_positive,2000,9836,real,Table S6!C29,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,vram_gb,cell_scaling_cell2000_gene9836,GB,1.9279999999999999,1.928,valid_positive,2000,9836,real,Table S6!C31,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,vram_gb,cell_scaling_cell5000_gene9836,GB,23.809000000000001,23.809,valid_positive,5000,9836,real,Table S6!D30,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,vram_gb,cell_scaling_cell5000_gene9836,GB,23.364000000000001,23.364,valid_positive,5000,9836,real,Table S6!D32,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,vram_gb,cell_scaling_cell5000_gene9836,GB,,NA,missing_marker,5000,9836,real,Table S6!D33,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,vram_gb,cell_scaling_cell5000_gene9836,GB,,,method_not_provided,5000,9836,real,,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,vram_gb,cell_scaling_cell5000_gene9836,GB,5.9080000000000004,5.908,valid_positive,5000,9836,real,Table S6!D28,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,vram_gb,cell_scaling_cell5000_gene9836,GB,9.9860000000000007,9.986,valid_positive,5000,9836,real,Table S6!D29,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,vram_gb,cell_scaling_cell5000_gene9836,GB,1.9279999999999999,1.928,valid_positive,5000,9836,real,Table S6!D31,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,vram_gb,cell_scaling_cell10000_gene9836,GB,9.6099999999999994,9.61,valid_positive,10000,9836,real,Table S6!E30,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,vram_gb,cell_scaling_cell10000_gene9836,GB,23.367000000000001,23.367,valid_positive,10000,9836,real,Table S6!E32,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,vram_gb,cell_scaling_cell10000_gene9836,GB,,NA,missing_marker,10000,9836,real,Table S6!E33,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,vram_gb,cell_scaling_cell10000_gene9836,GB,,,method_not_provided,10000,9836,real,,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,vram_gb,cell_scaling_cell10000_gene9836,GB,5.9080000000000004,5.908,valid_positive,10000,9836,real,Table S6!E28,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,vram_gb,cell_scaling_cell10000_gene9836,GB,,CUDA OOM,recorded_run_failure,10000,9836,real,Table S6!E29,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,vram_gb,cell_scaling_cell10000_gene9836,GB,1.9279999999999999,1.928,valid_positive,10000,9836,real,Table S6!E31,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,vram_gb,cell_scaling_cell20000_gene9836,GB,,CUDA OOM,recorded_run_failure,20000,9836,real,Table S6!F30,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,vram_gb,cell_scaling_cell20000_gene9836,GB,,CUDA OOM,recorded_run_failure,20000,9836,real,Table S6!F32,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,vram_gb,cell_scaling_cell20000_gene9836,GB,,NA,missing_marker,20000,9836,real,Table S6!F33,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,vram_gb,cell_scaling_cell20000_gene9836,GB,,,method_not_provided,20000,9836,real,,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,vram_gb,cell_scaling_cell20000_gene9836,GB,5.9080000000000004,5.908,valid_positive,20000,9836,real,Table S6!F28,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,vram_gb,cell_scaling_cell20000_gene9836,GB,,CUDA OOM,recorded_run_failure,20000,9836,real,Table S6!F29,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,vram_gb,cell_scaling_cell20000_gene9836,GB,1.9279999999999999,1.928,valid_positive,20000,9836,real,Table S6!F31,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,vram_gb,cell_scaling_cell50000_gene9836,GB,,CUDA OOM,recorded_run_failure,50000,9836,real,Table S6!G30,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,vram_gb,cell_scaling_cell50000_gene9836,GB,,CUDA OOM,recorded_run_failure,50000,9836,real,Table S6!G32,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,vram_gb,cell_scaling_cell50000_gene9836,GB,,NA,missing_marker,50000,9836,real,Table S6!G33,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,vram_gb,cell_scaling_cell50000_gene9836,GB,,,method_not_provided,50000,9836,real,,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,vram_gb,cell_scaling_cell50000_gene9836,GB,5.9080000000000004,5.908,valid_positive,50000,9836,real,Table S6!G28,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,vram_gb,cell_scaling_cell50000_gene9836,GB,,CUDA OOM,recorded_run_failure,50000,9836,real,Table S6!G29,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,vram_gb,cell_scaling_cell50000_gene9836,GB,2.7290000000000001,2.729,valid_positive,50000,9836,real,Table S6!G31,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene1000,GB,1.3899999999999999,1.39,valid_positive,1967,1000,real,Table S6!B41,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,vram_gb,gene_scaling_cell1967_gene1000,GB,9.9819999999999993,9.982,valid_positive,1967,1000,real,Table S6!B43,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene1000,GB,,NA,missing_marker,1967,1000,real,Table S6!B44,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,vram_gb,gene_scaling_cell1967_gene1000,GB,,,method_not_provided,1967,1000,real,,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene1000,GB,5.9080000000000004,5.908,valid_positive,1967,1000,real,Table S6!B39,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,vram_gb,gene_scaling_cell1967_gene1000,GB,9.9960000000000004,9.996,valid_positive,1967,1000,real,Table S6!B40,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,vram_gb,gene_scaling_cell1967_gene1000,GB,1.9279999999999999,1.928,valid_positive,1967,1000,real,Table S6!B42,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene2000,GB,2.081,2.081,valid_positive,1967,2000,real,Table S6!C41,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,vram_gb,gene_scaling_cell1967_gene2000,GB,4.016,4.016,valid_positive,1967,2000,real,Table S6!C43,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene2000,GB,,NA,missing_marker,1967,2000,real,Table S6!C44,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,vram_gb,gene_scaling_cell1967_gene2000,GB,,,method_not_provided,1967,2000,real,,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene2000,GB,5.9080000000000004,5.908,valid_positive,1967,2000,real,Table S6!C39,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,vram_gb,gene_scaling_cell1967_gene2000,GB,1.0269999999999999,1.027,valid_positive,1967,2000,real,Table S6!C40,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,vram_gb,gene_scaling_cell1967_gene2000,GB,0.77100000000000002,0.771,valid_positive,1967,2000,real,Table S6!C42,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene5000,GB,2.028,2.028,valid_positive,1967,5000,real,Table S6!D41,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,vram_gb,gene_scaling_cell1967_gene5000,GB,3.1619999999999999,3.162,valid_positive,1967,5000,real,Table S6!D43,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene5000,GB,,NA,missing_marker,1967,5000,real,Table S6!D44,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,vram_gb,gene_scaling_cell1967_gene5000,GB,,,method_not_provided,1967,5000,real,,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene5000,GB,5.9000000000000004,5.9,valid_positive,1967,5000,real,Table S6!D39,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,vram_gb,gene_scaling_cell1967_gene5000,GB,1.0269999999999999,1.027,valid_positive,1967,5000,real,Table S6!D40,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,vram_gb,gene_scaling_cell1967_gene5000,GB,0.76900000000000002,0.769,valid_positive,1967,5000,real,Table S6!D42,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene10000,GB,2.0960000000000001,2.096,valid_positive,1967,10000,real,Table S6!E41,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,vram_gb,gene_scaling_cell1967_gene10000,GB,4.0140000000000002,4.014,valid_positive,1967,10000,real,Table S6!E43,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene10000,GB,,NA,missing_marker,1967,10000,real,Table S6!E44,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,vram_gb,gene_scaling_cell1967_gene10000,GB,,,method_not_provided,1967,10000,real,,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene10000,GB,5.9080000000000004,5.908,valid_positive,1967,10000,real,Table S6!E39,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,vram_gb,gene_scaling_cell1967_gene10000,GB,1.0269999999999999,1.027,valid_positive,1967,10000,real,Table S6!E40,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,vram_gb,gene_scaling_cell1967_gene10000,GB,0.76900000000000002,0.769,valid_positive,1967,10000,real,Table S6!E42,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene20000,GB,2.0030000000000001,2.003,valid_positive,1967,20000,real,Table S6!F41,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,vram_gb,gene_scaling_cell1967_gene20000,GB,3.1619999999999999,3.162,valid_positive,1967,20000,real,Table S6!F43,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene20000,GB,,NA,missing_marker,1967,20000,real,Table S6!F44,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,vram_gb,gene_scaling_cell1967_gene20000,GB,,,method_not_provided,1967,20000,real,,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,vram_gb,gene_scaling_cell1967_gene20000,GB,5.9000000000000004,5.9,valid_positive,1967,20000,real,Table S6!F39,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,vram_gb,gene_scaling_cell1967_gene20000,GB,1.0249999999999999,1.025,valid_positive,1967,20000,real,Table S6!F40,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,vram_gb,gene_scaling_cell1967_gene20000,GB,0.76900000000000002,0.769,valid_positive,1967,20000,real,Table S6!F42,Supplementary_Tables_1014(1).xlsx

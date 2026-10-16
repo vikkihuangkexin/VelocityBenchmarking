@@ -1,0 +1,11 @@
+,cellsub-chickenheart_60pct,cellsub-chickenheart_70pct,cellsub-chickenheart_80pct,cellsub-chickenheart_90pct,cellsub-chickenheart_95pct,genesub-chickenheart_60pct,genesub-chickenheart_70pct,genesub-chickenheart_80pct,genesub-chickenheart_90pct,genesub-chickenheart_95pct
+spaVelo,31.91,41.93,NA,NA,34.88,NA,34.41,35.85,35.51,31.53
+STEER,32.62,30.24,23.3,43.94,36.94,36.86,46.1,32.71,28.81,28.64
+TopoVelo,25.0,39.01,29.05,42.41,28.09,21.54,44.78,14.33,30.45,32.23
+STT,27.78,22.41,37.2,34.97,30.59,37.29,19.24,33.73,30.17,30.85
+SDEvelo,23.5,38.8,25.81,30.25,27.01,22.88,27.88,29.66,28.9,28.05
+veloAgent,51.71,59.4,23.41,7.4,13.42,26.02,50.08,6.78,11.44,14.58
+cell2fate,3.42,10.96,31.97,34.88,45.53,13.39,26.86,8.05,13.64,10.42
+InterVelo,15.1,11.93,20.48,16.1,18.78,3.31,8.56,12.63,17.46,16.27
+scVelo-dynamical,24.22,18.31,27.27,23.31,23.61,21.19,25.25,22.63,23.14,22.37
+scVelo-stochastic,26.21,23.49,14.94,17.21,18.78,18.22,13.64,19.32,18.14,14.07

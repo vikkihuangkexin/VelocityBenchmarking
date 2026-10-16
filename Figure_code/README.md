@@ -1,20 +1,15 @@
-# Figure_code
+# Benchmark calculations
 
-All code used for ranking, sensitivity analysis, and figure generation is stored here.
+Run `python Figure_code/run.py --profile all` from the repository root.
+Use `--profile scRNA`, `--profile ATAC`, or `--profile Spatial` for one modality.
+The root README documents inputs, formulas, missing sources, and output status.
 
-Run the core workflow from the repository root:
+The five dimension folders contain the calculations. `common/` owns shared
+readers and numerical rules. `config/` declares each modality's input files,
+method roster, metrics, and weights. `verify.py` independently recomputes scores
+from Source_data. `tests/` covers scientific rules and missing-source behavior.
 
-```bash
-bash Figure_code/run_core_pipeline.sh
-```
-
-Subfolders:
-
-- `accuracy/`: accuracy aggregation and reversed-rank formatting (related to Supplementary Note 5).
-- `scalability/`: scalability rank calculation.
-- `stability/`: stability rank calculation.
-- `usability/`: usability rank formatting.
-- `overall/`: final overall rank calculation.
-- `sensitivity/`: category-weight sensitivity analysis (related to Supplementary Note 8).
-- `figures/`: figure plotting scripts.
-- `figure4_cell_cycle/`: cell-cycle realted analysis scripts.
+Existing figure scripts remain in `figures/`, with their own dependencies and
+run commands. Core calculation does not require R or run plotting automatically.
+`prepare_multimodal_inputs.py` documents optional extraction from the uploaded
+archives and confirmed supplementary workbook. Prepared CSVs are distributed.

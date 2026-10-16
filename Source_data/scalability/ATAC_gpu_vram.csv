@@ -1,0 +1,190 @@
+method,protocol,measure,dataset_id,unit,clean_value,raw_token,value_status,cells,genes,data_type,source_locator,source_workbook
+MoFlow,top_ATAC,vram_gb,01_linear_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,01_linear_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,01_linear_cell1000_gene1000,GB,1.558227539,1.558227539,valid_positive,1000,1000,simulation,Table S6!B23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,01_linear_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,01_linear_cell1000_gene1000,GB,2.303955078,2.303955078,valid_positive,1000,1000,simulation,Table S6!B22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,01_linear_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,01_linear_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,01_linear_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,01_linear_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,02_bifurcation3_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,02_bifurcation3_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,02_bifurcation3_cell1000_gene1000,GB,1.558227539,1.558227539,valid_positive,1000,1000,simulation,Table S6!C23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,02_bifurcation3_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,02_bifurcation3_cell1000_gene1000,GB,2.302001953,2.302001953,valid_positive,1000,1000,simulation,Table S6!C22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,02_bifurcation3_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,02_bifurcation3_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,02_bifurcation3_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,02_bifurcation3_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,03_bifurcation5_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,03_bifurcation5_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,03_bifurcation5_cell1000_gene1000,GB,,AssertionError: underflow in dt nan,recorded_run_failure,1000,1000,simulation,Table S6!D23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,03_bifurcation5_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,03_bifurcation5_cell1000_gene1000,GB,2.302001953,2.302001953,valid_positive,1000,1000,simulation,Table S6!D22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,03_bifurcation5_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,03_bifurcation5_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,03_bifurcation5_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,03_bifurcation5_cell1000_gene1000,GB,,,method_not_provided,1000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,04_linear_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,04_linear_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,04_linear_cell1000_gene5000,GB,1.573852539,1.573852539,valid_positive,1000,5000,simulation,Table S6!E23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,04_linear_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,04_linear_cell1000_gene5000,GB,2.624267578,2.624267578,valid_positive,1000,5000,simulation,Table S6!E22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,04_linear_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,04_linear_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,04_linear_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,04_linear_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,05_bifurcation3_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,05_bifurcation3_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,05_bifurcation3_cell1000_gene5000,GB,1.573852539,1.573852539,valid_positive,1000,5000,simulation,Table S6!F23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,05_bifurcation3_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,05_bifurcation3_cell1000_gene5000,GB,2.624267578,2.624267578,valid_positive,1000,5000,simulation,Table S6!F22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,05_bifurcation3_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,05_bifurcation3_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,05_bifurcation3_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,05_bifurcation3_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,06_bifurcation5_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,06_bifurcation5_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,06_bifurcation5_cell1000_gene5000,GB,1.573852539,1.573852539,valid_positive,1000,5000,simulation,Table S6!G23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,06_bifurcation5_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,06_bifurcation5_cell1000_gene5000,GB,2.624267578,2.624267578,valid_positive,1000,5000,simulation,Table S6!G22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,06_bifurcation5_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,06_bifurcation5_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,06_bifurcation5_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,06_bifurcation5_cell1000_gene5000,GB,,,method_not_provided,1000,5000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,07_linear_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,07_linear_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,07_linear_cell1000_gene10000,GB,1.593383789,1.593383789,valid_positive,1000,10000,simulation,Table S6!H23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,07_linear_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,07_linear_cell1000_gene10000,GB,3.036376953,3.036376953,valid_positive,1000,10000,simulation,Table S6!H22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,07_linear_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,07_linear_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,07_linear_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,07_linear_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,08_bifurcation3_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,08_bifurcation3_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,08_bifurcation3_cell1000_gene10000,GB,1.593383789,1.593383789,valid_positive,1000,10000,simulation,Table S6!I23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,08_bifurcation3_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,08_bifurcation3_cell1000_gene10000,GB,3.036376953,3.036376953,valid_positive,1000,10000,simulation,Table S6!I22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,08_bifurcation3_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,08_bifurcation3_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,08_bifurcation3_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,08_bifurcation3_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,09_bifurcation5_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,09_bifurcation5_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,09_bifurcation5_cell1000_gene10000,GB,1.593383789,1.593383789,valid_positive,1000,10000,simulation,Table S6!J23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,09_bifurcation5_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,09_bifurcation5_cell1000_gene10000,GB,3.036376953,3.036376953,valid_positive,1000,10000,simulation,Table S6!J22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,09_bifurcation5_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,09_bifurcation5_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,09_bifurcation5_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,09_bifurcation5_cell1000_gene10000,GB,,,method_not_provided,1000,10000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,10_linear_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,10_linear_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,10_linear_cell1000_gene20000,GB,1.632446289,1.632446289,valid_positive,1000,20000,simulation,Table S6!K23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,10_linear_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,10_linear_cell1000_gene20000,GB,,[killed/ flag] Run did not finish (process killed or interru...,recorded_run_failure,1000,20000,simulation,Table S6!K22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,10_linear_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,10_linear_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,10_linear_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,10_linear_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,11_bifurcation3_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,11_bifurcation3_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,11_bifurcation3_cell1000_gene20000,GB,1.632446289,1.632446289,valid_positive,1000,20000,simulation,Table S6!L23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,11_bifurcation3_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,11_bifurcation3_cell1000_gene20000,GB,3.962158203,3.962158203,valid_positive,1000,20000,simulation,Table S6!L22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,11_bifurcation3_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,11_bifurcation3_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,11_bifurcation3_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,11_bifurcation3_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,12_bifurcation5_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,12_bifurcation5_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,12_bifurcation5_cell1000_gene20000,GB,1.632446289,1.632446289,valid_positive,1000,20000,simulation,Table S6!M23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,12_bifurcation5_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,12_bifurcation5_cell1000_gene20000,GB,3.962158203,3.962158203,valid_positive,1000,20000,simulation,Table S6!M22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,12_bifurcation5_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,12_bifurcation5_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,12_bifurcation5_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,12_bifurcation5_cell1000_gene20000,GB,,,method_not_provided,1000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,13_linear_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,13_linear_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,13_linear_cell5000_gene1000,GB,,AssertionError: underflow in dt nan,recorded_run_failure,5000,1000,simulation,Table S6!N23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,13_linear_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,13_linear_cell5000_gene1000,GB,2.534423828,2.534423828,valid_positive,5000,1000,simulation,Table S6!N22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,13_linear_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,13_linear_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,13_linear_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,13_linear_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,14_bifurcation3_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,14_bifurcation3_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,14_bifurcation3_cell5000_gene1000,GB,1.558227539,1.558227539,valid_positive,5000,1000,simulation,Table S6!O23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,14_bifurcation3_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,14_bifurcation3_cell5000_gene1000,GB,2.534423828,2.534423828,valid_positive,5000,1000,simulation,Table S6!O22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,14_bifurcation3_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,14_bifurcation3_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,14_bifurcation3_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,14_bifurcation3_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,15_bifurcation5_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,15_bifurcation5_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,15_bifurcation5_cell5000_gene1000,GB,,UnpicklingError: pickle data was truncated,recorded_run_failure,5000,1000,simulation,Table S6!P23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,15_bifurcation5_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,15_bifurcation5_cell5000_gene1000,GB,2.534423828,2.534423828,valid_positive,5000,1000,simulation,Table S6!P22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,15_bifurcation5_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,15_bifurcation5_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,15_bifurcation5_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,15_bifurcation5_cell5000_gene1000,GB,,,method_not_provided,5000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,16_linear_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,16_linear_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,16_linear_cell10000_gene1000,GB,,AssertionError: underflow in dt nan,recorded_run_failure,10000,1000,simulation,Table S6!Q23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,16_linear_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,16_linear_cell10000_gene1000,GB,2.852783203,2.852783203,valid_positive,10000,1000,simulation,Table S6!Q22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,16_linear_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,16_linear_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,16_linear_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,16_linear_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,17_bifurcation3_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,17_bifurcation3_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,17_bifurcation3_cell10000_gene1000,GB,,AssertionError: underflow in dt nan,recorded_run_failure,10000,1000,simulation,Table S6!R23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,17_bifurcation3_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,17_bifurcation3_cell10000_gene1000,GB,2.850830078,2.850830078,valid_positive,10000,1000,simulation,Table S6!R22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,17_bifurcation3_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,17_bifurcation3_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,17_bifurcation3_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,17_bifurcation3_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,18_bifurcation5_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,18_bifurcation5_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,18_bifurcation5_cell10000_gene1000,GB,,AssertionError: underflow in dt nan,recorded_run_failure,10000,1000,simulation,Table S6!S23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,18_bifurcation5_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,18_bifurcation5_cell10000_gene1000,GB,2.850830078,2.850830078,valid_positive,10000,1000,simulation,Table S6!S22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,18_bifurcation5_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,18_bifurcation5_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,18_bifurcation5_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,18_bifurcation5_cell10000_gene1000,GB,,,method_not_provided,10000,1000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,19_linear_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,19_linear_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,19_linear_cell10000_gene20000,GB,,[killed/ flag] Run did not finish (process killed or interru...,recorded_run_failure,10000,20000,simulation,Table S6!T23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,19_linear_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,19_linear_cell10000_gene20000,GB,16.655517580000001,16.65551758,valid_positive,10000,20000,simulation,Table S6!T22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,19_linear_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,19_linear_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,19_linear_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,19_linear_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,20_bifurcation3_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,20_bifurcation3_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,20_bifurcation3_cell10000_gene20000,GB,,[killed/ flag] Run did not finish (process killed or interru...,recorded_run_failure,10000,20000,simulation,Table S6!U23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,20_bifurcation3_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,20_bifurcation3_cell10000_gene20000,GB,16.655517580000001,16.65551758,valid_positive,10000,20000,simulation,Table S6!U22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,20_bifurcation3_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,20_bifurcation3_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,20_bifurcation3_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,20_bifurcation3_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,vram_gb,21_bifurcation5_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,vram_gb,21_bifurcation5_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,vram_gb,21_bifurcation5_cell10000_gene20000,GB,,[killed/ flag] Run did not finish (process killed or interru...,recorded_run_failure,10000,20000,simulation,Table S6!V23,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,vram_gb,21_bifurcation5_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,vram_gb,21_bifurcation5_cell10000_gene20000,GB,16.655517580000001,16.65551758,valid_positive,10000,20000,simulation,Table S6!V22,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,vram_gb,21_bifurcation5_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,vram_gb,21_bifurcation5_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,vram_gb,21_bifurcation5_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,vram_gb,21_bifurcation5_cell10000_gene20000,GB,,,method_not_provided,10000,20000,simulation,,Supplementary_Tables_1014(1).xlsx

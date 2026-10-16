@@ -1,0 +1,8 @@
+pair_id,scRNA_dataset,scRNA_dataset_id,ATAC_dataset,ATAC_dataset_id,pair_label
+1,26_Hs_Blood,26,75_Hs_Blood,75,Hs Blood
+2,22_Mm_BrainE18,22,76_Mm_BrainE18,76,Mm Brain E18
+3,24_Mm_Skin,24,77_Mm_Skin,77,Mm Skin
+4,25_Hs_Brain,25,78_Hs_Brain,78,Hs Brain
+5,52_Mm_Thymus,52,79_Mm_Thymus,79,Mm Thymus
+6,53_Hs_PBMC,53,80_Hs_PBMC,80,Hs PBMC
+7,54_Hs_Cortex,54,81_Hs_Cortex,81,Hs Cortex

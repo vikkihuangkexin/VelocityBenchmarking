@@ -1,0 +1,78 @@
+method,protocol,measure,dataset_id,unit,clean_value,raw_token,value_status,cells,genes,data_type,source_locator,source_workbook
+TopoVelo,top_Spatial,runtime_seconds,cell_scaling_cell1000_gene9836,seconds,485.86500000000001,485.865,valid_positive,1000,9836,real,Table S4!B53,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,runtime_seconds,cell_scaling_cell1000_gene9836,seconds,317.77600000000001,317.776,valid_positive,1000,9836,real,Table S4!B55,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,runtime_seconds,cell_scaling_cell1000_gene9836,seconds,,numpy.linalg.LinAlgError: SVD did not converge,recorded_run_failure,1000,9836,real,Table S4!B56,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,runtime_seconds,cell_scaling_cell1000_gene9836,seconds,,IndexError: cannot do a non-empty take from an empty axes.,recorded_run_failure,1000,9836,real,Table S4!B51,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,runtime_seconds,cell_scaling_cell1000_gene9836,seconds,215.54300000000001,215.543,valid_positive,1000,9836,real,Table S4!B50,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,runtime_seconds,cell_scaling_cell1000_gene9836,seconds,985.529,985.529,valid_positive,1000,9836,real,Table S4!B52,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,runtime_seconds,cell_scaling_cell1000_gene9836,seconds,181,181,valid_positive,1000,9836,real,Table S4!B54,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,runtime_seconds,cell_scaling_cell2000_gene9836,seconds,207.81399999999999,207.814,valid_positive,2000,9836,real,Table S4!C53,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,runtime_seconds,cell_scaling_cell2000_gene9836,seconds,169.05699999999999,169.057,valid_positive,2000,9836,real,Table S4!C55,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,runtime_seconds,cell_scaling_cell2000_gene9836,seconds,,numpy.linalg.LinAlgError: SVD did not converge,recorded_run_failure,2000,9836,real,Table S4!C56,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,runtime_seconds,cell_scaling_cell2000_gene9836,seconds,,IndexError: cannot do a non-empty take from an empty axes.,recorded_run_failure,2000,9836,real,Table S4!C51,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,runtime_seconds,cell_scaling_cell2000_gene9836,seconds,435.56,435.56,valid_positive,2000,9836,real,Table S4!C50,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,runtime_seconds,cell_scaling_cell2000_gene9836,seconds,2286.806,2286.806,valid_positive,2000,9836,real,Table S4!C52,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,runtime_seconds,cell_scaling_cell2000_gene9836,seconds,284.17099999999999,284.171,valid_positive,2000,9836,real,Table S4!C54,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,runtime_seconds,cell_scaling_cell5000_gene9836,seconds,531.48199999999997,531.482,valid_positive,5000,9836,real,Table S4!D53,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,runtime_seconds,cell_scaling_cell5000_gene9836,seconds,448.39800000000002,448.398,valid_positive,5000,9836,real,Table S4!D55,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,runtime_seconds,cell_scaling_cell5000_gene9836,seconds,,numpy.linalg.LinAlgError: SVD did not converge,recorded_run_failure,5000,9836,real,Table S4!D56,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,runtime_seconds,cell_scaling_cell5000_gene9836,seconds,,IndexError: cannot do a non-empty take from an empty axes.,recorded_run_failure,5000,9836,real,Table S4!D51,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,runtime_seconds,cell_scaling_cell5000_gene9836,seconds,1086.885,1086.885,valid_positive,5000,9836,real,Table S4!D50,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,runtime_seconds,cell_scaling_cell5000_gene9836,seconds,13903.838,13903.838,valid_positive,5000,9836,real,Table S4!D52,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,runtime_seconds,cell_scaling_cell5000_gene9836,seconds,461.56900000000002,461.569,valid_positive,5000,9836,real,Table S4!D54,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,runtime_seconds,cell_scaling_cell10000_gene9836,seconds,1850.4200000000001,1850.42,valid_positive,10000,9836,real,Table S4!E53,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,runtime_seconds,cell_scaling_cell10000_gene9836,seconds,691.21100000000001,691.211,valid_positive,10000,9836,real,Table S4!E55,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,runtime_seconds,cell_scaling_cell10000_gene9836,seconds,,numpy.linalg.LinAlgError: SVD did not converge,recorded_run_failure,10000,9836,real,Table S4!E56,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,runtime_seconds,cell_scaling_cell10000_gene9836,seconds,,IndexError: cannot do a non-empty take from an empty axes.,recorded_run_failure,10000,9836,real,Table S4!E51,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,runtime_seconds,cell_scaling_cell10000_gene9836,seconds,1070.46,1070.46,valid_positive,10000,9836,real,Table S4!E50,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,runtime_seconds,cell_scaling_cell10000_gene9836,seconds,,CUDA OOM,recorded_run_failure,10000,9836,real,Table S4!E52,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,runtime_seconds,cell_scaling_cell10000_gene9836,seconds,1126.9259999999999,1126.926,valid_positive,10000,9836,real,Table S4!E54,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,runtime_seconds,cell_scaling_cell20000_gene9836,seconds,,CUDA OOM,recorded_run_failure,20000,9836,real,Table S4!F53,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,runtime_seconds,cell_scaling_cell20000_gene9836,seconds,,CUDA OOM,recorded_run_failure,20000,9836,real,Table S4!F55,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,runtime_seconds,cell_scaling_cell20000_gene9836,seconds,,numpy.linalg.LinAlgError: SVD did not converge,recorded_run_failure,20000,9836,real,Table S4!F56,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,runtime_seconds,cell_scaling_cell20000_gene9836,seconds,,IndexError: cannot do a non-empty take from an empty axes.,recorded_run_failure,20000,9836,real,Table S4!F51,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,runtime_seconds,cell_scaling_cell20000_gene9836,seconds,1970.6669999999999,1970.667,valid_positive,20000,9836,real,Table S4!F50,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,runtime_seconds,cell_scaling_cell20000_gene9836,seconds,,CUDA OOM,recorded_run_failure,20000,9836,real,Table S4!F52,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,runtime_seconds,cell_scaling_cell20000_gene9836,seconds,2154.2930000000001,2154.293,valid_positive,20000,9836,real,Table S4!F54,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,runtime_seconds,cell_scaling_cell50000_gene9836,seconds,,CUDA OOM,recorded_run_failure,50000,9836,real,Table S4!G53,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,runtime_seconds,cell_scaling_cell50000_gene9836,seconds,,CUDA OOM,recorded_run_failure,50000,9836,real,Table S4!G55,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,runtime_seconds,cell_scaling_cell50000_gene9836,seconds,,numpy.linalg.LinAlgError: SVD did not converge,recorded_run_failure,50000,9836,real,Table S4!G56,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,runtime_seconds,cell_scaling_cell50000_gene9836,seconds,,IndexError: cannot do a non-empty take from an empty axes.,recorded_run_failure,50000,9836,real,Table S4!G51,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,runtime_seconds,cell_scaling_cell50000_gene9836,seconds,1196.663,1196.663,valid_positive,50000,9836,real,Table S4!G50,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,runtime_seconds,cell_scaling_cell50000_gene9836,seconds,,CUDA OOM,recorded_run_failure,50000,9836,real,Table S4!G52,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,runtime_seconds,cell_scaling_cell50000_gene9836,seconds,11384.450000000001,11384.45,valid_positive,50000,9836,real,Table S4!G54,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene1000,seconds,145.81999999999999,145.82,valid_positive,1967,1000,real,Table S4!B65,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene1000,seconds,121.786,121.786,valid_positive,1967,1000,real,Table S4!B67,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene1000,seconds,,numpy.linalg.LinAlgError: SVD did not converge,recorded_run_failure,1967,1000,real,Table S4!B68,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene1000,seconds,,IndexError: cannot do a non-empty take from an empty axes.,recorded_run_failure,1967,1000,real,Table S4!B63,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene1000,seconds,394.56900000000002,394.569,valid_positive,1967,1000,real,Table S4!B62,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene1000,seconds,1925.5340000000001,1925.534,valid_positive,1967,1000,real,Table S4!B64,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene1000,seconds,194.27199999999999,194.272,valid_positive,1967,1000,real,Table S4!B66,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene2000,seconds,1099.1110000000001,1099.111,valid_positive,1967,2000,real,Table S4!C65,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene2000,seconds,155.63200000000001,155.632,valid_positive,1967,2000,real,Table S4!C67,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene2000,seconds,,numpy.linalg.LinAlgError: SVD did not converge,recorded_run_failure,1967,2000,real,Table S4!C68,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene2000,seconds,,IndexError: cannot do a non-empty take from an empty axes.,recorded_run_failure,1967,2000,real,Table S4!C63,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene2000,seconds,423.76900000000001,423.769,valid_positive,1967,2000,real,Table S4!C62,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene2000,seconds,2141.5880000000002,2141.588,valid_positive,1967,2000,real,Table S4!C64,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene2000,seconds,227.54300000000001,227.543,valid_positive,1967,2000,real,Table S4!C66,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene5000,seconds,640.06500000000005,640.065,valid_positive,1967,5000,real,Table S4!D65,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene5000,seconds,578.71699999999998,578.717,valid_positive,1967,5000,real,Table S4!D67,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene5000,seconds,,numpy.linalg.LinAlgError: SVD did not converge,recorded_run_failure,1967,5000,real,Table S4!D68,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene5000,seconds,,IndexError: cannot do a non-empty take from an empty axes.,recorded_run_failure,1967,5000,real,Table S4!D63,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene5000,seconds,474.09100000000001,474.091,valid_positive,1967,5000,real,Table S4!D62,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene5000,seconds,1502.7729999999999,1502.773,valid_positive,1967,5000,real,Table S4!D64,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene5000,seconds,229.738,229.738,valid_positive,1967,5000,real,Table S4!D66,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene10000,seconds,627.827,627.827,valid_positive,1967,10000,real,Table S4!E65,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene10000,seconds,280.67700000000002,280.677,valid_positive,1967,10000,real,Table S4!E67,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene10000,seconds,,numpy.linalg.LinAlgError: SVD did not converge,recorded_run_failure,1967,10000,real,Table S4!E68,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene10000,seconds,,IndexError: cannot do a non-empty take from an empty axes.,recorded_run_failure,1967,10000,real,Table S4!E63,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene10000,seconds,448.01999999999998,448.02,valid_positive,1967,10000,real,Table S4!E62,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene10000,seconds,1592.7149999999999,1592.715,valid_positive,1967,10000,real,Table S4!E64,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene10000,seconds,202.84399999999999,202.844,valid_positive,1967,10000,real,Table S4!E66,Supplementary_Tables_1014(1).xlsx
+TopoVelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene20000,seconds,461.13,461.13,valid_positive,1967,20000,real,Table S4!F65,Supplementary_Tables_1014(1).xlsx
+STEER,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene20000,seconds,648.95799999999997,648.958,valid_positive,1967,20000,real,Table S4!F67,Supplementary_Tables_1014(1).xlsx
+spaVelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene20000,seconds,,numpy.linalg.LinAlgError: SVD did not converge,recorded_run_failure,1967,20000,real,Table S4!F68,Supplementary_Tables_1014(1).xlsx
+STT,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene20000,seconds,,IndexError: cannot do a non-empty take from an empty axes.,recorded_run_failure,1967,20000,real,Table S4!F63,Supplementary_Tables_1014(1).xlsx
+SDEvelo,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene20000,seconds,458.084,458.084,valid_positive,1967,20000,real,Table S4!F62,Supplementary_Tables_1014(1).xlsx
+cell2fate,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene20000,seconds,2617.6689999999999,2617.669,valid_positive,1967,20000,real,Table S4!F64,Supplementary_Tables_1014(1).xlsx
+veloAgent,top_Spatial,runtime_seconds,gene_scaling_cell1967_gene20000,seconds,210.53700000000001,210.537,valid_positive,1967,20000,real,Table S4!F66,Supplementary_Tables_1014(1).xlsx

@@ -1,0 +1,190 @@
+method,protocol,measure,dataset_id,unit,clean_value,raw_token,value_status,cells,genes,data_type,source_locator,source_workbook
+MoFlow,top_ATAC,runtime_seconds,01_linear_cell1000_gene1000,seconds,572.71264958381653,572.7126495838165,valid_positive,1000,1000,simulation,Table S4!B43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,01_linear_cell1000_gene1000,seconds,,Killed Or Fail,recorded_run_failure,1000,1000,simulation,Table S4!B39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,01_linear_cell1000_gene1000,seconds,561.99846863746643,561.9984686374664,valid_positive,1000,1000,simulation,Table S4!B38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,01_linear_cell1000_gene1000,seconds,887.447621779982,887.447621779982,valid_positive,1000,1000,simulation,Table S4!B40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,01_linear_cell1000_gene1000,seconds,268.50541806221008,268.5054180622101,valid_positive,1000,1000,simulation,Table S4!B37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,01_linear_cell1000_gene1000,seconds,144.23997926712036,144.23997926712036,valid_positive,1000,1000,simulation,Table S4!B41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,01_linear_cell1000_gene1000,seconds,314.4565382823348,314.4565382823348,valid_positive,1000,1000,simulation,Table S4!B42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,01_linear_cell1000_gene1000,seconds,4252.6959683895111,4252.695968389511,valid_positive,1000,1000,simulation,Table S4!B44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,01_linear_cell1000_gene1000,seconds,30.278171539306641,30.27817153930664,valid_positive,1000,1000,simulation,Table S4!B45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,02_bifurcation3_cell1000_gene1000,seconds,587.07090663909912,587.0709066390991,valid_positive,1000,1000,simulation,Table S4!C43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,02_bifurcation3_cell1000_gene1000,seconds,4964.8895838260651,4964.889583826065,valid_positive,1000,1000,simulation,Table S4!C39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,02_bifurcation3_cell1000_gene1000,seconds,4236.0327427387238,4236.032742738724,valid_positive,1000,1000,simulation,Table S4!C38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,02_bifurcation3_cell1000_gene1000,seconds,930.53102610912163,930.5310261091216,valid_positive,1000,1000,simulation,Table S4!C40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,02_bifurcation3_cell1000_gene1000,seconds,325.6114776134491,325.6114776134491,valid_positive,1000,1000,simulation,Table S4!C37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,02_bifurcation3_cell1000_gene1000,seconds,115.50264835357666,115.50264835357666,valid_positive,1000,1000,simulation,Table S4!C41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,02_bifurcation3_cell1000_gene1000,seconds,323.90118808206171,323.9011880820617,valid_positive,1000,1000,simulation,Table S4!C42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,02_bifurcation3_cell1000_gene1000,seconds,4875.5480864048004,4875.5480864048,valid_positive,1000,1000,simulation,Table S4!C44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,02_bifurcation3_cell1000_gene1000,seconds,56.624001026153564,56.624001026153564,valid_positive,1000,1000,simulation,Table S4!C45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,03_bifurcation5_cell1000_gene1000,seconds,565.48940587043762,565.4894058704376,valid_positive,1000,1000,simulation,Table S4!D43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,03_bifurcation5_cell1000_gene1000,seconds,5391.0223054885864,5391.022305488586,valid_positive,1000,1000,simulation,Table S4!D39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,03_bifurcation5_cell1000_gene1000,seconds,,AssertionError: underflow in dt nan,recorded_run_failure,1000,1000,simulation,Table S4!D38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,03_bifurcation5_cell1000_gene1000,seconds,834.16395650105551,834.1639565010555,valid_positive,1000,1000,simulation,Table S4!D40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,03_bifurcation5_cell1000_gene1000,seconds,172.56454181671145,172.56454181671145,valid_positive,1000,1000,simulation,Table S4!D37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,03_bifurcation5_cell1000_gene1000,seconds,119.11778855323792,119.11778855323792,valid_positive,1000,1000,simulation,Table S4!D41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,03_bifurcation5_cell1000_gene1000,seconds,323.21048121806234,323.21048121806234,valid_positive,1000,1000,simulation,Table S4!D42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,03_bifurcation5_cell1000_gene1000,seconds,3952.3658361434937,3952.3658361434937,valid_positive,1000,1000,simulation,Table S4!D44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,03_bifurcation5_cell1000_gene1000,seconds,82.07463526725769,82.07463526725769,valid_positive,1000,1000,simulation,Table S4!D45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,04_linear_cell1000_gene5000,seconds,3139.5148587226868,3139.5148587226868,valid_positive,1000,5000,simulation,Table S4!E43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,04_linear_cell1000_gene5000,seconds,24655.967783212662,24655.96778321266,valid_positive,1000,5000,simulation,Table S4!E39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,04_linear_cell1000_gene5000,seconds,5529.2428197860718,5529.242819786072,valid_positive,1000,5000,simulation,Table S4!E38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,04_linear_cell1000_gene5000,seconds,1503.4316137400456,1503.4316137400456,valid_positive,1000,5000,simulation,Table S4!E40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,04_linear_cell1000_gene5000,seconds,459.35610628128052,459.3561062812805,valid_positive,1000,5000,simulation,Table S4!E37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,04_linear_cell1000_gene5000,seconds,1122.1579041481018,1122.1579041481018,valid_positive,1000,5000,simulation,Table S4!E41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,04_linear_cell1000_gene5000,seconds,184.04810174601155,184.04810174601155,valid_positive,1000,5000,simulation,Table S4!E42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,04_linear_cell1000_gene5000,seconds,17288.712644577026,17288.712644577026,valid_positive,1000,5000,simulation,Table S4!E44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,04_linear_cell1000_gene5000,seconds,41.434454202651978,41.43445420265198,valid_positive,1000,5000,simulation,Table S4!E45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,05_bifurcation3_cell1000_gene5000,seconds,2906.6372563838959,2906.637256383896,valid_positive,1000,5000,simulation,Table S4!F43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,05_bifurcation3_cell1000_gene5000,seconds,33933.954566001892,33933.95456600189,valid_positive,1000,5000,simulation,Table S4!F39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,05_bifurcation3_cell1000_gene5000,seconds,1759.4782314300537,1759.4782314300537,valid_positive,1000,5000,simulation,Table S4!F38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,05_bifurcation3_cell1000_gene5000,seconds,1500.6514361682348,1500.6514361682348,valid_positive,1000,5000,simulation,Table S4!F40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,05_bifurcation3_cell1000_gene5000,seconds,485.7334287166596,485.7334287166596,valid_positive,1000,5000,simulation,Table S4!F37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,05_bifurcation3_cell1000_gene5000,seconds,1184.5811121463776,1184.5811121463776,valid_positive,1000,5000,simulation,Table S4!F41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,05_bifurcation3_cell1000_gene5000,seconds,181.22751149069521,181.2275114906952,valid_positive,1000,5000,simulation,Table S4!F42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,05_bifurcation3_cell1000_gene5000,seconds,18192.617969751362,18192.61796975136,valid_positive,1000,5000,simulation,Table S4!F44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,05_bifurcation3_cell1000_gene5000,seconds,77.384928226470947,77.38492822647095,valid_positive,1000,5000,simulation,Table S4!F45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,06_bifurcation5_cell1000_gene5000,seconds,2263.5153286457062,2263.515328645706,valid_positive,1000,5000,simulation,Table S4!G43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,06_bifurcation5_cell1000_gene5000,seconds,33775.59008026123,33775.59008026123,valid_positive,1000,5000,simulation,Table S4!G39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,06_bifurcation5_cell1000_gene5000,seconds,2715.0425696372986,2715.0425696372986,valid_positive,1000,5000,simulation,Table S4!G38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,06_bifurcation5_cell1000_gene5000,seconds,1510.170588189736,1510.170588189736,valid_positive,1000,5000,simulation,Table S4!G40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,06_bifurcation5_cell1000_gene5000,seconds,328.6873791217804,328.6873791217804,valid_positive,1000,5000,simulation,Table S4!G37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,06_bifurcation5_cell1000_gene5000,seconds,1233.7457323074341,1233.745732307434,valid_positive,1000,5000,simulation,Table S4!G41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,06_bifurcation5_cell1000_gene5000,seconds,179.31144391000271,179.3114439100027,valid_positive,1000,5000,simulation,Table S4!G42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,06_bifurcation5_cell1000_gene5000,seconds,18032.752736568451,18032.75273656845,valid_positive,1000,5000,simulation,Table S4!G44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,06_bifurcation5_cell1000_gene5000,seconds,134.44864892959595,134.44864892959595,valid_positive,1000,5000,simulation,Table S4!G45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,07_linear_cell1000_gene10000,seconds,4607.7406351566324,4607.740635156632,valid_positive,1000,10000,simulation,Table S4!H43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,07_linear_cell1000_gene10000,seconds,70046.778456449509,70046.77845644951,valid_positive,1000,10000,simulation,Table S4!H39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,07_linear_cell1000_gene10000,seconds,6120.649676322937,6120.649676322937,valid_positive,1000,10000,simulation,Table S4!H38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,07_linear_cell1000_gene10000,seconds,1447.0708010871897,1447.0708010871897,valid_positive,1000,10000,simulation,Table S4!H40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,07_linear_cell1000_gene10000,seconds,863.21571063995361,863.2157106399536,valid_positive,1000,10000,simulation,Table S4!H37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,07_linear_cell1000_gene10000,seconds,4118.2734861373901,4118.27348613739,valid_positive,1000,10000,simulation,Table S4!H41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,07_linear_cell1000_gene10000,seconds,359.63682900788262,359.6368290078826,valid_positive,1000,10000,simulation,Table S4!H42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,07_linear_cell1000_gene10000,seconds,34824.82465672493,34824.82465672493,valid_positive,1000,10000,simulation,Table S4!H44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,07_linear_cell1000_gene10000,seconds,51.213772773742683,51.21377277374268,valid_positive,1000,10000,simulation,Table S4!H45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,08_bifurcation3_cell1000_gene10000,seconds,4538.4122748374939,4538.412274837494,valid_positive,1000,10000,simulation,Table S4!I43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,08_bifurcation3_cell1000_gene10000,seconds,67683.290126800537,67683.29012680054,valid_positive,1000,10000,simulation,Table S4!I39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,08_bifurcation3_cell1000_gene10000,seconds,6982.8976080417633,6982.897608041763,valid_positive,1000,10000,simulation,Table S4!I38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,08_bifurcation3_cell1000_gene10000,seconds,1346.4043527492322,1346.4043527492322,valid_positive,1000,10000,simulation,Table S4!I40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,08_bifurcation3_cell1000_gene10000,seconds,729.01435303688049,729.0143530368805,valid_positive,1000,10000,simulation,Table S4!I37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,08_bifurcation3_cell1000_gene10000,seconds,5400.4971172809601,5400.49711728096,valid_positive,1000,10000,simulation,Table S4!I41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,08_bifurcation3_cell1000_gene10000,seconds,185.7311963327229,185.7311963327229,valid_positive,1000,10000,simulation,Table S4!I42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,08_bifurcation3_cell1000_gene10000,seconds,34635.992254257202,34635.9922542572,valid_positive,1000,10000,simulation,Table S4!I44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,08_bifurcation3_cell1000_gene10000,seconds,110.4838409423828,110.4838409423828,valid_positive,1000,10000,simulation,Table S4!I45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,09_bifurcation5_cell1000_gene10000,seconds,4526.2136793136597,4526.21367931366,valid_positive,1000,10000,simulation,Table S4!J43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,09_bifurcation5_cell1000_gene10000,seconds,67698.622577905655,67698.62257790565,valid_positive,1000,10000,simulation,Table S4!J39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,09_bifurcation5_cell1000_gene10000,seconds,6125.6626431941986,6125.662643194199,valid_positive,1000,10000,simulation,Table S4!J38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,09_bifurcation5_cell1000_gene10000,seconds,1388.9367734976113,1388.9367734976113,valid_positive,1000,10000,simulation,Table S4!J40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,09_bifurcation5_cell1000_gene10000,seconds,652.22957015037537,652.2295701503754,valid_positive,1000,10000,simulation,Table S4!J37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,09_bifurcation5_cell1000_gene10000,seconds,5467.0620126724243,5467.062012672424,valid_positive,1000,10000,simulation,Table S4!J41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,09_bifurcation5_cell1000_gene10000,seconds,359.65398983983323,359.65398983983323,valid_positive,1000,10000,simulation,Table S4!J42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,09_bifurcation5_cell1000_gene10000,seconds,34789.685144662857,34789.68514466286,valid_positive,1000,10000,simulation,Table S4!J44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,09_bifurcation5_cell1000_gene10000,seconds,180.45036149024963,180.45036149024963,valid_positive,1000,10000,simulation,Table S4!J45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,10_linear_cell1000_gene20000,seconds,9095.4707262516022,9095.470726251602,valid_positive,1000,20000,simulation,Table S4!K43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,10_linear_cell1000_gene20000,seconds,141635.29152178764,141635.29152178764,valid_positive,1000,20000,simulation,Table S4!K39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,10_linear_cell1000_gene20000,seconds,7781.7213077545166,7781.721307754517,valid_positive,1000,20000,simulation,Table S4!K38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,10_linear_cell1000_gene20000,seconds,1594.6606272640638,1594.6606272640638,valid_positive,1000,20000,simulation,Table S4!K40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,10_linear_cell1000_gene20000,seconds,,[killed/ flag] Run did not finish (process killed or interru...,recorded_run_failure,1000,20000,simulation,Table S4!K37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,10_linear_cell1000_gene20000,seconds,19842.445383310322,19842.44538331032,valid_positive,1000,20000,simulation,Table S4!K41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,10_linear_cell1000_gene20000,seconds,187.97920096619052,187.97920096619052,valid_positive,1000,20000,simulation,Table S4!K42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,10_linear_cell1000_gene20000,seconds,75001.308797597885,75001.30879759789,valid_positive,1000,20000,simulation,Table S4!K44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,10_linear_cell1000_gene20000,seconds,86.995667457580566,86.99566745758057,valid_positive,1000,20000,simulation,Table S4!K45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,11_bifurcation3_cell1000_gene20000,seconds,9093.1959190368634,9093.195919036863,valid_positive,1000,20000,simulation,Table S4!L43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,11_bifurcation3_cell1000_gene20000,seconds,138300.08727669716,138300.08727669716,valid_positive,1000,20000,simulation,Table S4!L39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,11_bifurcation3_cell1000_gene20000,seconds,5774.9348397254944,5774.934839725494,valid_positive,1000,20000,simulation,Table S4!L38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,11_bifurcation3_cell1000_gene20000,seconds,1624.1493456386961,1624.149345638696,valid_positive,1000,20000,simulation,Table S4!L40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,11_bifurcation3_cell1000_gene20000,seconds,1558.8364398479462,1558.8364398479462,valid_positive,1000,20000,simulation,Table S4!L37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,11_bifurcation3_cell1000_gene20000,seconds,17555.34890627861,17555.34890627861,valid_positive,1000,20000,simulation,Table S4!L41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,11_bifurcation3_cell1000_gene20000,seconds,366.79360959818587,366.79360959818587,valid_positive,1000,20000,simulation,Table S4!L42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,11_bifurcation3_cell1000_gene20000,seconds,110629.01208615304,110629.01208615304,valid_positive,1000,20000,simulation,Table S4!L44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,11_bifurcation3_cell1000_gene20000,seconds,169.50774073600769,169.5077407360077,valid_positive,1000,20000,simulation,Table S4!L45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,12_bifurcation5_cell1000_gene20000,seconds,9163.0621984004956,9163.062198400496,valid_positive,1000,20000,simulation,Table S4!M43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,12_bifurcation5_cell1000_gene20000,seconds,136148.96713542938,136148.96713542938,valid_positive,1000,20000,simulation,Table S4!M39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,12_bifurcation5_cell1000_gene20000,seconds,9434.4928677082062,9434.492867708206,valid_positive,1000,20000,simulation,Table S4!M38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,12_bifurcation5_cell1000_gene20000,seconds,1430.8963974318467,1430.8963974318467,valid_positive,1000,20000,simulation,Table S4!M40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,12_bifurcation5_cell1000_gene20000,seconds,1020.2353687286376,1020.2353687286376,valid_positive,1000,20000,simulation,Table S4!M37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,12_bifurcation5_cell1000_gene20000,seconds,17126.323277950287,17126.323277950287,valid_positive,1000,20000,simulation,Table S4!M41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,12_bifurcation5_cell1000_gene20000,seconds,363.30538169015199,363.305381690152,valid_positive,1000,20000,simulation,Table S4!M42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,12_bifurcation5_cell1000_gene20000,seconds,78871.710374832153,78871.71037483215,valid_positive,1000,20000,simulation,Table S4!M44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,12_bifurcation5_cell1000_gene20000,seconds,283.20200228691101,283.202002286911,valid_positive,1000,20000,simulation,Table S4!M45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,13_linear_cell5000_gene1000,seconds,1588.5913300514219,1588.591330051422,valid_positive,5000,1000,simulation,Table S4!N43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,13_linear_cell5000_gene1000,seconds,17078.63742351532,17078.63742351532,valid_positive,5000,1000,simulation,Table S4!N39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,13_linear_cell5000_gene1000,seconds,,AssertionError: underflow in dt nan,recorded_run_failure,5000,1000,simulation,Table S4!N38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,13_linear_cell5000_gene1000,seconds,3064.6159572498877,3064.6159572498877,valid_positive,5000,1000,simulation,Table S4!N40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,13_linear_cell5000_gene1000,seconds,540.65512132644653,540.6551213264465,valid_positive,5000,1000,simulation,Table S4!N37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,13_linear_cell5000_gene1000,seconds,570.25051999092102,570.250519990921,valid_positive,5000,1000,simulation,Table S4!N41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,13_linear_cell5000_gene1000,seconds,1515.9106326773765,1515.9106326773765,valid_positive,5000,1000,simulation,Table S4!N42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,13_linear_cell5000_gene1000,seconds,12656.725163221359,12656.72516322136,valid_positive,5000,1000,simulation,Table S4!N44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,13_linear_cell5000_gene1000,seconds,122.4108021259308,122.4108021259308,valid_positive,5000,1000,simulation,Table S4!N45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,14_bifurcation3_cell5000_gene1000,seconds,1280.6704053878784,1280.6704053878784,valid_positive,5000,1000,simulation,Table S4!O43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,14_bifurcation3_cell5000_gene1000,seconds,16033.798002481461,16033.79800248146,valid_positive,5000,1000,simulation,Table S4!O39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,14_bifurcation3_cell5000_gene1000,seconds,29960.640614748001,29960.640614748,valid_positive,5000,1000,simulation,Table S4!O38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,14_bifurcation3_cell5000_gene1000,seconds,2875.8233487787656,2875.8233487787656,valid_positive,5000,1000,simulation,Table S4!O40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,14_bifurcation3_cell5000_gene1000,seconds,901.59988307952881,901.5998830795288,valid_positive,5000,1000,simulation,Table S4!O37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,14_bifurcation3_cell5000_gene1000,seconds,578.03296709060669,578.0329670906067,valid_positive,5000,1000,simulation,Table S4!O41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,14_bifurcation3_cell5000_gene1000,seconds,1536.5238700653426,1536.5238700653426,valid_positive,5000,1000,simulation,Table S4!O42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,14_bifurcation3_cell5000_gene1000,seconds,12043.188778877258,12043.188778877258,valid_positive,5000,1000,simulation,Table S4!O44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,14_bifurcation3_cell5000_gene1000,seconds,209.14038133621216,209.14038133621216,valid_positive,5000,1000,simulation,Table S4!O45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,15_bifurcation5_cell5000_gene1000,seconds,1296.2956125736237,1296.2956125736237,valid_positive,5000,1000,simulation,Table S4!P43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,15_bifurcation5_cell5000_gene1000,seconds,16424.368694543839,16424.36869454384,valid_positive,5000,1000,simulation,Table S4!P39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,15_bifurcation5_cell5000_gene1000,seconds,,UnpicklingError: pickle data was truncated,recorded_run_failure,5000,1000,simulation,Table S4!P38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,15_bifurcation5_cell5000_gene1000,seconds,3010.1126497252844,3010.1126497252844,valid_positive,5000,1000,simulation,Table S4!P40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,15_bifurcation5_cell5000_gene1000,seconds,781.62008118629456,781.6200811862946,valid_positive,5000,1000,simulation,Table S4!P37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,15_bifurcation5_cell5000_gene1000,seconds,582.23375773429871,582.2337577342987,valid_positive,5000,1000,simulation,Table S4!P41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,15_bifurcation5_cell5000_gene1000,seconds,771.36079157376662,771.3607915737666,valid_positive,5000,1000,simulation,Table S4!P42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,15_bifurcation5_cell5000_gene1000,seconds,10746.124171733856,10746.124171733856,valid_positive,5000,1000,simulation,Table S4!P44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,15_bifurcation5_cell5000_gene1000,seconds,280.23165321350098,280.231653213501,valid_positive,5000,1000,simulation,Table S4!P45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,16_linear_cell10000_gene1000,seconds,4496.2189733982086,4496.218973398209,valid_positive,10000,1000,simulation,Table S4!Q43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,16_linear_cell10000_gene1000,seconds,30448.115860939022,30448.115860939022,valid_positive,10000,1000,simulation,Table S4!Q39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,16_linear_cell10000_gene1000,seconds,,AssertionError: underflow in dt nan,recorded_run_failure,10000,1000,simulation,Table S4!Q38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,16_linear_cell10000_gene1000,seconds,12460.19647745695,12460.19647745695,valid_positive,10000,1000,simulation,Table S4!Q40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,16_linear_cell10000_gene1000,seconds,619.34960699081421,619.3496069908142,valid_positive,10000,1000,simulation,Table S4!Q37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,16_linear_cell10000_gene1000,seconds,1131.8990066051483,1131.8990066051483,valid_positive,10000,1000,simulation,Table S4!Q41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,16_linear_cell10000_gene1000,seconds,3038.6992653929628,3038.699265392963,valid_positive,10000,1000,simulation,Table S4!Q42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,16_linear_cell10000_gene1000,seconds,28273.32944560051,28273.32944560051,valid_positive,10000,1000,simulation,Table S4!Q44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,16_linear_cell10000_gene1000,seconds,444.34413933753967,444.3441393375397,valid_positive,10000,1000,simulation,Table S4!Q45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,17_bifurcation3_cell10000_gene1000,seconds,3715.4268469810486,3715.4268469810486,valid_positive,10000,1000,simulation,Table S4!R43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,17_bifurcation3_cell10000_gene1000,seconds,28950.575730085373,28950.575730085373,valid_positive,10000,1000,simulation,Table S4!R39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,17_bifurcation3_cell10000_gene1000,seconds,,AssertionError: underflow in dt nan,recorded_run_failure,10000,1000,simulation,Table S4!R38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,17_bifurcation3_cell10000_gene1000,seconds,12256.760194539092,12256.760194539092,valid_positive,10000,1000,simulation,Table S4!R40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,17_bifurcation3_cell10000_gene1000,seconds,1063.4435033798218,1063.4435033798218,valid_positive,10000,1000,simulation,Table S4!R37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,17_bifurcation3_cell10000_gene1000,seconds,1155.0783998966217,1155.0783998966217,valid_positive,10000,1000,simulation,Table S4!R41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,17_bifurcation3_cell10000_gene1000,seconds,2977.922169495374,2977.922169495374,valid_positive,10000,1000,simulation,Table S4!R42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,17_bifurcation3_cell10000_gene1000,seconds,29606.288482904434,29606.288482904434,valid_positive,10000,1000,simulation,Table S4!R44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,17_bifurcation3_cell10000_gene1000,seconds,717.48796820640564,717.4879682064056,valid_positive,10000,1000,simulation,Table S4!R45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,18_bifurcation5_cell10000_gene1000,seconds,3097.6223499774933,3097.6223499774933,valid_positive,10000,1000,simulation,Table S4!S43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,18_bifurcation5_cell10000_gene1000,seconds,29769.160332679749,29769.16033267975,valid_positive,10000,1000,simulation,Table S4!S39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,18_bifurcation5_cell10000_gene1000,seconds,,AssertionError: underflow in dt nan,recorded_run_failure,10000,1000,simulation,Table S4!S38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,18_bifurcation5_cell10000_gene1000,seconds,11745.924246366136,11745.924246366136,valid_positive,10000,1000,simulation,Table S4!S40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,18_bifurcation5_cell10000_gene1000,seconds,890.97153449058533,890.9715344905853,valid_positive,10000,1000,simulation,Table S4!S37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,18_bifurcation5_cell10000_gene1000,seconds,1407.6068940162661,1407.606894016266,valid_positive,10000,1000,simulation,Table S4!S41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,18_bifurcation5_cell10000_gene1000,seconds,1508.0803394126706,1508.0803394126706,valid_positive,10000,1000,simulation,Table S4!S42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,18_bifurcation5_cell10000_gene1000,seconds,21423.252584218979,21423.25258421898,valid_positive,10000,1000,simulation,Table S4!S44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,18_bifurcation5_cell10000_gene1000,seconds,799.61643552780151,799.6164355278015,valid_positive,10000,1000,simulation,Table S4!S45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,19_linear_cell10000_gene20000,seconds,,Killed Or Fail,recorded_run_failure,10000,20000,simulation,Table S4!T43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,19_linear_cell10000_gene20000,seconds,,Killed Or Fail,recorded_run_failure,10000,20000,simulation,Table S4!T39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,19_linear_cell10000_gene20000,seconds,,[killed/ flag] Run did not finish (process killed or interru...,recorded_run_failure,10000,20000,simulation,Table S4!T38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,19_linear_cell10000_gene20000,seconds,26041.364205107093,26041.364205107093,valid_positive,10000,20000,simulation,Table S4!T40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,19_linear_cell10000_gene20000,seconds,7146.495509147644,7146.495509147644,valid_positive,10000,20000,simulation,Table S4!T37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,19_linear_cell10000_gene20000,seconds,,Killed Or Fail,recorded_run_failure,10000,20000,simulation,Table S4!T41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,19_linear_cell10000_gene20000,seconds,1786.8844861076211,1786.8844861076211,valid_positive,10000,20000,simulation,Table S4!T42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,19_linear_cell10000_gene20000,seconds,,Killed Or Fail,recorded_run_failure,10000,20000,simulation,Table S4!T44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,19_linear_cell10000_gene20000,seconds,960.98693442344677,960.9869344234468,valid_positive,10000,20000,simulation,Table S4!T45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,20_bifurcation3_cell10000_gene20000,seconds,,Killed Or Fail,recorded_run_failure,10000,20000,simulation,Table S4!U43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,20_bifurcation3_cell10000_gene20000,seconds,,Killed Or Fail,recorded_run_failure,10000,20000,simulation,Table S4!U39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,20_bifurcation3_cell10000_gene20000,seconds,,[killed/ flag] Run did not finish (process killed or interru...,recorded_run_failure,10000,20000,simulation,Table S4!U38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,20_bifurcation3_cell10000_gene20000,seconds,22649.547966229264,22649.547966229264,valid_positive,10000,20000,simulation,Table S4!U40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,20_bifurcation3_cell10000_gene20000,seconds,7222.1130065917969,7222.113006591797,valid_positive,10000,20000,simulation,Table S4!U37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,20_bifurcation3_cell10000_gene20000,seconds,,Killed Or Fail,recorded_run_failure,10000,20000,simulation,Table S4!U41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,20_bifurcation3_cell10000_gene20000,seconds,1667.6841470072975,1667.6841470072975,valid_positive,10000,20000,simulation,Table S4!U42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,20_bifurcation3_cell10000_gene20000,seconds,,Killed Or Fail,recorded_run_failure,10000,20000,simulation,Table S4!U44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,20_bifurcation3_cell10000_gene20000,seconds,2081.4507520198822,2081.450752019882,valid_positive,10000,20000,simulation,Table S4!U45,Supplementary_Tables_1014(1).xlsx
+MoFlow,top_ATAC,runtime_seconds,21_bifurcation5_cell10000_gene20000,seconds,,Killed Or Fail,recorded_run_failure,10000,20000,simulation,Table S4!V43,Supplementary_Tables_1014(1).xlsx
+ArchVelo,top_ATAC,runtime_seconds,21_bifurcation5_cell10000_gene20000,seconds,,Killed Or Fail,recorded_run_failure,10000,20000,simulation,Table S4!V39,Supplementary_Tables_1014(1).xlsx
+DynaVelo,top_ATAC,runtime_seconds,21_bifurcation5_cell10000_gene20000,seconds,,[killed/ flag] Run did not finish (process killed or interru...,recorded_run_failure,10000,20000,simulation,Table S4!V38,Supplementary_Tables_1014(1).xlsx
+CRAK-Velo,top_ATAC,runtime_seconds,21_bifurcation5_cell10000_gene20000,seconds,23236.312601241749,23236.31260124175,valid_positive,10000,20000,simulation,Table S4!V40,Supplementary_Tables_1014(1).xlsx
+MultiVeloVAE,top_ATAC,runtime_seconds,21_bifurcation5_cell10000_gene20000,seconds,7092.4775006771088,7092.477500677109,valid_positive,10000,20000,simulation,Table S4!V37,Supplementary_Tables_1014(1).xlsx
+GraphVelo,top_ATAC,runtime_seconds,21_bifurcation5_cell10000_gene20000,seconds,,Killed Or Fail,recorded_run_failure,10000,20000,simulation,Table S4!V41,Supplementary_Tables_1014(1).xlsx
+InterVelo,top_ATAC,runtime_seconds,21_bifurcation5_cell10000_gene20000,seconds,4129.4440958919004,4129.4440958919,valid_positive,10000,20000,simulation,Table S4!V42,Supplementary_Tables_1014(1).xlsx
+MultiVelo,top_ATAC,runtime_seconds,21_bifurcation5_cell10000_gene20000,seconds,,Killed Or Fail,recorded_run_failure,10000,20000,simulation,Table S4!V44,Supplementary_Tables_1014(1).xlsx
+scKINETICS,top_ATAC,runtime_seconds,21_bifurcation5_cell10000_gene20000,seconds,3488.4760391712189,3488.476039171219,valid_positive,10000,20000,simulation,Table S4!V45,Supplementary_Tables_1014(1).xlsx

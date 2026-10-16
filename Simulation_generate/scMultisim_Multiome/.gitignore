@@ -1,0 +1,13 @@
+output*/
+__pycache__/
+*.py[cod]
+*.h5ad
+*.rds
+*.pkl
+*.mtx
+*.mtx.gz
+*.f32
+*.npz
+*.log
+.Rhistory
+.RData

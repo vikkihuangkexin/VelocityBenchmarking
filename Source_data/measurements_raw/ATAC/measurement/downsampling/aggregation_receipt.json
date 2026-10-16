@@ -1,0 +1,11 @@
+{
+  "source_name": "GroundTruthCorrelation_ATAC_sub_01_raw.csv",
+  "sha256": "580bd53e1d3e599c10a078aea196b1ad3bcce0a2ae31f3d1338c0dd87d76450a",
+  "source_rows": 707776,
+  "selected_rows": 707776,
+  "methods": 9,
+  "tasks": 10,
+  "aggregation": "mean of finite rescaled_cosine where scored=True",
+  "cell_keys_unique": true,
+  "r_labels": "retained verbatim; no biological semantics inferred"
+}

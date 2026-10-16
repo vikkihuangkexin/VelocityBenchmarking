@@ -1,0 +1,5 @@
+dataset_id	dataset_name	topology	n_cells	n_genes	seed	atac_p_zero
+25	25_sparse90_linear_c10000_g20000	linear	10000	20000	20260925	0.90
+26	26_sparse97_linear_c10000_g20000	linear	10000	20000	20260926	0.97
+27	27_sparse90_bifurcation3_c10000_g20000	bifurcation3	10000	20000	20260927	0.90
+28	28_sparse97_bifurcation3_c10000_g20000	bifurcation3	10000	20000	20260928	0.97

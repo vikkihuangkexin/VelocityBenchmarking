@@ -1,0 +1,4 @@
+-r ../requirements-core.txt
+matplotlib>=3.6,<4
+scipy>=1.10,<2
+Pillow>=9,<13

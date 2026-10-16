@@ -1,0 +1,54 @@
+{
+  "release_checks": "PASS",
+  "scope": "Static syntax and artificial-fixture Python processing; full simulation not executed",
+  "input_archive_sha256": "474350d685981a23d994cd5e28abd3e9e47118fcd30e725f2c20b7b46bedaaa0",
+  "retained_tasks": {
+    "standard": 21,
+    "sparse": 4,
+    "paired_cell_downsampling": 10
+  },
+  "source_checks": {
+    "retained_manifest_rows_exact": true,
+    "downsampling_seeds_and_fractions_exact": true,
+    "simulation_options_and_retry_table_exact": true,
+    "differential_peak_and_common_code_byte_identical": true,
+    "topic_orientation_and_preprocessing_functions_unchanged": true
+  },
+  "syntax": {
+    "python": "PASS",
+    "R": "PASS: grammar parse; R interpreter unavailable"
+  },
+  "driver_dry_runs": {
+    "source_preset_tasks": 25,
+    "queue_preset_tasks": 25,
+    "removed_ids_rejected": true
+  },
+  "artificial_fixture_processing": {
+    "differential_peaks": "PASS",
+    "paired_h5ad_reopen": "PASS",
+    "four_reference_plots_png_pdf": "PASS",
+    "labeled_tf_activity_and_idempotence": "PASS",
+    "ten_downsampling_pairs_and_resume": "PASS",
+    "subset_X_layers_and_activity_match_source": "PASS",
+    "negative_controls": [
+      "shuffled cell order",
+      "incorrect chromatin aggregation",
+      "missing chromVAR deviations",
+      "proxy treated as actual deviations"
+    ]
+  },
+  "not_executed": [
+    "R simulation",
+    "actual chromVAR deviation computation",
+    "pycisTopic model fitting",
+    "full-sized task generation"
+  ],
+  "tested_python_packages": {
+    "anndata": "0.11.4",
+    "numpy": "1.26.4",
+    "pandas": "2.2.3",
+    "scipy": "1.14.1",
+    "sklearn": "1.8.0",
+    "matplotlib": "3.10.8"
+  }
+}

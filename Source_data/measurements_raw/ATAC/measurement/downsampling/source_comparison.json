@@ -1,0 +1,6 @@
+{
+  "source_comparison": "cell-level attachment versus summary in ATAC.zip",
+  "max_absolute_difference": 3.655254837697797e-08,
+  "n_differences_above_1e_12": 10,
+  "calculation_input": "means recomputed from the newly supplied cell-level raw file"
+}

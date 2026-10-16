@@ -27,6 +27,11 @@ Usage:
 Note:
     Simulated-data processing uses an a-priori GRN instead of pySCENIC and is kept
     in the separate RegVelo_sim.py script.
+
+Related scripts:
+    h5ad_to_loom.py               convert an h5ad into the loom consumed by pySCENIC
+    run_pyscenic_grn_regvelo.py   build the GRN parquet, then invoke this script
+    pipeline.sh                   real-data pipeline (loom -> pySCENIC -> RegVelo)
 """
 
 from __future__ import annotations
@@ -125,40 +130,6 @@ def cleanup_resources() -> None:
 # ---------------------------------------------------------------------------
 # pySCENIC GRN handling
 # ---------------------------------------------------------------------------
-def detect_species(filename: str) -> str:
-    """Detect the species token (``mm`` / ``hs``) from a file name."""
-    tokens = filename.replace(".", "_").split("_")
-    for token in tokens:
-        lowered = token.lower()
-        if lowered == "mm":
-            return "mm"
-        if lowered == "hs":
-            return "hs"
-        if lowered == "peripheral":
-            return "hs"
-    raise ValueError(f"Could not detect species from '{filename}' (expected 'Mm' or 'Hs')")
-
-
-def convert_h5ad_to_loom(data_path, save_dir, data_file) -> Path:
-    """Convert an h5ad file into the loom format consumed by pySCENIC."""
-    import loompy  # noqa: F401 - imported for a clear error if missing
-
-    adata = sc.read(data_path, cache=False)
-    species = detect_species(data_file)
-
-    adata_loom = sc.AnnData(adata.X, obs=adata.obs.copy(), var=adata.var.copy())
-    adata_loom.var["Gene"] = adata_loom.var_names
-    adata_loom.obs["CellID"] = adata_loom.obs_names
-
-    save_dir = Path(save_dir)
-    save_dir.mkdir(parents=True, exist_ok=True)
-    loom_path = save_dir / "adata.loom"
-    adata_loom.write_loom(str(loom_path))
-    (save_dir / "species.txt").write_text(species, encoding="utf-8")
-    print(f"[INFO] loom written: {loom_path} (species={species})")
-    return loom_path
-
-
 def generate_grn_parquet(pyscenic_loom, parquet_out=None) -> Path:
     """Build the RegVelo GRN parquet from a pySCENIC AUCell output loom.
 

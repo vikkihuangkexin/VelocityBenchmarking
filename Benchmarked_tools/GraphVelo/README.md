@@ -53,7 +53,7 @@ structure is:
 <output-dir>/
 └── <dataset-name>/
     ├── <stem>.h5ad          # result with layers['velocity']
-    ├── rc.h5ad              # GraphVelo_multiome.py only: alias of <stem>_graphvelo.h5ad
+    ├── rc.h5ad              # GraphVelo_multiome.py only: alias of <stem>_GraphVelo.h5ad
     └── plot/
         ├── GraphVelo_<basis>_stream.png
         ├── GraphVelo_<basis>_stream_gv.png
@@ -67,8 +67,12 @@ The result H5AD contains:
 - `adata.obsm["gv_pca"]`, `adata.obsm["gv_umap"]` — GraphVelo velocity projected on `X_pca` / `X_umap`
 - `adata.uns["graphvelo_run"]` — run metadata (input path, parameters, seed)
 
-`GraphVelo_multiome.py` writes `adata.layers["velocity_gv"]`, `adata.layers["velocity_c"]`,
-`adata.obsm["gv_pca"]`, `adata.obsm["gv_tsne"]` and `adata.uns["graphvelo_multiome_run"]`.
+`GraphVelo_multiome.py` writes `<stem>_GraphVelo.h5ad` (native multi-omic name) plus the
+`rc.h5ad` alias, and stores `adata.layers["velocity_gv"]`, `adata.layers["velocity_c"]`,
+`adata.obsm["gv_pca"]`, the embedding projection and
+`adata.uns["graphvelo_multiome_run"]`. The embedding projection follows `--dimred-key`:
+the real-data script projects on `X_umap` (stored as `obsm["gv_umap"]`) while the
+simulated script projects on `X_tsne` (stored as `obsm["gv_tsne"]`).
 
 ## Parameters
 
@@ -79,13 +83,14 @@ The result H5AD contains:
 - `--output-dir`: output directory. Required
 - `--dataset-name`: dataset folder name in single-file mode. Default: input file stem
 - `--cluster-key`: column in `adata.obs` used for labels; required for real data and defaults to `milestone` with `--simulate`. Default: none (RNA) / `celltype` (multi-omics)
-- `--dimred-key`: embedding key in `adata.obsm`; use `X_dimred` for simulated data. Default: `X_umap`
-- `--simulate`: use the simulated-data preprocessing branch. Default: False
+- `--dimred-key`: embedding key in `adata.obsm`. RNA-only simulation uses `X_dimred`; the multi-omic simulation files use `X_tsne`. Default: `X_umap`
+- `--simulate`: use the simulated-data preprocessing branch (`GraphVelo.py` only). Default: False
 - `--n-top-genes`: number of highly variable genes. Default: 2000
 - `--min-shared-counts`: minimum shared counts for real-data filtering. Default: 20
 - `--n-pcs`: principal components used for the neighbour graph. Default: 30
 - `--n-neighbors`: neighbours used for the scanpy neighbour graph. Default: 30
-- `--n-jobs`: parallel jobs for scVelo and the MACk score. Default: 8
+- `--n-jobs`: parallel jobs for the MACk score. Default: 8
+- `--scvelo-n-jobs`: parallel jobs for the scVelo steps (`recover_dynamics` / `velocity_graph`); `-1` uses all cores. Default: -1
 - `--n-mack-genes`: number of top MACk genes used by GraphVelo. Default: 200
 - `--n-lsi-components`: LSI components fitted on the ATAC peaks (multi-omics). Default: 50
 - `--wnn-k`: neighbours for the weighted nearest-neighbour graph (multi-omics). Default: 50

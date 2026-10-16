@@ -170,14 +170,27 @@ def select_mack_genes(adata, n_mack_genes: int, n_jobs: int) -> list:
     return adata.var["mack_score"].sort_values(ascending=False)[:num_genes].index.to_list()
 
 
-def project_velocity(adata, gv) -> None:
-    """Project the GraphVelo velocity onto the expression layers and embeddings."""
+def project_velocity(adata, gv, dimred_key: str = "X_umap") -> None:
+    """Project the GraphVelo velocity onto the expression layers and embeddings.
+
+    The projection embedding follows the runner that produced the result: the
+    real-data script projects onto ``X_umap`` (stored as ``gv_umap``) while the
+    simulated script projects onto ``X_tsne`` (stored as ``gv_tsne``).
+    """
     adata.layers["velocity_gv"] = gv.project_velocity(adata.layers["Ms"])
     adata.layers["velocity_c"] = gv.project_velocity(adata.layers["Mc"])
     if "X_pca" in adata.obsm:
         adata.obsm["gv_pca"] = gv.project_velocity(adata.obsm["X_pca"])
-    if "X_tsne" in adata.obsm:
-        adata.obsm["gv_tsne"] = gv.project_velocity(adata.obsm["X_tsne"])
+
+    embedding_key = dimred_key if dimred_key in adata.obsm else None
+    if embedding_key is None:
+        for candidate in ("X_umap", "X_tsne"):
+            if candidate in adata.obsm:
+                embedding_key = candidate
+                break
+    if embedding_key is not None:
+        target_key = "gv_" + embedding_key.replace("X_", "")
+        adata.obsm[target_key] = gv.project_velocity(adata.obsm[embedding_key])
 
 
 def run_graphvelo_multiome_analysis(
@@ -190,6 +203,7 @@ def run_graphvelo_multiome_analysis(
     n_lsi_components: int = 50,
     wnn_k: int = 50,
     n_jobs: int = 8,
+    scvelo_n_jobs: int = -1,
     n_mack_genes: int = 200,
     overwrite: bool = False,
     seed: int = 2024,
@@ -210,8 +224,9 @@ def run_graphvelo_multiome_analysis(
     dataset_output_dir.mkdir(parents=True, exist_ok=True)
 
     output_stem = derive_output_stem(rna_input)
-    # Multi-omic results keep the GraphVelo native file name.
-    output_h5ad = dataset_output_dir / f"{output_stem}_graphvelo.h5ad"
+    # Multi-omic results keep the GraphVelo native file name used by
+    # Graphvelo_realdata.py / Graphvelo_simdata.py.
+    output_h5ad = dataset_output_dir / f"{output_stem}_GraphVelo.h5ad"
 
     if output_h5ad.exists() and not overwrite:
         print(f"Skipping existing output: {output_h5ad}")
@@ -244,9 +259,9 @@ def run_graphvelo_multiome_analysis(
 
         print("  Preprocessing (scVelo dynamical)...")
         scv.pp.moments(adata, n_pcs=None, n_neighbors=None)
-        scv.tl.recover_dynamics(adata, n_jobs=n_jobs)
+        scv.tl.recover_dynamics(adata, n_jobs=scvelo_n_jobs)
         scv.tl.velocity(adata)
-        scv.tl.velocity_graph(adata, n_jobs=n_jobs)
+        scv.tl.velocity_graph(adata, n_jobs=scvelo_n_jobs)
         scv.tl.latent_time(adata)
 
         print("  Fixing the kNN indices...")
@@ -261,7 +276,7 @@ def run_graphvelo_multiome_analysis(
         gv.write_to_adata(adata)
 
         print("  Projecting velocity...")
-        project_velocity(adata, gv)
+        project_velocity(adata, gv, dimred_key=dimred_key)
 
         adata.uns["graphvelo_multiome_run"] = {
             "dataset_name": str(dataset_name),
@@ -271,6 +286,8 @@ def run_graphvelo_multiome_analysis(
             "dimred_key": dimred_key,
             "n_lsi_components": int(n_lsi_components),
             "wnn_k": int(wnn_k),
+            "n_jobs": int(n_jobs),
+            "scvelo_n_jobs": int(scvelo_n_jobs),
             "n_mack_genes": int(n_mack_genes),
             "seed": int(seed),
             "output_path": str(output_h5ad.resolve()),
@@ -291,6 +308,11 @@ def run_graphvelo_multiome_analysis(
 def run_batch_graphvelo_multiome(
     metadata_file: str | Path,
     output_dir: str | Path,
+    n_lsi_components: int = 50,
+    wnn_k: int = 50,
+    n_jobs: int = 8,
+    scvelo_n_jobs: int = -1,
+    n_mack_genes: int = 200,
     overwrite: bool = False,
     seed: int = 2024,
 ) -> list[Path]:
@@ -317,6 +339,11 @@ def run_batch_graphvelo_multiome(
                 cluster_key=row["cluster_key"],
                 dataset_name=row["dataset_name"],
                 dimred_key=row["dimred_key"],
+                n_lsi_components=n_lsi_components,
+                wnn_k=wnn_k,
+                n_jobs=n_jobs,
+                scvelo_n_jobs=scvelo_n_jobs,
+                n_mack_genes=n_mack_genes,
                 overwrite=overwrite,
                 seed=seed,
             )
@@ -341,10 +368,21 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", required=True, help="Output directory")
     parser.add_argument("--dataset-name", default=None, help="Dataset folder name for single-file mode")
     parser.add_argument("--cluster-key", default="celltype", help="Column name in adata.obs used for labels")
-    parser.add_argument("--dimred-key", default="X_umap", help="Dimensionality reduction key in adata.obsm")
+    parser.add_argument(
+        "--dimred-key",
+        default="X_umap",
+        help="Embedding projected by GraphVelo; use X_umap for real data and X_tsne for simulated data",
+    )
     parser.add_argument("--n-lsi-components", type=int, default=50, help="Number of LSI components fitted on the ATAC peaks")
     parser.add_argument("--wnn-k", type=int, default=50, help="Neighbours used to build the weighted nearest-neighbour graph")
-    parser.add_argument("--n-jobs", type=int, default=8, help="Number of parallel jobs for scVelo and the MACk score")
+    parser.add_argument("--n-jobs", type=int, default=8, help="Number of parallel jobs used for the MACk score")
+    parser.add_argument(
+        "--scvelo-n-jobs",
+        dest="scvelo_n_jobs",
+        type=int,
+        default=-1,
+        help="Number of parallel jobs for the scVelo steps; -1 uses all cores",
+    )
     parser.add_argument("--n-mack-genes", type=int, default=200, help="Number of top MACk genes used by GraphVelo")
     parser.add_argument("--overwrite", action="store_true", default=False, help="Overwrite existing outputs")
     parser.add_argument("--seed", type=int, default=2024, help="Random seed")
@@ -360,6 +398,11 @@ def main(args: Optional[argparse.Namespace] = None):
         return run_batch_graphvelo_multiome(
             metadata_file=args.metadata_file,
             output_dir=args.output_dir,
+            n_lsi_components=args.n_lsi_components,
+            wnn_k=args.wnn_k,
+            n_jobs=args.n_jobs,
+            scvelo_n_jobs=args.scvelo_n_jobs,
+            n_mack_genes=args.n_mack_genes,
             overwrite=args.overwrite,
             seed=args.seed,
         )
@@ -377,6 +420,7 @@ def main(args: Optional[argparse.Namespace] = None):
         n_lsi_components=args.n_lsi_components,
         wnn_k=args.wnn_k,
         n_jobs=args.n_jobs,
+        scvelo_n_jobs=args.scvelo_n_jobs,
         n_mack_genes=args.n_mack_genes,
         overwrite=args.overwrite,
         seed=args.seed,

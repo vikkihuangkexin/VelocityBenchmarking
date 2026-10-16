@@ -1,0 +1,141 @@
+{
+  "schema_version": 2,
+  "profile": "Spatial",
+  "transition_version": "v1",
+  "methods_csv": "measurements_raw/Spatial/methods.csv",
+  "real_id_map_csv": "measurements_raw/Spatial/real_dataset_ids.csv",
+  "excluded_methods": [
+    "InterVelo",
+    "scVelo-dynamical",
+    "scVelo-stochastic"
+  ],
+  "method_aliases": {},
+  "data_type_weighting": "balanced",
+  "accuracy_metrics": [
+    "Angle consistency",
+    "CBDir",
+    "Transition V1"
+  ],
+  "consistency_metrics": [
+    "STC",
+    "SVC"
+  ],
+  "measurement_inputs": [
+    {
+      "path": "measurements_raw/Spatial/measurement/summary/AngleConsistency_Spatial_real_02_summary.csv",
+      "metric": "Angle consistency",
+      "data_type": "real",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/Spatial/measurement/summary/CBDir_Spatial_real_02_summary.csv",
+      "metric": "CBDir",
+      "data_type": "real",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/Spatial/measurement/summary/TransitionScore_Spatial_real_02_summary.csv",
+      "metric": "Transition V1",
+      "data_type": "real",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/Spatial/measurement/summary/STC_Spatial_real_02_summary.csv",
+      "metric": "STC",
+      "data_type": "real",
+      "role": "summary"
+    },
+    {
+      "path": "measurements_raw/Spatial/measurement/summary/SVC_Spatial_real_02_summary.csv",
+      "metric": "SVC",
+      "data_type": "real",
+      "role": "summary"
+    }
+  ],
+  "resource_csvs": [
+    "scalability/Spatial_runtime.csv",
+    "scalability/Spatial_cpu_ram.csv",
+    "scalability/Spatial_gpu_vram.csv"
+  ],
+  "resource_protocols": [
+    "top_Spatial"
+  ],
+  "resource_components": [
+    "runtime_seconds",
+    "ram_gb"
+  ],
+  "resource_units": {
+    "runtime_seconds": "seconds",
+    "ram_gb": "GB",
+    "vram_gb": "GB"
+  },
+  "usability_items_csv": "usability/Spatial_usability_items.csv",
+  "usability_rules_csv": "usability/usability_rules.csv",
+  "usability_category_weights": {
+    "Installability": 0.25,
+    "Code quality": 0.25,
+    "Usage guidance": 0.2,
+    "Maintenance": 0.15,
+    "Publication quality": 0.15
+  },
+  "usability_expected_item_counts": {
+    "Installability": 6,
+    "Code quality": 5,
+    "Usage guidance": 5,
+    "Maintenance": 5,
+    "Publication quality": 3
+  },
+  "downsampling_inputs": [
+    {
+      "path": "measurements_raw/Spatial/measurement/downsampling/AngleConsistency_Spatial_downsampling_02_summary.csv",
+      "metric": "Angle consistency",
+      "data_type": "real",
+      "role": "downsampling"
+    },
+    {
+      "path": "measurements_raw/Spatial/measurement/downsampling/CBDir_Spatial_downsampling_02_summary.csv",
+      "metric": "CBDir",
+      "data_type": "real",
+      "role": "downsampling"
+    },
+    {
+      "path": "measurements_raw/Spatial/measurement/downsampling/TransitionScore_Spatial_downsampling_02_summary.csv",
+      "metric": "Transition V1",
+      "data_type": "real",
+      "role": "downsampling"
+    },
+    {
+      "path": "measurements_raw/Spatial/measurement/downsampling/STC_Spatial_downsampling_02_summary.csv",
+      "metric": "STC",
+      "data_type": "real",
+      "role": "downsampling"
+    },
+    {
+      "path": "measurements_raw/Spatial/measurement/downsampling/SVC_Spatial_downsampling_02_summary.csv",
+      "metric": "SVC",
+      "data_type": "real",
+      "role": "downsampling"
+    }
+  ],
+  "downsampling_groups": {
+    "cell": "^cellsub-",
+    "gene": "^genesub-"
+  },
+  "stability_mode": "downsampling_only",
+  "stability_weights": {
+    "downsampling": 1
+  },
+  "batch_sd_inputs": [],
+  "overall_weights": {
+    "accuracy": 0.65,
+    "consistency": 0.1,
+    "scalability": 0.1,
+    "stability": 0.075,
+    "usability": 0.075
+  },
+  "overall_missing_policy": "strict",
+  "allow_missing_sources": false,
+  "consistency_scenario": "original_svc",
+  "scalability_all_failed_policy": "bottom_tie_effective_zero",
+  "source_note": "Spatial main Consistency uses STC and SVC. Downsampling uses the three directional metrics plus STC and SVC. Derived chicken-heart perturbations do not enter main scientific scores. Current ID 56 is OSCC2 and is retained."
+}

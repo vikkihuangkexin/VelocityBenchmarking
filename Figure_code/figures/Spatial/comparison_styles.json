@@ -1,0 +1,56 @@
+{
+  "methods": [
+    "TopoVelo",
+    "STT",
+    "spaVelo",
+    "STEER",
+    "cell2fate",
+    "SDEvelo",
+    "veloAgent",
+    "InterVelo",
+    "scVelo-dynamical",
+    "scVelo-stochastic"
+  ],
+  "groups": {
+    "original spatial benchmark set": [
+      "TopoVelo",
+      "STT",
+      "spaVelo",
+      "STEER",
+      "cell2fate",
+      "SDEvelo",
+      "veloAgent"
+    ],
+    "added RNA comparators": [
+      "InterVelo",
+      "scVelo-dynamical",
+      "scVelo-stochastic"
+    ]
+  },
+  "styles": {
+    "colors": {
+      "TopoVelo": "#4E79A7",
+      "STT": "#F28E2B",
+      "spaVelo": "#59A14F",
+      "STEER": "#E15759",
+      "cell2fate": "#B07AA1",
+      "SDEvelo": "#9C755F",
+      "veloAgent": "#EDC948",
+      "InterVelo": "#76B7B2",
+      "scVelo-dynamical": "#FF9DA7",
+      "scVelo-stochastic": "#79706E"
+    },
+    "markers": {
+      "original spatial benchmark set": "o",
+      "added RNA comparators": "^"
+    },
+    "hatches": {
+      "original spatial benchmark set": "",
+      "added RNA comparators": "///"
+    },
+    "jitter_width": 0.13,
+    "font_family": "Liberation Sans",
+    "tick_rotation_degrees": 32,
+    "png_dpi": 300
+  }
+}

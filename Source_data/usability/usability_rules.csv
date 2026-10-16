@@ -1,0 +1,25 @@
+category,category_raw,category_weight,subcategory,subcategory_weight,source_locator
+Installability,Installability,0.25,Repository access / open source,0.1,Table S7!A3:J3
+Installability,Installability,0.25,Version control / release tags,0.1,Table S7!A4:J4
+Installability,Installability,0.25,Packaging support,0.2,Table S7!A5:J5
+Installability,Installability,0.25,Dependency/environment complexity,0.25,Table S7!A6:J6
+Installability,Installability,0.25,License clarity,0.1,Table S7!A7:J7
+Installability,Installability,0.25,Runnable interface,0.25,Table S7!A8:J8
+Code quality,Code quality,0.25,Code modularity,0.2,Table S7!A9:J9
+Code quality,Code quality,0.25,API / convention / interoperability,0.2,Table S7!A10:J10
+Code quality,Code quality,0.25,Robustness / error handling,0.2,Table S7!A11:J11
+Code quality,Code quality,0.25,Plotting / downstream analysis support,0.2,Table S7!A12:J12
+Code quality,Code quality,0.25,Code style / duplication / variable clarity / conciseness,0.2,Table S7!A13:J13
+Usage guidance,Usage guidance,0.2,Installation guide,0.2,Table S7!A14:J14
+Usage guidance,Usage guidance,0.2,Quick-start / minimal workflow,0.2,Table S7!A15:J15
+Usage guidance,Usage guidance,0.2,Tutorials / notebooks,0.2,Table S7!A16:J16
+Usage guidance,Usage guidance,0.2,Input data format / preprocessing,0.2,Table S7!A17:J17
+Usage guidance,Usage guidance,0.2,Parameters / output / troubleshooting,0.2,Table S7!A18:J18
+Maintenance,Maintenance,0.15,Recent updates / release activity,0.25,Table S7!A19:J19
+Maintenance,Maintenance,0.15,Dependency compatibility,0.2,Table S7!A20:J20
+Maintenance,Maintenance,0.15,Issue tracking / user support,0.2,Table S7!A21:J21
+Maintenance,Maintenance,0.15,Bug/error documentation,0.15,Table S7!A22:J22
+Maintenance,Maintenance,0.15,Maintainer/community continuity,0.2,Table S7!A23:J23
+Publication quality,Publication quality,0.15,Peer-reviewed publication,0.35,Table S7!A24:J24
+Publication quality,Publication quality,0.15,Data scale used in publication,0.3,Table S7!A25:J25
+Publication quality,Publication quality,0.15,Benchmarking against other methods,0.35,Table S7!A26:J26

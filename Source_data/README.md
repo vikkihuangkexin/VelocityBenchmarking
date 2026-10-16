@@ -87,12 +87,6 @@ ATAC and Spatial use `stability_mode = downsampling_only`.
 | `usability_rules.csv` | 24 subcategories with category/subcategory weights (Table S7) |
 | `{scRNA,ATAC,Spatial}_usability_items.csv` | per-method item scores, `evidence_note`, `source_url` (Table S8) |
 
-## Notes
-
-- Spatial data is real only: no simulated matrices, and its stability comes from
-  downsampling alone.
-- Multi-run batch-run SD exists for scRNA-seq only, matching `Batch_run/`.
-- `multimodal_sources.csv` maps every uploaded archive member to its
   `output_file` and records sha256 for both the archive and each member; it also
   notes the rename applied on import (`_sim_` -> `_simulation_`) and that spatial
   perturbations were routed to `downsampling/` only.

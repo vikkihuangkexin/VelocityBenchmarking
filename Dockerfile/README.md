@@ -12,32 +12,11 @@ docker build -t tool-name:tag .
 
 This produces an image named `tool-name` with the specified `tag`.
 
-### DeepVelo Python 3.11 recipe
-
-This recipe installs the [team fork](https://github.com/sd68515/DeepVelo_py311)
-using `environment-py311.yml`, then installs CPU PyTorch 2.5.1 and the fork
-in editable mode. The environment is `deepvelo_py311`, available on `PATH`.
-From the repository root:
-
-```bash
-docker build -t deepvelo:revision2 Dockerfile/DeepVelo
-docker run --rm -v "$PWD:/workspace" -w /workspace deepvelo:revision2 \
-  python Benchmarked_tools/DeepVelo/DeepVelo.py \
-  --input data/sample.h5ad --output-dir results/deepvelo \
-  --kind real --coordinate-key X_umap --cluster-key cell_type
-```
-
-Inputs must meet the [DeepVelo contract](../Benchmarked_tools/DeepVelo/README.md).
-Results under `results/deepvelo` are written to the mounted checkout. Set
-`--build-arg DEEPVELO_REF=<commit-or-tag>` to select a fork revision;
-the default is `main`. CUDA use needs a compatible PyTorch installation and
-container runtime configuration in addition to GPU access.
-
 ---
 
 ### SSH user and customization
 The recipes include an SSH service and a non-root user. Check the selected
-Dockerfile for supported build arguments; DeepVelo accepts:
+Dockerfile for supported build arguments. A typical recipe accepts:
 
 ```dockerfile
 ARG USERNAME=user1
@@ -106,9 +85,9 @@ ssh UserNameYouSet@localhost -p 2222
   ```
 
 - **start.sh**  
-  DeepVelo's `start.sh` starts SSH and opens Bash. An explicit command after
-  the image name replaces the default `CMD`. Other recipes may use different
-  entrypoints or environment names.
+  Some recipes use `start.sh` to start SSH and open Bash. An explicit command
+  after the image name replaces the default `CMD`; check the selected recipe's
+  entrypoint and environment name.
 
 ---
 

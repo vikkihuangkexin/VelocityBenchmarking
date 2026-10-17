@@ -60,6 +60,6 @@ RUN mamba create -n PhyloVelo --yes python=3.9 && \
 
 
 COPY start.sh /start.sh
-RUN chmod +x /start.s
+RUN chmod +x /start.sh
 CMD ["/bin/bash", "/start.sh"]
 # CMD ["/bin/bash"]

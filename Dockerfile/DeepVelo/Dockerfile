@@ -34,7 +34,7 @@ RUN git clone https://github.com/sd68515/DeepVelo_py311.git /opt/DeepVelo_py311 
     cd /opt/DeepVelo_py311 && git checkout ${DEEPVELO_REF} && \
     conda env create -f environment-py311.yml && \
     conda run -n deepvelo_py311 python -m pip install \
-      --index-url https://download.pytorch.org/whl/cpu torch==2.5.1 && \
+      --index-url https://download.pytorch.org/whl/cu124 torch==2.5.1 && \
     conda run -n deepvelo_py311 python -m pip install --no-deps -e . && \
     chown -R ${USERNAME}:${USERNAME} ${CONDA_DIR} /opt/DeepVelo_py311
 

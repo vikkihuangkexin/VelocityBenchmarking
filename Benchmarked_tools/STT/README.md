@@ -12,7 +12,7 @@ root, clone the fork next to this checkout and add its package directory to
 
 ```bash
 git clone https://github.com/sd68515/STT_benchmark.git ../STT_benchmark
-export PYTHONPATH="$PWD/../STT_benchmark/example_notebooks${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$PWD/../STT_benchmark/example_notebooks:$PWD/../STT_benchmark/example_notebooks/stt/pl${PYTHONPATH:+:$PYTHONPATH}"
 ```
 
 Install compatible Scanpy, scVelo, NumPy, SciPy, pandas, and CellRank

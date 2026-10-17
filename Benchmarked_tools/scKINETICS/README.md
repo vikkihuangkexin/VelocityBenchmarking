@@ -8,23 +8,27 @@ Use the maintained fork and environment instructions from:
 
 - `https://github.com/sd68515/scKINETICS_py311_r441.git`
 
-This benchmark script is intended to use that local fork only. A recommended setup is:
+This benchmark script uses that fork's importable `sckinetics/` source directory.
+The fork has no `setup.py` or `pyproject.toml`, so it cannot be installed as a
+pip Git package. In an environment with the required Python, R, and
+Bioconductor packages, check out the pinned fork and add it to `PYTHONPATH`:
 
 ```bash
-git clone https://github.com/sd68515/scKINETICS_py311_r441.git
-cd scKINETICS_py311_r441
-# create / activate the environment according to that repository
-pip install -e . --no-deps
+git clone https://github.com/sd68515/scKINETICS_py311_r441.git ../scKINETICS_py311_r441
+git -C ../scKINETICS_py311_r441 checkout 054ec4b369882f804c3c894694c53a690b680bd7
+export PYTHONPATH="$PWD/../scKINETICS_py311_r441${PYTHONPATH:+:$PYTHONPATH}"
+python -c "from sckinetics import EM, VelocityGraph, tf_targets; print('scKINETICS import OK')"
 ```
 
-After that, run the benchmark script from this repository.
+Run the benchmark script from this repository root. The fork's reference
+environment uses Python 3.10.20 and R 4.4.1.
 
 ## Usage
 
 Single-dataset mode:
 
 ```bash
-python scKINETICS.py \
+python Benchmarked_tools/scKINETICS/scKINETICS.py \
   --input-h5ad your_data.h5ad \
   --peaks-bed your_peaks.bed \
   --output-dir ./output \
@@ -36,7 +40,7 @@ python scKINETICS.py \
 Batch mode:
 
 ```bash
-python scKINETICS.py \
+python Benchmarked_tools/scKINETICS/scKINETICS.py \
   --metadata-file datasets.csv \
   --output-dir ./output \
   --fig-dir ./figures
@@ -47,16 +51,20 @@ Example metadata columns:
 - `dataset_name`
 - `file_path`
 - `peaks_bed`
-- optional: `cluster_key`, `embedding_basis`, `genome`
+- optional: `cluster_key`, `dimred_key`, `genome`
 
 Example `datasets.csv`:
 
 ```csv
-dataset_name,file_path,peaks_bed,cluster_key,embedding_basis,genome
+dataset_name,file_path,peaks_bed,cluster_key,dimred_key,genome
 MouseBrain,/path/to/mouse_brain.h5ad,/path/to/mouse_brain_peaks.bed,celltype,X_umap,mm10
 Pancreas,/path/to/pancreas.h5ad,/path/to/pancreas_peaks.bed,celltype,X_umap,mm10
 HumanSample,/path/to/human_sample.h5ad,/path/to/human_sample_peaks.bed,celltype,X_umap,hg38
 ```
+
+`dimred_key` names the same embedding as the single-run `--embedding-basis`
+argument. Existing CSV files with `embedding_basis` remain accepted; provide
+only one of these two columns.
 
 ## Parameters
 

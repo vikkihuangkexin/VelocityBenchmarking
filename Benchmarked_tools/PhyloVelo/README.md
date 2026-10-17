@@ -2,10 +2,13 @@
 
 This standalone script runs PhyloVelo on scRNA and lineage datasets. Install
 the [benchmark fork](https://github.com/sd68515/PhyloVelo_forward_benchmark),
-which adds forward velocity projection and a two-dimensional comparison graph:
+which adds forward velocity projection and a two-dimensional comparison graph.
+Install compatible Scanpy, scVelo, and the fork's dependencies in the Python
+environment first, then install the pinned fork source without changing those
+dependencies:
 
 ```bash
-pip install git+https://github.com/sd68515/PhyloVelo_forward_benchmark.git
+python -m pip install --no-deps 'git+https://github.com/sd68515/PhyloVelo_forward_benchmark.git@25af54361fba17e2fc1a5f093ce798e3941e351c'
 ```
 
 ## Inputs and single run

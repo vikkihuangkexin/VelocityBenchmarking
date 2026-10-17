@@ -5,8 +5,12 @@ projected velocity, and scVelo pseudotime.
 
 Use the team's [DeepVelo Python 3.11 fork](https://github.com/sd68515/DeepVelo_py311).
 Its `environment-py311.yml` records the benchmark's package versions. The
-fork documents an editable checkout installation and separate PyTorch
-installation; follow its README for CPU or CUDA setup.
+fork documents separate PyTorch installation for CPU or CUDA. After preparing
+the environment, install the benchmark source at the checked revision:
+
+```bash
+python -m pip install --no-deps 'git+https://github.com/sd68515/DeepVelo_py311.git@cb13fc3006c15a4a5d52da9c48ab953f9b1ab973'
+```
 
 ## Inputs and run
 

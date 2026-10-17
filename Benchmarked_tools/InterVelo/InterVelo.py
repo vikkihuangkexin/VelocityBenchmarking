@@ -9,9 +9,9 @@ Installation:
     # The example workflow was validated with torch 2.5.1 + CUDA 12.1.
 
 Usage:
-    python InterVelo.py --input data.h5ad --output-dir ./output --modality real --cluster-key celltype --dimred-key X_umap
-    python InterVelo.py --input sim.h5ad --output-dir ./output --modality sim --cluster-key milestone --dimred-key X_dimred
-    python InterVelo.py --input multiome.h5ad --output-dir ./output --modality atac --cluster-key celltype --dimred-key X_umap
+    python InterVelo.py --input data.h5ad --output-dir ./output --preprocess-mode real --cluster-key celltype --dimred-key X_umap
+    python InterVelo.py --input sim.h5ad --output-dir ./output --preprocess-mode sim --cluster-key milestone --dimred-key X_dimred
+    python InterVelo.py --input multiome.h5ad --output-dir ./output --preprocess-mode real --extra-layers Mc --cluster-key celltype --dimred-key X_umap
     python InterVelo.py --metadata-file datasets.csv --output-dir ./output
 """
 
@@ -87,7 +87,33 @@ def load_intervelo_api():
     )
 
 
-MODALITIES = ("real", "sim", "atac")
+PREPROCESS_MODES = ("real", "sim")
+LEGACY_MODALITIES = (*PREPROCESS_MODES, "atac")
+
+
+def parse_extra_layers(value: str | list[str] | None) -> list[str]:
+    if value is None or value == "":
+        return []
+    tokens = [value] if isinstance(value, str) else value
+    layers = [name.strip() for token in tokens for name in token.split(",")]
+    if any(not name for name in layers):
+        raise ValueError("Extra layer names must be nonempty")
+    if any(name in {"Ms", "Mu"} for name in layers):
+        raise ValueError("Ms and Mu are already included in the model input")
+    if len(layers) != len(set(layers)):
+        raise ValueError("Extra layer names must be unique")
+    return layers
+
+
+def normalize_input_spec(preprocess_mode: str, extra_layers: str | list[str] | None):
+    layers = parse_extra_layers(extra_layers)
+    if preprocess_mode == "atac":  # Legacy shorthand for real data with Mc.
+        preprocess_mode = "real"
+        if "Mc" not in layers:
+            layers.insert(0, "Mc")
+    if preprocess_mode not in PREPROCESS_MODES:
+        raise ValueError(f"Unsupported preprocessing mode '{preprocess_mode}'; choose from {PREPROCESS_MODES}")
+    return preprocess_mode, layers
 
 
 def validate_dataset_name(name: str) -> str:
@@ -132,7 +158,10 @@ def load_metadata_file(metadata_path: Path) -> pd.DataFrame:
     df = pd.read_csv(metadata_path, sep=detect_separator(metadata_path), dtype=str,
                      keep_default_na=False)
 
-    required_columns = ["dataset_name", "file_path", "modality", "cluster_key", "dimred_key"]
+    if "preprocess_mode" in df.columns and "modality" in df.columns:
+        raise ValueError("Use either 'modality' or 'preprocess_mode', not both")
+    mode_column = "modality" if "modality" in df.columns else "preprocess_mode"
+    required_columns = ["dataset_name", "file_path", mode_column, "cluster_key", "dimred_key"]
     missing_columns = [column for column in required_columns if column not in df.columns]
     if missing_columns:
         raise ValueError(f"Missing required columns: {missing_columns}")
@@ -146,9 +175,10 @@ def load_metadata_file(metadata_path: Path) -> pd.DataFrame:
     df["dataset_name"] = df["dataset_name"].map(validate_dataset_name)
     if df["dataset_name"].duplicated().any():
         raise ValueError("Manifest dataset names must be unique")
-    invalid = sorted(set(df["modality"]) - set(MODALITIES))
-    if invalid:
-        raise ValueError(f"Unsupported modalities: {invalid}; choose from {MODALITIES}")
+    extra_values = df["extra_layers"] if "extra_layers" in df.columns else [""] * len(df)
+    specs = [normalize_input_spec(mode, extra) for mode, extra in zip(df[mode_column], extra_values)]
+    df["preprocess_mode"] = [mode for mode, _ in specs]
+    df["extra_layers"] = [layers for _, layers in specs]
     df["file_path"] = df["file_path"].map(
         lambda path: str((metadata_path.parent / path).resolve())
         if not Path(path).is_absolute() else path
@@ -157,13 +187,10 @@ def load_metadata_file(metadata_path: Path) -> pd.DataFrame:
     return df
 
 
-def ensure_required_layers(adata, modality: str) -> None:
-    missing_layers = [layer for layer in ("spliced", "unspliced") if layer not in adata.layers]
+def ensure_required_layers(adata, extra_layers: list[str]) -> None:
+    missing_layers = [layer for layer in ("spliced", "unspliced", *extra_layers) if layer not in adata.layers]
     if missing_layers:
         raise ValueError(f"Missing required layers: {missing_layers}")
-
-    if modality == "atac" and "Mc" not in adata.layers:
-        raise ValueError("ATAC input requires adata.layers['Mc']")
 
 
 def determine_preprocessing_params(adata) -> tuple[int, int, int]:
@@ -194,12 +221,12 @@ def validate_dimred(adata, dimred_key: str) -> str:
     return basis_name
 
 
-def preprocess_adata(adata, dimred_key: str, modality: str):
+def preprocess_adata(adata, dimred_key: str, preprocess_mode: str, extra_layers: list[str]):
     _, _, preprocess_data, _, _ = load_intervelo_api()
 
-    if modality not in MODALITIES:
-        raise ValueError(f"Unsupported modality '{modality}'")
-    ensure_required_layers(adata, modality)
+    if preprocess_mode not in PREPROCESS_MODES:
+        raise ValueError(f"Unsupported preprocessing mode '{preprocess_mode}'")
+    ensure_required_layers(adata, extra_layers)
     adata.obs_names_make_unique()
     adata.var_names_make_unique()
     basis_name = validate_dimred(adata, dimred_key)
@@ -207,30 +234,30 @@ def preprocess_adata(adata, dimred_key: str, modality: str):
         np.asarray(adata.obsm[dimred_key]).copy(), index=adata.obs_names.copy()
     )
 
-    if modality == "real":
+    if preprocess_mode == "real":
         adata.X = adata.layers["spliced"].copy()
     # Optional X-based deduplication: adata = adata[~adata.to_df().duplicated()].copy()
     # Converting X to a dense DataFrame can exhaust memory on large datasets.
 
     n_pcs, n_neighbors, batch_size = determine_preprocessing_params(adata)
 
-    if modality == "sim":
+    if preprocess_mode == "sim":
         scv.pp.filter_and_normalize(adata)
     else:
         scv.pp.filter_and_normalize(adata, min_shared_counts=20)
 
     sc.pp.log1p(adata)
     sc.pp.highly_variable_genes(adata, n_top_genes=min(2000, adata.n_vars), subset=True)
-    if modality == "real":
+    if preprocess_mode == "sim":
         spliced_sum = np.asarray(adata.layers["spliced"].sum(axis=1)).ravel()
         adata = adata[spliced_sum != 0].copy()
         if adata.n_obs == 0:
-            raise ValueError("Real-data filtering removed every cell with zero spliced counts")
+            raise ValueError("Simulation filtering removed every cell with zero spliced counts")
     n_pcs, n_neighbors, batch_size = determine_preprocessing_params(adata)
     sc.pp.pca(adata, n_comps=n_pcs)
     sc.pp.neighbors(adata, n_pcs=n_pcs, n_neighbors=n_neighbors)
     scv.pp.moments(adata, n_pcs=n_pcs, n_neighbors=n_neighbors)
-    layers = ["Ms", "Mu", "Mc"] if modality == "atac" else ["Ms", "Mu"]
+    layers = ["Ms", "Mu", *extra_layers]
     adata = preprocess_data(adata, layers=layers, filter_on_r2=False)
     missing_cells = adata.obs_names.difference(initial_coordinates.index)
     if len(missing_cells):
@@ -247,10 +274,9 @@ def to_dense_float32(layer) -> np.ndarray:
     return np.asarray(layer, dtype=np.float32)
 
 
-def build_inputdata(adata, modality: str) -> torch.Tensor:
+def build_inputdata(adata, input_layers: list[str]) -> torch.Tensor:
     import torch
 
-    input_layers = ["Ms", "Mu", "Mc"] if modality == "atac" else ["Ms", "Mu"]
     tensors = [torch.from_numpy(to_dense_float32(adata.layers[layer])) for layer in input_layers]
     return torch.cat(tensors, dim=1)
 
@@ -411,19 +437,20 @@ def run_intervelo_analysis(
     input_path: str | Path,
     output_dir: str | Path,
     cluster_key: str,
-    modality: str,
+    preprocess_mode: str,
     dataset_name: Optional[str] = None,
     dimred_key: str = "X_umap",
     save_pdf: bool = False,
     overwrite: bool = False,
     seed: int = 2024,
+    extra_layers: str | list[str] | None = None,
 ) -> Path:
     train, _, _, _, _ = load_intervelo_api()
 
     input_path = Path(input_path)
     output_dir = Path(output_dir)
-    if modality not in MODALITIES:
-        raise ValueError(f"Unsupported modality '{modality}'; choose from {MODALITIES}")
+    preprocess_mode, extra_layers = normalize_input_spec(preprocess_mode, extra_layers)
+    input_layers = ["Ms", "Mu", *extra_layers]
     if not input_path.exists():
         raise FileNotFoundError(f"Input file not found: {input_path}")
 
@@ -460,11 +487,12 @@ def run_intervelo_analysis(
         adata, basis_name, batch_size = preprocess_adata(
             adata=adata,
             dimred_key=dimred_key,
-            modality=modality,
+            preprocess_mode=preprocess_mode,
+            extra_layers=extra_layers,
         )
 
         print("  Building model input...")
-        inputdata = build_inputdata(adata, modality=modality)
+        inputdata = build_inputdata(adata, input_layers=input_layers)
         configs = build_configs(
             adata=adata,
             method_name=method_name,
@@ -496,8 +524,10 @@ def run_intervelo_analysis(
             "dataset_name": str(dataset_name),
             "cluster_key": cluster_key,
             "dimred_key": dimred_key,
-            "modality": modality,
-            "input_layers": ["Ms", "Mu", "Mc"] if modality == "atac" else ["Ms", "Mu"],
+            "modality": preprocess_mode,
+            "preprocess_mode": preprocess_mode,
+            "extra_layers": extra_layers,
+            "input_layers": input_layers,
             "seed": int(seed),
         }
 
@@ -534,7 +564,8 @@ def run_batch_intervelo(
             input_path=file_path,
             output_dir=output_dir,
             cluster_key=row["cluster_key"],
-            modality=row["modality"],
+            preprocess_mode=row["preprocess_mode"],
+            extra_layers=row["extra_layers"],
             dataset_name=row["dataset_name"],
             dimred_key=row["dimred_key"],
             save_pdf=save_pdf,
@@ -558,7 +589,19 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
     parser.add_argument("--output-dir", required=True, help="Output directory")
     parser.add_argument("--dataset-name", default=None, help="Dataset folder name for single-file mode")
-    parser.add_argument("--modality", choices=MODALITIES, help="Input modality for single-file mode")
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
+        "--preprocess-mode", choices=PREPROCESS_MODES,
+        help="Choose real-data or simulation preprocessing, regardless of auxiliary layers",
+    )
+    mode_group.add_argument(
+        "--modality", dest="preprocess_mode", choices=LEGACY_MODALITIES,
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--extra-layers", nargs="+", metavar="LAYER",
+        help="Existing adata.layers matrices to append after Ms and Mu (e.g. Mc or Ma)",
+    )
     parser.add_argument(
         "--cluster-key",
         default=None,
@@ -585,6 +628,8 @@ def main(args: Optional[argparse.Namespace] = None):
         args = parser.parse_args()
 
     if args.metadata_file:
+        if args.preprocess_mode or args.extra_layers:
+            parser.error("Set preprocessing mode and extra layers in the metadata file for batch mode")
         return run_batch_intervelo(
             metadata_file=args.metadata_file,
             output_dir=args.output_dir,
@@ -593,14 +638,15 @@ def main(args: Optional[argparse.Namespace] = None):
             seed=args.seed,
         )
 
-    if not args.cluster_key or not args.modality or not args.dimred_key:
-        parser.error("--cluster-key, --modality, and --dimred-key are required in single-file mode")
+    if not args.cluster_key or not args.preprocess_mode or not args.dimred_key:
+        parser.error("--cluster-key, --preprocess-mode, and --dimred-key are required in single-file mode")
 
     return run_intervelo_analysis(
         input_path=args.input,
         output_dir=args.output_dir,
         cluster_key=args.cluster_key,
-        modality=args.modality,
+        preprocess_mode=args.preprocess_mode,
+        extra_layers=args.extra_layers,
         dataset_name=args.dataset_name,
         dimred_key=args.dimred_key,
         save_pdf=args.save_pdf,

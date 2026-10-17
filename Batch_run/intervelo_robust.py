@@ -3,9 +3,9 @@
 
 Install the team fork: https://github.com/sd68515/InterVelo_py311
 CSV columns: dataset_name,file_path,modality,cluster_key,dimred_key.
+Optional extra_layers names are comma-separated. preprocess_mode is also accepted.
 Paths may be relative to the CSV.
-Kinds: real, sim, atac. Coordinates control
-projection, not model inputs.
+Preprocessing modes: real, sim. Coordinates control projection, not model inputs.
 """
 from __future__ import annotations
 import argparse
@@ -16,7 +16,22 @@ from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
 
-KINDS = {"real", "sim", "atac"}
+PREPROCESS_MODES = {"real", "sim"}
+
+
+def input_spec(mode, extra_value):
+    layers = [name.strip() for name in extra_value.split(",")] if extra_value else []
+    if any(not name for name in layers) or len(layers) != len(set(layers)):
+        raise ValueError("extra_layers must contain unique, nonempty layer names")
+    if any(name in {"Ms", "Mu"} for name in layers):
+        raise ValueError("Ms and Mu are already included in the model input")
+    if mode == "atac":  # Legacy shorthand for real data with Mc.
+        mode = "real"
+        if "Mc" not in layers:
+            layers.insert(0, "Mc")
+    if mode not in PREPROCESS_MODES:
+        raise ValueError(f"Unsupported preprocessing mode: {mode}")
+    return mode, layers
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -30,7 +45,10 @@ def parse_args():
 def load_manifest(path):
     with path.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
-        required = {"dataset_name", "file_path", "modality", "cluster_key", "dimred_key"}
+        if "preprocess_mode" in (reader.fieldnames or []) and "modality" in reader.fieldnames:
+            raise ValueError("Use either 'modality' or 'preprocess_mode', not both")
+        mode_column = "modality" if "modality" in (reader.fieldnames or []) else "preprocess_mode"
+        required = {"dataset_name", "file_path", mode_column, "cluster_key", "dimred_key"}
         missing = required.difference(reader.fieldnames or [])
         if missing:
             raise ValueError(f"Manifest is missing columns: {sorted(missing)}")
@@ -38,10 +56,17 @@ def load_manifest(path):
         for line, raw in enumerate(reader, 2):
             if None in raw:
                 raise ValueError(f"CSV line {line} has more values than its header")
+            raw_mode = (raw.get(mode_column) or "").strip()
+            try:
+                mode, extra_layers = input_spec(raw_mode, (raw.get("extra_layers") or "").strip())
+            except ValueError as error:
+                raise ValueError(f"Line {line}: {error}") from error
             row = {
                 "ID": (raw.get("dataset_name") or "").strip(),
                 "path": (raw.get("file_path") or "").strip(),
-                "kind": (raw.get("modality") or "").strip(),
+                "preprocess_mode": mode,
+                "extra_layers": extra_layers,
+                "output_group": raw_mode if mode_column == "modality" else mode,
                 "obs": (raw.get("cluster_key") or "").strip(),
                 "obsm_vis": (raw.get("dimred_key") or "").strip(),
             }
@@ -50,8 +75,6 @@ def load_manifest(path):
                 raise ValueError(f"Line {line}: ID must be a nonempty path component")
             if ident in seen:
                 raise ValueError(f"Line {line}: duplicate ID {ident}")
-            if row["kind"] not in KINDS:
-                raise ValueError(f"Line {line}: unsupported kind {row['kind']}")
             if not row["path"] or not row["obs"] or not row["obsm_vis"] or row["obsm_vis"] == "X_":
                 raise ValueError(f"Line {line}: file_path, cluster_key and dimred_key are required")
             source = Path(row["path"])
@@ -115,7 +138,7 @@ def prepare(row, seed):
     from InterVelo.data import preprocess_data
     seed_all(seed, np, torch)
     adata = sc.read_h5ad(row["path"])
-    layers = ["spliced", "unspliced"] + (["Mc"] if row["kind"] == "atac" else [])
+    layers = ["spliced", "unspliced", *row["extra_layers"]]
     missing = [key for key in layers if key not in adata.layers]
     if missing:
         raise ValueError(f"{row['ID']}: missing layers {missing}")
@@ -124,19 +147,19 @@ def prepare(row, seed):
     adata.obs_names_make_unique()
     adata.var_names_make_unique()
     reference = coordinate_reference(adata, row["obsm_vis"])
-    real = row["kind"] == "real"
+    real = row["preprocess_mode"] == "real"
     if real:
         adata.X = adata.layers["spliced"].copy()
     # Optional exact duplicate removal by X densifies sparse input. Avoid
     # enabling it on large datasets without a memory budget:
     # adata = adata[~adata.to_df().duplicated().to_numpy()].copy()
-    if row["kind"] == "sim":
+    if row["preprocess_mode"] == "sim":
         scv.pp.filter_and_normalize(adata)
     else:
         scv.pp.filter_and_normalize(adata, min_shared_counts=20)
     sc.pp.log1p(adata)
     sc.pp.highly_variable_genes(adata, n_top_genes=min(2000, adata.n_vars), subset=True)
-    if real:
+    if row["preprocess_mode"] == "sim":
         keep = np.asarray(adata.layers["spliced"].sum(axis=1)).ravel() != 0
         adata = adata[keep].copy()
     if adata.n_obs < 3 or adata.n_vars < 3:
@@ -146,7 +169,7 @@ def prepare(row, seed):
     sc.pp.pca(adata, n_comps=n_pcs)
     sc.pp.neighbors(adata, n_pcs=n_pcs, n_neighbors=n_neighbors)
     scv.pp.moments(adata, n_pcs=n_pcs, n_neighbors=n_neighbors)
-    model_layers = ["Ms", "Mu"] + (["Mc"] if row["kind"] == "atac" else [])
+    model_layers = ["Ms", "Mu", *row["extra_layers"]]
     adata = preprocess_data(adata, layers=model_layers, filter_on_r2=False)
     if row["obs"] not in adata.obs:
         raise ValueError(f"{row['ID']}: preprocessing removed required metadata")
@@ -184,7 +207,7 @@ def train_one(adata, layers, row, run_index, train_seed, preprocess_seed, output
     scv.tl.velocity_graph(adata, vkey="velocity", xkey="Ms")
     scv.tl.velocity_embedding(adata, vkey="velocity", basis=basis)
     truth_status = "not_applicable"
-    if row["kind"] == "sim":
+    if row["preprocess_mode"] == "sim":
         truth_status = "skipped_invalid_or_missing"
         if valid_velocity_layer(adata, "ground_truth_velocity"):
             try:
@@ -201,7 +224,8 @@ def train_one(adata, layers, row, run_index, train_seed, preprocess_seed, output
         span = np.ptp(values)
         adata.obs["intervelo_pseudotime_normalized"] = (values - values.min()) / span if span else 0.0
     adata.uns["intervelo_batchrun"] = {
-        "dataset_id": row["ID"], "kind": row["kind"], "run_index": run_index,
+        "dataset_id": row["ID"], "kind": row["preprocess_mode"], "run_index": run_index,
+        "preprocess_mode": row["preprocess_mode"], "extra_layers": row["extra_layers"],
         "preprocess_seed": preprocess_seed, "train_seed": train_seed,
         "obs_key": row["obs"], "coordinate_key": row["obsm_vis"],
         "model_layers": ",".join(layers),
@@ -220,7 +244,7 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     failed = 0
     for row in rows:
-        destination = output_dir / row["kind"] / row["ID"]
+        destination = output_dir / row["output_group"] / row["ID"]
         destination.mkdir(parents=True, exist_ok=True)
         pending = []
         for run_index in range(1, args.runs + 1):

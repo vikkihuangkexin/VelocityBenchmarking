@@ -3,11 +3,11 @@
 This independent spatial entry uses the [team veloAgent source fork](https://github.com/sd68515/veloAgent_benchmark).
 The fork corrects the order of distances and indices returned by scikit-learn's
 radius-neighbor search in `CellModel`; this can change the inferred velocity.
-Install compatible dependencies, then install the fork:
+Use Python 3.11.8 or newer with the fork's pinned dependencies. After
+installing VeloAE (which supplies `veloproj`), install the fork directly:
 
 ```bash
-git clone https://github.com/sd68515/veloAgent_benchmark.git ../veloAgent_benchmark
-python -m pip install --no-deps -e ../veloAgent_benchmark
+python -m pip install --no-deps 'git+https://github.com/sd68515/veloAgent_benchmark.git@a876671f954e09493cccb158aafe314777ed1dcf'
 ```
 
 ## Inputs and run

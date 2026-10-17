@@ -1,14 +1,14 @@
 # STEER
 
 This standalone entry follows the two-stage spatial workflow used in the
-benchmark. Install the [team STEER source fork](https://github.com/sd68515/STEER_benchmark) and its
-dependencies in a suitable environment. Expert estimation and the default
+benchmark. Install the [team STEER source fork](https://github.com/sd68515/STEER_benchmark) in an environment with its
+Python dependencies. Expert estimation and the default
 `mclust` refinement require R, `mclust`, and `rpy2`; follow the upstream
 installation guide for the PyTorch and PyG packages matching your hardware.
+Install the pinned fork source after preparing that environment:
 
 ```bash
-git clone https://github.com/sd68515/STEER_benchmark.git ../STEER_benchmark
-python -m pip install --no-deps -e ../STEER_benchmark
+python -m pip install --no-deps 'git+https://github.com/sd68515/STEER_benchmark.git@20b6437bc63799e608d5ece95589454c03f70237'
 ```
 
 ## Inputs and run

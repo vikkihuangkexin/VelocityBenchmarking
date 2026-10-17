@@ -496,10 +496,14 @@ def load_metadata_file(metadata_path: Path) -> pd.DataFrame:
     missing_cols = [column for column in required_cols if column not in df.columns]
     if missing_cols:
         raise ValueError(f"Missing required columns in metadata file: {missing_cols}")
+    if "dimred_key" in df.columns and "embedding_basis" in df.columns:
+        raise ValueError("Use either 'dimred_key' or 'embedding_basis', not both")
+    if "embedding_basis" in df.columns:
+        df = df.rename(columns={"embedding_basis": "dimred_key"})
 
     optional_defaults = {
         "cluster_key": "celltype",
-        "embedding_basis": "X_umap",
+        "dimred_key": "X_umap",
         "genome": "mm10",
     }
     for column, default_value in optional_defaults.items():
@@ -637,7 +641,7 @@ def main(args):
                 output_dir=dataset_output_dir,
                 fig_dir=dataset_fig_dir,
                 cluster_key=str(row["cluster_key"]),
-                embedding_basis=str(row["embedding_basis"]),
+                embedding_basis=str(row["dimred_key"]),
                 genome=str(row["genome"]),
                 args=args,
             )

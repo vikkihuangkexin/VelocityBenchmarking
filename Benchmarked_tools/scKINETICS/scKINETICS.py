@@ -4,11 +4,9 @@ scKINETICS benchmark pipeline using the maintained local fork and updated enviro
 """
 
 import argparse
-import io
-import os
+import inspect
 import pickle
 import subprocess
-import sys
 import warnings
 from pathlib import Path
 
@@ -18,8 +16,6 @@ import pandas as pd
 import scanpy as sc
 from scipy import sparse
 from tqdm.auto import tqdm
-
-warnings.filterwarnings("ignore")
 
 mpl.rcParams["pdf.fonttype"] = 42
 mpl.rcParams["ps.fonttype"] = 42
@@ -35,9 +31,280 @@ PALETTE = [
 ]
 
 
+# Paired simulation input validation and TF-target annotations.
+
+def resolve_annotations(
+    dataset_name, simulated, cluster_key=None, embedding_basis=None
+):
+    if cluster_key is None:
+        cluster_key = (
+            "pseudo_celltype"
+            if simulated and "linear" in dataset_name.lower()
+            else "celltype"
+        )
+    return cluster_key, embedding_basis or ("X_tsne" if simulated else "X_umap")
+
+
+def align_modalities(rna, atac):
+    key = "simulation_cell_id"
+    if (key in rna.obs) != (key in atac.obs):
+        raise ValueError(
+            "simulation_cell_id must be present in both modalities or neither."
+        )
+    r = pd.Index(rna.obs[key] if key in rna.obs else rna.obs_names)
+    a = pd.Index(atac.obs[key] if key in atac.obs else atac.obs_names)
+    if r.hasnans or a.hasnans:
+        raise ValueError("Cell identifiers must not contain missing values.")
+    r, a = r.astype(str), a.astype(str)
+    if not r.is_unique or not a.is_unique:
+        raise ValueError("Cell identifiers must be unique within each modality.")
+    if len(r) != len(a) or not r.isin(a).all():
+        raise ValueError(
+            "RNA/ATAC cell sets differ; explicitly subset them before running."
+        )
+    rna, atac = rna.copy(), atac[a.get_indexer(r)].copy()
+    if not rna.obs_names.is_unique:
+        raise ValueError("RNA obs_names must be unique.")
+    atac.obs_names = rna.obs_names.copy()
+    if not rna.var_names.is_unique or not rna.var_names.str.upper().is_unique:
+        raise ValueError(
+            "RNA gene identifiers must be unique, including after uppercasing."
+        )
+    if "spliced" not in rna.layers:
+        raise KeyError(
+            "scMultiSim RNA requires layers['spliced']; no implicit expression fallback."
+        )
+    rna.X = rna.layers["spliced"].copy()
+    return rna, atac
+
+
+def boolean_mask(values, size):
+    values = np.asarray(values)
+    if values.shape != (size,) or pd.isna(values).any():
+        raise ValueError(
+            "Peak selection must be a non-missing vector with one entry per peak."
+        )
+    if values.dtype.kind == "b":
+        return values.copy()
+    if values.dtype.kind in "iuf" and np.isin(values, [0, 1]).all():
+        return values.astype(bool)
+    strings = np.char.lower(values.astype(str))
+    if not np.isin(strings, ["true", "false", "0", "1"]).all():
+        raise ValueError("Peak selection accepts only booleans, true/false, or 0/1.")
+    return np.isin(strings, ["true", "1"])
+
+
+def select_peaks(atac, diff_peak_key, width_max, all_peaks=False):
+    required = {"chrom", "chromStart", "chromEnd"}
+    if not required.issubset(atac.var):
+        raise KeyError(f"ATAC var must include {sorted(required)}.")
+    start = pd.to_numeric(atac.var["chromStart"], errors="raise").to_numpy(dtype=float)
+    end = pd.to_numeric(atac.var["chromEnd"], errors="raise").to_numpy(dtype=float)
+    if (
+        not np.isfinite(start).all()
+        or not np.isfinite(end).all()
+        or np.any(start != np.floor(start))
+        or np.any(end != np.floor(end))
+        or np.any(start < 0)
+        or np.any(end <= start)
+        or atac.var["chrom"].isna().any()
+    ):
+        raise ValueError("Invalid ATAC peak coordinates.")
+    if all_peaks:
+        mask = np.ones(atac.n_vars, dtype=bool)
+    elif diff_peak_key in atac.var:
+        mask = boolean_mask(atac.var[diff_peak_key], atac.n_vars)
+    elif "selected" in atac.uns.get("sckinetics_diff_peaks", {}):
+        mask = boolean_mask(atac.uns["sckinetics_diff_peaks"]["selected"], atac.n_vars)
+    else:
+        raise KeyError(
+            f"Missing ATAC differential peak mask {diff_peak_key!r}; use --all-peaks explicitly."
+        )
+    mask &= end - start < width_max
+    if not mask.any():
+        raise ValueError("No peaks remain after selection and peak-width filtering.")
+    if not atac.var_names.is_unique:
+        raise ValueError("ATAC peak identifiers must be unique.")
+    return mask
+
+
+def read_tf_map(path):
+    table = pd.read_csv(path, dtype=str, keep_default_na=False)
+    if not {"tf", "gene"}.issubset(table.columns):
+        raise ValueError("TF mapping CSV requires columns tf,gene.")
+    if (
+        table.empty
+        or table[["tf", "gene"]].apply(lambda col: col.str.strip().eq("").any()).any()
+    ):
+        raise ValueError("TF mapping CSV must contain nonempty identifiers.")
+    table = table.assign(
+        tf=table.tf.str.strip().str.upper(), gene=table.gene.str.strip().str.upper()
+    )
+    if table.tf.duplicated().any():
+        raise ValueError("TF mapping CSV must contain exactly one gene per TF.")
+    return dict(zip(table.tf, table.gene))
+
+
+def annotation_matrix(atac, key, names_key):
+    if key not in atac.varm or names_key not in atac.uns:
+        raise KeyError(f"ATAC requires varm[{key!r}] and uns[{names_key!r}].")
+    names = np.asarray(atac.uns[names_key]).astype(str)
+    matrix = sparse.csr_matrix(atac.varm[key], dtype=float)
+    if names.ndim != 1 or matrix.shape != (atac.n_vars, len(names)):
+        raise ValueError(f"{key} dimensions do not match regions and annotation names.")
+    if pd.Index(names).str.upper().duplicated().any():
+        raise ValueError(f"{names_key} must contain unique identifiers.")
+    if not np.isfinite(matrix.data).all() or np.any(matrix.data < 0):
+        raise ValueError(f"{key} must contain finite nonnegative link weights.")
+    matrix.sum_duplicates()
+    matrix.eliminate_zeros()
+    return matrix, np.char.upper(names)
+
+
+def reference_tf_mapping(atac, tf_matrix, tf_names, gene_matrix, gene_names):
+    """Recover the team's template identities only after full annotation agreement."""
+    if atac.uns.get("simulation", {}).get("simulator") != "scMultiSim":
+        raise ValueError(
+            "Simulator TF labels have no RNA identity; supply an explicit mapping."
+        )
+    reference = pd.read_csv(Path(__file__).with_name("scmultisim_grn_params_100.csv"))
+    regulators = sorted(reference.regulator.unique())
+    expected_labels = np.asarray([f"TF_{i + 1:03d}" for i in range(len(regulators))])
+    if not np.array_equal(tf_names, expected_labels):
+        raise ValueError(
+            "TF labels have no RNA identity: TF labels/order do not match the supported GRN_params_100 template."
+        )
+    gene_lookup = {name: i for i, name in enumerate(gene_names)}
+    template_genes = {f"GENE_{i:05d}" for i in set(reference.target) | set(regulators)}
+    if not template_genes.issubset(gene_lookup):
+        raise ValueError(
+            "TF labels have no RNA identity: region_to_gene gene names do not match GRN_params_100."
+        )
+    positive = reference[reference.effect > 0]
+    reg_lookup = {reg: i for i, reg in enumerate(regulators)}
+    effects = sparse.csr_matrix(
+        (
+            np.ones(len(positive)),
+            (
+                [gene_lookup[f"GENE_{i:05d}"] for i in positive.target],
+                [reg_lookup[i] for i in positive.regulator],
+            ),
+        ),
+        shape=(len(gene_names), len(regulators)),
+    )
+    predicted = (gene_matrix @ effects > 0).tocsr()
+    actual = (tf_matrix > 0).tocsr()
+    if (predicted != actual).nnz or np.any(np.asarray(actual.sum(axis=0)).ravel() == 0):
+        raise ValueError(
+            "TF labels have no RNA identity: full region_to_tf reconstruction disagrees with GRN_params_100; supply a verified mapping."
+        )
+    return {tf: f"GENE_{reg:05d}" for tf, reg in zip(tf_names, regulators)}
+
+
+def build_tf_target_pairs(
+    atac, mask, rna_genes, tf_map=None, original_rna_genes=None
+):
+    tf_matrix, tf_names = annotation_matrix(atac, "region_to_tf", "region_to_tf_names")
+    gene_matrix, gene_names = annotation_matrix(
+        atac, "region_to_gene", "region_to_gene_genes"
+    )
+    genes = set(pd.Index(rna_genes).str.upper())
+    original_genes = (
+        genes
+        if original_rna_genes is None
+        else set(pd.Index(original_rna_genes).str.upper())
+    )
+    mapping_source = (
+        "csv"
+        if tf_map is not None
+        else "atac_uns"
+        if "sckinetics_tf_to_gene" in atac.uns
+        else "gene_names"
+    )
+    if tf_map is None:
+        tf_map = atac.uns.get("sckinetics_tf_to_gene", {})
+    if not isinstance(tf_map, dict):
+        raise ValueError(
+            "uns['sckinetics_tf_to_gene'] must be a TF-to-RNA-gene dictionary."
+        )
+    tf_map = {str(k).upper(): str(v).upper() for k, v in tf_map.items()}
+    template_map = {}
+    if (
+        not tf_map
+        and any(tf not in original_genes for tf in tf_names)
+    ):
+        template_map = reference_tf_mapping(
+            atac, tf_matrix, tf_names, gene_matrix, gene_names
+        )
+        mapping_source = "GRN_params_100_full_annotation_match"
+    if set(tf_map.values()) - original_genes:
+        raise ValueError(
+            "TF mapping references genes absent from the original RNA input."
+        )
+    unknown = set(tf_map) - set(tf_names)
+    if unknown:
+        raise ValueError(
+            f"TF map contains labels absent from region_to_tf_names: {sorted(unknown)}"
+        )
+    mapping = {}
+    for tf in tf_names:
+        if tf in tf_map:
+            mapping[tf] = tf_map[tf]
+        elif tf in original_genes:
+            mapping[tf] = tf
+        elif tf in template_map:
+            mapping[tf] = template_map[tf]
+        else:
+            raise ValueError(
+                f"TF {tf!r} has no RNA identity. Supply ATAC uns['sckinetics_tf_to_gene'] or --tf-map; numbered labels are not gene IDs."
+            )
+    records = []
+    for i in np.flatnonzero(mask):
+        tfs = {
+            mapping[tf_names[j]] for j in tf_matrix[i].indices if tf_names[j] in mapping
+        }
+        targets = set(gene_names[gene_matrix[i].indices]) & genes
+        for tf in sorted(tfs & genes):
+            for target in sorted(targets):
+                records.append((str(atac.var_names[i]), tf, target))
+    if not records:
+        raise ValueError(
+            "Selected, width-filtered peaks produced no RNA-compatible TF-target pairs. No all-peak retry was performed."
+        )
+    pairs = pd.DataFrame(records, columns=["peak_name", "TF", "target"])
+    provenance = {
+        "grn_source": "simulator_region_to_tf_region_to_gene",
+        "tf_mapping_mode": "validated_reference_template"
+        if template_map
+        else "explicit_or_gene_names",
+        "tf_mapping_source": mapping_source,
+        "tf_mapping": mapping,
+        "selected_peaks": int(np.sum(mask)),
+        "paired_peaks": int(pairs.peak_name.nunique()),
+        "tf_target_peak_pairs": len(pairs),
+    }
+    return pairs.drop_duplicates().set_index("peak_name"), provenance
+
+
+def set_cluster_colors(adata, cluster_key, palette):
+    if adata.obs[cluster_key].isna().any():
+        raise ValueError(f"obs[{cluster_key!r}] contains missing labels.")
+    adata.obs[cluster_key] = pd.Categorical(adata.obs[cluster_key].astype(str))
+    adata.uns[f"{cluster_key}_colors"] = [
+        palette[i % len(palette)]
+        for i in range(len(adata.obs[cluster_key].cat.categories))
+    ]
+
+
+def drop_transient_data(adata, cluster_key):
+    """Drop training DataFrames on the export copy; retain the runtime object."""
+    adata.obsm.pop("X_transformed", None)
+    for cluster in adata.obs[cluster_key].astype(str).unique():
+        adata.uns.pop(f"X_{cluster}", None)
+
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Run scKINETICS on one or more real datasets for VelocityBenchmarking."
+        description="Run scKINETICS on real or paired scMultiSim datasets."
     )
 
     input_group = parser.add_mutually_exclusive_group(required=True)
@@ -45,6 +312,11 @@ def parse_args():
     input_group.add_argument("--metadata-file", help="Metadata table for batch mode.")
 
     parser.add_argument("--peaks-bed", help="ATAC peaks BED file for single-dataset mode.")
+    parser.add_argument("--atac-h5ad", help="Paired scMultiSim ATAC file; enables simulation mode.")
+    parser.add_argument("--tf-map", help="CSV with explicit simulator tf,gene identities.")
+    parser.add_argument("--diff-peak-key", default="sckinetics_diff_peak")
+    parser.add_argument("--all-peaks", action="store_true", help="Explicitly use all width-filtered simulation peaks.")
+    parser.add_argument("--sklearn-n-jobs", type=int, default=1, help="Jobs for fork kNN operations.")
     parser.add_argument("--output-dir", required=True, help="Output directory for exported h5ad files.")
     parser.add_argument(
         "--fig-dir",
@@ -58,13 +330,13 @@ def parse_args():
     )
     parser.add_argument(
         "--cluster-key",
-        default="celltype",
-        help="Grouping column in adata.obs used for scKINETICS fitting.",
+        default=None,
+        help="Default: pseudo_celltype for simulated IDs containing linear; otherwise celltype.",
     )
     parser.add_argument(
         "--embedding-basis",
-        default="X_umap",
-        help="Low-dimensional embedding key used for velocity projection and plotting.",
+        default=None,
+        help="Default: X_tsne for simulation, X_umap for real data.",
     )
     parser.add_argument(
         "--genome",
@@ -99,6 +371,9 @@ def parse_args():
 def import_sckinetics():
     from sckinetics import EM, VelocityGraph, tf_targets
 
+    if any("sklearn_n_jobs" not in inspect.signature(cls).parameters
+           for cls in (EM.ExpectationMaximization, VelocityGraph)):
+        raise RuntimeError("Use the fork revision pinned in README.md; the imported source lacks sklearn_n_jobs support.")
     return EM, VelocityGraph, tf_targets
 
 
@@ -141,6 +416,7 @@ def basic_preprocess(adata, cluster_key, embedding_basis, args):
 
     if cluster_key not in adata.obs:
         raise KeyError(f"{cluster_key!r} not found in adata.obs.")
+    set_cluster_colors(adata, cluster_key, PALETTE)
 
     sc.pp.filter_cells(adata, min_genes=args.min_genes)
     sc.pp.filter_genes(adata, min_cells=args.min_cells)
@@ -150,6 +426,8 @@ def basic_preprocess(adata, cluster_key, embedding_basis, args):
     else:
         nonzero_columns = np.where(np.sum(adata.X, axis=0) > 0)[0]
     adata = adata[:, nonzero_columns].copy()
+    if min(adata.shape) <= 50:
+        raise ValueError("The fork's prepare_data requires more than 50 cells and genes after filtering.")
 
     if not args.skip_normalize:
         sc.pp.normalize_total(adata, target_sum=args.target_sum)
@@ -238,6 +516,12 @@ def export_result(adata, model, vg, velocity_embedding, cluster_key, embedding_b
         dtype=str,
     )
 
+    set_cluster_colors(adata_export, cluster_key, PALETTE)
+    drop_transient_data(adata_export, cluster_key)
+    # h5py does not support the longdouble transition weights used internally.
+    for key in ("sckinetics_T", "sckinetics_T_backward"):
+        if key in adata_export.obsp:
+            adata_export.obsp[key] = adata_export.obsp[key].astype(np.float64)
     return adata_export
 
 
@@ -281,50 +565,26 @@ def convert_svg_to_pdf(svg_path: Path, pdf_path: Path) -> bool:
 
 
 def save_stream_plot_with_fallback(scv, plt, adata, save_path: Path, **plot_kwargs):
-    scv.settings.figdir = str(save_path.parent)
-    save_name = save_path.name
-    fmt = save_path.suffix[1:]
-
-    if fmt != "pdf":
-        scv.pl.velocity_embedding_stream(adata, save=save_name, show=False, **plot_kwargs)
-        plt.close("all")
-        return
-
-    old_stdout, old_stderr = sys.stdout, sys.stderr
-    captured_output = io.StringIO()
-    sys.stdout = sys.stderr = captured_output
-
+    # Save the figure directly: scVelo prepends its own filename prefix and may
+    # swallow PDF errors, which prevents checking/converting the requested file.
+    scv.pl.velocity_embedding_stream(adata, save=None, show=False, **plot_kwargs)
+    figure = plt.gcf()
     try:
-        scv.pl.velocity_embedding_stream(adata, save=save_name, show=False, **plot_kwargs)
-        plt.close("all")
-
-        sys.stdout, sys.stderr = old_stdout, old_stderr
-        output_content = captured_output.getvalue()
-        pdf_error = (
-            "cannot be saved as pdf" in output_content.lower()
-            or "can only output finite numbers in pdf" in output_content.lower()
-        )
-
-        if pdf_error:
-            if save_path.exists():
-                os.remove(save_path)
-
-            png_fallback = save_path.with_suffix(".png")
-            if png_fallback.exists():
-                os.remove(png_fallback)
-
+        try:
+            figure.savefig(save_path, dpi=plot_kwargs.get("dpi", 400), bbox_inches="tight")
+        except ValueError as exc:
+            if save_path.suffix != ".pdf" or "finite" not in str(exc).lower():
+                raise
+            warnings.warn(f"PDF stream rendering failed; converting SVG instead: {exc}")
             svg_path = save_path.with_suffix(".svg")
-            scv.settings.figdir = str(svg_path.parent)
-            scv.pl.velocity_embedding_stream(adata, save=svg_path.name, show=False, **plot_kwargs)
-            plt.close("all")
-
-            if convert_svg_to_pdf(svg_path, save_path) and svg_path.exists():
-                os.remove(svg_path)
+            figure.savefig(svg_path, bbox_inches="tight")
+            if not convert_svg_to_pdf(svg_path, save_path):
+                if save_path.exists():
+                    save_path.unlink()
+                raise RuntimeError(f"Could not convert {svg_path} to PDF") from exc
+            svg_path.unlink()
     finally:
-        if sys.stdout != old_stdout:
-            sys.stdout = old_stdout
-        if sys.stderr != old_stderr:
-            sys.stderr = old_stderr
+        plt.close(figure)
 
 
 def ensure_scvelo_graph(adata, basis_name, n_jobs):
@@ -374,7 +634,7 @@ def generate_standard_figures(adata_export, fig_dir, cluster_key, embedding_basi
     png_dir.mkdir(parents=True, exist_ok=True)
     pdf_dir.mkdir(parents=True, exist_ok=True)
 
-    adata_export.obs[cluster_key] = adata_export.obs[cluster_key].astype(str)
+    set_cluster_colors(adata_export, cluster_key, PALETTE)
     ensure_scvelo_graph(adata_export, basis_name, n_jobs)
 
     try:
@@ -492,23 +752,36 @@ def load_metadata_file(metadata_path: Path) -> pd.DataFrame:
         sep = "\t" if "\t" in first_line else ","
 
     df = pd.read_csv(metadata_path, sep=sep)
-    required_cols = ["dataset_name", "file_path", "peaks_bed"]
+    required_cols = ["dataset_name", "file_path"]
     missing_cols = [column for column in required_cols if column not in df.columns]
     if missing_cols:
         raise ValueError(f"Missing required columns in metadata file: {missing_cols}")
+    if df[required_cols].isna().any().any():
+        raise ValueError("dataset_name and file_path must not be missing.")
+    if df.dataset_name.duplicated().any():
+        raise ValueError("dataset_name must be unique in the metadata file.")
     if "dimred_key" in df.columns and "embedding_basis" in df.columns:
         raise ValueError("Use either 'dimred_key' or 'embedding_basis', not both")
     if "embedding_basis" in df.columns:
         df = df.rename(columns={"embedding_basis": "dimred_key"})
 
     optional_defaults = {
-        "cluster_key": "celltype",
-        "dimred_key": "X_umap",
+        "cluster_key": None,
+        "dimred_key": None,
         "genome": "mm10",
+        "peaks_bed": None,
+        "atac_h5ad": None,
+        "tf_map": None,
     }
     for column, default_value in optional_defaults.items():
         if column not in df.columns:
             df[column] = default_value
+        elif default_value is not None:
+            df[column] = df[column].fillna(default_value)
+
+    for _, row in df.iterrows():
+        if pd.notna(row.peaks_bed) == pd.notna(row.atac_h5ad):
+            raise ValueError(f"{row.dataset_name}: supply exactly one of peaks_bed or atac_h5ad.")
 
     return df
 
@@ -523,11 +796,21 @@ def run_sckinetics_analysis(
     embedding_basis,
     genome,
     args,
+    atac_h5ad=None,
+    tf_map_path=None,
 ):
     EM, VelocityGraph, tf_targets = import_sckinetics()
 
     input_h5ad = Path(input_h5ad).resolve()
-    peaks_bed = Path(peaks_bed).resolve()
+    simulated = atac_h5ad is not None
+    cluster_key, embedding_basis = resolve_annotations(
+        dataset_name, simulated, cluster_key, embedding_basis,
+    )
+    if simulated and peaks_bed is not None:
+        raise ValueError("Supply either peaks_bed or atac_h5ad, not both.")
+    if not simulated and peaks_bed is None:
+        raise ValueError("Real data requires --peaks-bed.")
+    peaks_bed = Path(peaks_bed).resolve() if peaks_bed else None
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     output_h5ad = output_dir / f"scKINETICS_{dataset_name}.h5ad"
@@ -540,23 +823,46 @@ def run_sckinetics_analysis(
     print("  Embedding basis:", embedding_basis)
     print("  Threads:", args.threads)
 
-    print("\n[1/6] Load peaks")
-    peaks = load_bed_three_columns(peaks_bed)
-    width = peaks["chromEnd"] - peaks["chromStart"]
-    peaks = peaks.loc[width < args.peak_width_max].reset_index(drop=True)
-    print("  peaks_lt_width", peaks.shape)
+    print("\n[1/6] Load peak inputs")
+    if not simulated:
+        peaks = load_bed_three_columns(peaks_bed)
+        width = peaks["chromEnd"] - peaks["chromStart"]
+        peaks = peaks.loc[(width > 0) & (width < args.peak_width_max)].reset_index(drop=True)
+        if peaks.empty:
+            raise ValueError("No valid peaks remain after width filtering.")
+        print("  peaks_lt_width", peaks.shape)
 
     print("\n[2/6] Load and preprocess AnnData")
     adata = sc.read_h5ad(input_h5ad)
+    original_rna_genes = adata.var_names.copy()
+    if simulated:
+        atac = sc.read_h5ad(atac_h5ad)
+        adata, atac = align_modalities(adata, atac)
+        selected = select_peaks(atac, args.diff_peak_key, args.peak_width_max, args.all_peaks)
+        tf_mapping = read_tf_map(tf_map_path) if tf_map_path else None
+        if tf_mapping:
+            unknown_genes = set(tf_mapping.values()) - set(adata.var_names.str.upper())
+            if unknown_genes:
+                raise ValueError(f"TF map references genes absent from input RNA: {sorted(unknown_genes)}")
     print("  loaded", adata)
     adata = basic_preprocess(adata, cluster_key, embedding_basis, args)
     print("  preprocessed", adata)
 
-    print("\n[3/6] Peak annotation and motif calling")
-    peak_annotation = tf_targets.PeakAnnotation(adata=adata, genome=genome)
-    peak_annotation.call_motifs(peaks, pvalue=args.motif_pvalue)
-    print("  targets", peak_annotation.targets.shape)
-    print("  motifs", peak_annotation.motifs.shape)
+    print("\n[3/6] Build TF-target peak annotations")
+    peak_annotation = tf_targets.PeakAnnotation(adata=adata, genome=None if simulated else genome)
+    if simulated:
+        peak_annotation.pairs, provenance = build_tf_target_pairs(
+            atac, selected, adata.var_names, tf_mapping,
+            original_rna_genes=original_rna_genes,
+        )
+        provenance["peak_selection"] = "all" if args.all_peaks else args.diff_peak_key
+        provenance["tf_map_file"] = str(Path(tf_map_path).resolve()) if tf_map_path else ""
+        adata.uns["sckinetics_simulation"] = provenance
+        print("  simulation GRN", provenance)
+    else:
+        peak_annotation.call_motifs(peaks, pvalue=args.motif_pvalue)
+        print("  targets", peak_annotation.targets.shape)
+        print("  motifs", peak_annotation.motifs.shape)
     print("  pairs", peak_annotation.pairs.shape)
 
     print("\n[4/6] Prepare target annotations")
@@ -567,6 +873,8 @@ def run_sckinetics_analysis(
             cluster_key=cluster_key,
             cluster=cluster,
         )
+        if not G_clusters[cluster]:
+            raise ValueError(f"No targets remain for cluster {cluster!r}.")
     print("  n_clusters", len(G_clusters))
 
     print("\n[5/6] EM fitting and velocity projection")
@@ -577,12 +885,13 @@ def run_sckinetics_analysis(
         sigma=args.sigma,
         sigma_prior=args.sigma_prior,
         threads=args.threads,
+        sklearn_n_jobs=args.sklearn_n_jobs,
     )
     adata_runtime = peak_annotation.adata
     model.fit(adata_runtime, G_clusters, celltype_basis=cluster_key)
 
     embedding = adata_runtime.obsm[embedding_basis]
-    vg = VelocityGraph(model, adata_runtime, knn=args.graph_knn)
+    vg = VelocityGraph(model, adata_runtime, knn=args.graph_knn, sklearn_n_jobs=args.sklearn_n_jobs)
     vg.create_velocity_graph()
     vg.compute_transitions()
     velocity_embedding = vg.embed_graph(embedding)
@@ -596,7 +905,7 @@ def run_sckinetics_analysis(
         velocity_embedding,
         cluster_key=cluster_key,
         embedding_basis=embedding_basis,
-        genome=genome,
+        genome="synthetic" if simulated else genome,
     )
     adata_export.write(output_h5ad, compression="gzip")
     print("  saved", output_h5ad)
@@ -637,17 +946,19 @@ def main(args):
             run_sckinetics_analysis(
                 dataset_name=dataset_name,
                 input_h5ad=row["file_path"],
-                peaks_bed=row["peaks_bed"],
+                peaks_bed=None if pd.isna(row["peaks_bed"]) else row["peaks_bed"],
                 output_dir=dataset_output_dir,
                 fig_dir=dataset_fig_dir,
-                cluster_key=str(row["cluster_key"]),
-                embedding_basis=str(row["dimred_key"]),
+                cluster_key=args.cluster_key if pd.isna(row["cluster_key"]) else str(row["cluster_key"]),
+                embedding_basis=args.embedding_basis if pd.isna(row["dimred_key"]) else str(row["dimred_key"]),
                 genome=str(row["genome"]),
                 args=args,
+                atac_h5ad=None if pd.isna(row["atac_h5ad"]) else row["atac_h5ad"],
+                tf_map_path=args.tf_map if pd.isna(row["tf_map"]) else row["tf_map"],
             )
     else:
-        if not args.peaks_bed:
-            raise ValueError("`--peaks-bed` is required in single-dataset mode.")
+        if bool(args.peaks_bed) == bool(args.atac_h5ad):
+            raise ValueError("Supply exactly one of --peaks-bed or --atac-h5ad.")
 
         dataset_name = args.dataset_name or Path(args.input_h5ad).stem
         dataset_fig_dir = fig_root / dataset_name if fig_root is not None else None
@@ -661,6 +972,8 @@ def main(args):
             embedding_basis=args.embedding_basis,
             genome=args.genome,
             args=args,
+            atac_h5ad=args.atac_h5ad,
+            tf_map_path=args.tf_map,
         )
 
     print("\nDone!")

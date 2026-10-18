@@ -1,0 +1,4 @@
+dataset_name,file_path,atac_h5ad,peaks_bed,cluster_key,dimred_key,genome
+MouseBrain,/data/mouse_brain_rna.h5ad,,/data/mouse_brain_peaks.bed,celltype,X_umap,mm10
+01_linear_cell1000_gene1000,/data/01_linear_cell1000_gene1000_rna.h5ad,/data/01_linear_cell1000_gene1000_atac.h5ad,,pseudo_celltype,X_tsne,
+05_bifurcation3_cell1000_gene5000,/data/05_bifurcation3_cell1000_gene5000_rna.h5ad,/data/05_bifurcation3_cell1000_gene5000_atac.h5ad,,celltype,X_tsne,

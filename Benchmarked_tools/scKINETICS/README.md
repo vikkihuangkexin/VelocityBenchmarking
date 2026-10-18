@@ -1,168 +1,200 @@
-# scKINETICS Script
+# scKINETICS
 
-This directory provides the `scKINETICS.py` script used to run `scKINETICS` for velocity benchmarking with the maintained local fork and the fixed team plotting outputs.
+Run scKINETICS on real multiome data or paired scMultiSim data. Benchmark data
+archives are linked in the [repository README](../../README.md#datasets).
 
-## Installation
+## Setup
 
-Use the maintained fork and environment instructions from:
-
-- `https://github.com/sd68515/scKINETICS_py311_r441.git`
-
-This benchmark script uses that fork's importable `sckinetics/` source directory.
-The fork has no `setup.py` or `pyproject.toml`, so it cannot be installed as a
-pip Git package. In an environment with the required Python, R, and
-Bioconductor packages, check out the pinned fork and add it to `PYTHONPATH`:
+Create the environment using the maintained fork's
+[installation instructions](https://github.com/sd68515/scKINETICS_py311_r441#environment-and-installation).
+Then run these commands from the VelocityBenchmarking repository root:
 
 ```bash
 git clone https://github.com/sd68515/scKINETICS_py311_r441.git ../scKINETICS_py311_r441
-git -C ../scKINETICS_py311_r441 checkout 054ec4b369882f804c3c894694c53a690b680bd7
+git -C ../scKINETICS_py311_r441 checkout 980118ea3b9dcb858bffa9db538b67eeb601d6e1
 export PYTHONPATH="$PWD/../scKINETICS_py311_r441${PYTHONPATH:+:$PYTHONPATH}"
-python -c "from sckinetics import EM, VelocityGraph, tf_targets; print('scKINETICS import OK')"
 ```
 
-Run the benchmark script from this repository root. The fork's reference
-environment uses Python 3.10.20 and R 4.4.1.
+Keep `scmultisim_grn_params_100.csv` alongside `scKINETICS.py`.
 
-## Usage
+## Prepare inputs and run
 
-Single-dataset mode:
+| Data | Files to provide |
+| --- | --- |
+| Real data | RNA h5ad and differential-accessibility peak BED |
+| scMultiSim data | Paired RNA and ATAC h5ad files |
+
+Edit [inputs.example.csv](inputs.example.csv) with your local file paths.
+Each row describes one dataset, with both simulated modalities on the same row.
+`file_path` is the RNA file; fill exactly one of `peaks_bed` or `atac_h5ad`.
+For real data, set `genome` to the matching assembly (`mm10`, `mm39`, or `hg38`).
+Paths are relative to the working directory.
 
 ```bash
 python Benchmarked_tools/scKINETICS/scKINETICS.py \
-  --input-h5ad your_data.h5ad \
-  --peaks-bed your_peaks.bed \
-  --output-dir ./output \
-  --cluster-key celltype \
-  --genome mm10 \
-  --embedding-basis X_umap
-```
-
-Batch mode:
-
-```bash
-python Benchmarked_tools/scKINETICS/scKINETICS.py \
-  --metadata-file datasets.csv \
+  --metadata-file Benchmarked_tools/scKINETICS/inputs.example.csv \
   --output-dir ./output \
   --fig-dir ./figures
 ```
 
-Example metadata columns:
+Omit `--fig-dir` if figures are not needed. For your own datasets, check the input
+requirements below before running.
 
-- `dataset_name`
-- `file_path`
-- `peaks_bed`
-- optional: `cluster_key`, `dimred_key`, `genome`
+## Results
 
-Example `datasets.csv`:
+The main result is `output/<dataset_name>/scKINETICS_<dataset_name>.h5ad`.
+It contains the modeled genes, `layers['velocity']`, and
+`obsm['velocity_<basis>']` (for example, `velocity_tsne`). Original gene names
+are preserved. Optional scatter, stream, grid, and pseudotime figures are saved
+under `figures/<dataset_name>/`. Input files are not modified.
 
-```csv
-dataset_name,file_path,peaks_bed,cluster_key,dimred_key,genome
-MouseBrain,/path/to/mouse_brain.h5ad,/path/to/mouse_brain_peaks.bed,celltype,X_umap,mm10
-Pancreas,/path/to/pancreas.h5ad,/path/to/pancreas_peaks.bed,celltype,X_umap,mm10
-HumanSample,/path/to/human_sample.h5ad,/path/to/human_sample_peaks.bed,celltype,X_umap,hg38
+## Additional usage
+
+<details>
+<summary>Single-dataset commands and annotation defaults</summary>
+
+Real data:
+
+```bash
+python Benchmarked_tools/scKINETICS/scKINETICS.py \
+  --input-h5ad /data/sample_rna.h5ad \
+  --peaks-bed /data/sample_peaks.bed \
+  --genome mm10 \
+  --output-dir ./output
 ```
 
-`dimred_key` names the same embedding as the single-run `--embedding-basis`
-argument. Existing CSV files with `embedding_basis` remain accepted; provide
-only one of these two columns.
+Paired scMultiSim data:
 
-## Parameters
+```bash
+python Benchmarked_tools/scKINETICS/scKINETICS.py \
+  --input-h5ad /data/01_linear_cell1000_gene1000_rna.h5ad \
+  --atac-h5ad /data/01_linear_cell1000_gene1000_atac.h5ad \
+  --dataset-name 01_linear_cell1000_gene1000 \
+  --output-dir ./output
+```
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `--input-h5ad` | optional | Input AnnData file in single-dataset mode |
-| `--metadata-file` | optional | Metadata table for batch mode |
-| `--peaks-bed` | required in single mode | Peaks BED file |
-| `--output-dir` | required | Root output directory |
-| `--dataset-name` | input stem | Dataset name in single-dataset mode |
-| `--cluster-key` | `celltype` | Grouping column for scKINETICS |
-| `--embedding-basis` | `X_umap` | Basis used for final velocity embedding and plotting |
-| `--genome` | `mm10` | Genome assembly |
-| `--peak-width-max` | `2000` | Maximum peak width kept |
-| `--min-genes` | `200` | Basic cell filter threshold |
-| `--min-cells` | `3` | Basic gene filter threshold |
-| `--target-sum` | `1e4` | Normalization target sum |
-| `--skip-normalize` | off | Skip normalize_total |
-| `--skip-log1p` | off | Skip log1p |
-| `--pca-n-comps` | `50` | PCA dimensions if `X_pca` missing |
-| `--motif-pvalue` | `1e-10` | Motif calling p-value |
-| `--threads` | `1` | EM thread count; default kept conservative for shared servers |
-| `--maxiter` | `20` | EM max iterations |
-| `--tol` | `0.005` | EM tolerance |
-| `--model-knn` | `50` | kNN used inside EM |
-| `--graph-knn` | `30` | kNN used for VelocityGraph |
-| `--sigma` | `5.0` | EM sigma |
-| `--sigma-prior` | `1.0` | EM sigma prior |
-| `--fig-dir` | `None` | Optional root directory for the fixed benchmark figures |
-| `--n-jobs` | `1` | Jobs for scVelo graph-related plotting calculations |
+| Data | Default grouping in `obs` | Default embedding in `obsm` |
+| --- | --- | --- |
+| Real data | `celltype` | `X_umap` |
+| Simulation ID containing `linear` | `pseudo_celltype` | `X_tsne` |
+| Other simulation | `celltype` | `X_tsne` |
 
-## Input requirements
+In single-dataset mode, `--dataset-name` defaults to the RNA filename stem.
+For your own data, use `--cluster-key` and `--embedding-basis` to select the
+appropriate annotations. In a CSV, use `cluster_key` and `dimred_key` instead;
+blank fields use the defaults above. Provide the published dataset ID when
+using the benchmark's naming-based defaults.
 
-### AnnData
+</details>
 
-Required:
+<details>
+<summary>Requirements for your own data</summary>
 
-- `adata.X`: expression matrix
-- `adata.obs[cluster_key]`: fitting groups, default `obs['celltype']`
+### RNA and preprocessing
 
-Recommended:
+Use cells by genes, with unique gene identifiers in `var_names` and non-missing
+group labels in the selected `obs` column. Real data uses `X` as expression;
+scMultiSim data uses `layers['spliced']`. `layers['Mc']` is not used.
+For real data, gene identifiers must match the reference annotation's gene
+symbols.
 
-- `adata.obsm['X_umap']`: unified benchmark embedding used for final low-dimensional projection
-- `adata.obsm['X_pca']`: if absent, the script will compute PCA automatically
-- existing layers such as `spliced`, `unspliced`, `Ms`, `Mu` can be retained and will be subset together with the modeled genes
+By default, the script retains cells expressing at least 200 genes and genes
+expressed in at least 3 cells, removes genes with zero total expression,
+normalizes each cell to 10,000 counts, and applies `log1p`. Use
+`--skip-normalize` and/or `--skip-log1p` when those steps have already been
+applied to the expression matrix used for fitting. More than 50 cells and genes
+must remain after filtering.
 
-The script performs:
+The selected embedding must exist in `obsm`; `X_umap` is computed if missing.
+Other embeddings, including `X_tsne`, must be supplied. Existing `X_pca` is used
+when available; otherwise PCA is computed.
 
-- `obs_names_make_unique()`
-- `var_names_make_unique()`
-- basic filtering:
-  - `filter_cells(min_genes=200)`
-  - `filter_genes(min_cells=3)`
-- `normalize_total(target_sum=1e4)` unless `--skip-normalize`
-- `log1p()` unless `--skip-log1p`
+### Real-data peaks
 
-### BED file
+Provide a tab-separated BED whose first three columns are chromosome, start,
+and end. A header with `chrom`, `chromStart`, and `chromEnd` is also accepted.
+Use peak coordinates and a reference genome from the same assembly. The default
+width filter retains peaks with positive width strictly below 2,000 bp.
 
-The peaks file may be either:
+### Simulated ATAC annotations
 
-- a BED with header columns `chrom`, `chromStart`, `chromEnd`
-- or a plain 3-column BED without header
+RNA and ATAC must contain the same cells. The script aligns them using unique
+`obs['simulation_cell_id']` values when present in both files, otherwise unique
+`obs_names`. Cell sets that differ are rejected.
 
-Only the first three BED columns are used. Peak width is filtered by `--peak-width-max` (default `2000`).
+The ATAC h5ad must contain:
 
-## Output
+| Field | Content |
+| --- | --- |
+| `var['chrom']`, `var['chromStart']`, `var['chromEnd']` | Valid peak coordinates |
+| `var['sckinetics_diff_peak']` | Boolean peak-selection mask |
+| `varm['region_to_tf']` | Peak-by-TF link matrix |
+| `uns['region_to_tf_names']` | TF identifiers in matrix-column order |
+| `varm['region_to_gene']` | Peak-by-gene link matrix |
+| `uns['region_to_gene_genes']` | Gene identifiers in matrix-column order |
 
-The final exported `h5ad` contains at least:
+Link matrices may be dense or sparse and must contain finite, nonnegative
+values. Each name array must contain unique identifiers and match its matrix's
+columns. RNA gene names must also remain unique after uppercasing. TFs and
+targets are matched to RNA genes by name; subsetting RNA can therefore remove
+regulators or targets from the fitted network.
 
-- `layers['velocity']`
-- `obsm['velocity_umap']` if `--embedding-basis X_umap`
-- `obsp['sckinetics_T']`
-- `obsp['sckinetics_T_backward']`
-- `obsp['sckinetics_knn_graph']`
-- `uns['sckinetics_params']`
-- `uns['sckinetics_velocity_genes']`
-- `uns['sckinetics_velocity_genes_upper']`
+`--diff-peak-key` selects another mask column. Alternatively, the mask may be in
+`uns['sckinetics_diff_peaks']['selected']`. The same width filter applies as for
+real peaks. `--all-peaks` explicitly uses all peaks passing that filter. A
+selection with no RNA-compatible TF-target pairs raises an error.
 
-The final output restores the original gene symbols as `var_names`, while preserving the internal uppercase gene list used by scKINETICS matching logic in `uns['sckinetics_velocity_genes_upper']`.
+The simulation workflow fits RNA expression using the supplied regulatory
+annotations. ATAC count values are not fitted directly, and synthetic
+coordinates are not scanned against a real genome. Simulator-derived network
+information is part of the model input and should be reported in comparisons.
 
-Auxiliary files saved alongside the exported `h5ad`:
+</details>
 
-- `sckinetics_model.pickle`
-- `sckinetics_runtime_adata.pickle`
-- `velocity_<basis>.npy`
+<details>
+<summary>TF identities for simulated data</summary>
 
-If `--fig-dir` is provided, the script additionally writes the fixed benchmark figures in both `png/` and `pdf/` subdirectories:
+For annotations generated with scMultiSim's
+[`GRN_params_100` reference](https://github.com/ZhangLabGT/scMultiSim/blob/563c3b542ada289fb4d9789bb1bc944229e78699/data/GRN_params_100.RData),
+the script can recover TF identities using the adjacent
+[reference CSV](scmultisim_grn_params_100.csv). This requires
+`uns['simulation']['simulator']` to be `scMultiSim`, matching TF labels/order and
+template gene identifiers, and complete agreement between the stored
+region-to-TF links and those reconstructed from the reference and region-to-gene
+links across all peaks. Every TF column must have nonzero links. A mismatch
+raises an error.
 
-- scatter
-- stream
-- grid
-- pseudotime
+For another regulatory network, use TF identifiers that are already RNA gene
+names, or provide an explicit mapping through `--tf-map tf_map.csv`. The CSV
+must have columns `tf,gene`, with one RNA gene per TF label. A batch input table
+can supply a different mapping file per row through an optional `tf_map` column.
+The same dictionary can instead be stored in the ATAC h5ad's
+`uns['sckinetics_tf_to_gene']`; a mapping CSV takes precedence. All TF labels
+that are not already RNA gene names must be mapped to genes in the RNA input.
 
-## Notes
+</details>
 
-- The official `sckinetics` PyPI package only contains the initial release and is not sufficient for the maintained workflow here.
-- `scKINETICS` internally uppercases gene symbols for TF/target matching; this script restores the original gene symbols in the final export.
-- The script does not run TF ablation by default because benchmark generation primarily needs velocity inference rather than downstream regulator perturbation analysis.
-- If your benchmark datasets already contain unified `X_umap`, it is recommended to keep using that as the exported visualization basis.
-- This workflow targets real datasets with an accompanying ATAC differential-accessibility peak BED file, so it is not applicable to standard simulated RNA velocity datasets that do not provide such peak inputs.
-- The core scKINETICS code does not expose a user-facing seed parameter. For practical reproducibility on shared compute, this script keeps `--threads 1` by default.
+<details>
+<summary>Parameters and additional outputs</summary>
+
+List all parameters and their defaults:
+
+```bash
+python Benchmarked_tools/scKINETICS/scKINETICS.py --help
+```
+
+Common adjustments are `--min-genes`, `--min-cells`, `--target-sum`,
+`--peak-width-max`, `--maxiter`, and `--tol`. EM, nearest-neighbor, and plotting
+job counts default to one and are controlled by `--threads`,
+`--sklearn-n-jobs`, and `--n-jobs`, respectively.
+
+The result also includes transition and neighbor graphs in `obsp`, model
+settings in `uns['sckinetics_params']`, and, for simulations, the TF mapping and
+peak-selection provenance in `uns['sckinetics_simulation']`. Each output folder
+also contains the fitted model and runtime AnnData pickles, plus the projected
+velocity array `velocity_<basis>.npy`.
+
+Stream-PDF rendering may use SVG conversion. If that conversion is needed,
+install `cairosvg`, `svglib`/`reportlab`, or Inkscape.
+
+</details>

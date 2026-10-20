@@ -37,11 +37,10 @@ Scripts for generating simulated single-cell datasets using [dyngen](https://git
 You can run the tools using either a local installation or our provided Docker images.
 
 ### Option 1: Local Installation
-We recommend referring to the official GitHub repositories or API documentation of the specific tools you wish to use. Please ensure all dependencies are installed according to their respective guidelines before running our scripts.
-For some of the tools, we additionally provide the installation steps we used during our own build process in the `README.md` under some method directory in **`Benchmarked_tools/`**. Note that these steps may not apply to your runtime environment and are provided for reference only.
+We recommend referring to the official GitHub repositories or API documentation of the specific tools you wish to use. Please ensure all dependencies are installed according to their respective guidelines before running our scripts. For some of the tools, we additionally provide the installation steps we used during our own build process in the `README.md` under some tool directory in **`Benchmarked_tools/`**. Note that these steps may not apply to your runtime environment and are provided for reference only.
 
 ### Option 2: Docker (Recommended)
-Alternatively, you can use our provided Docker images to run the tools in an isolated container environment.The **`Dockerfile/`** directory contains the Dockerfiles we used when collecting computational resource statistics for some of the velocity tools.
+Alternatively, you can use our provided Docker images to run the tools in an isolated container environment. The **`Dockerfile/`** directory contains the Dockerfiles we used when collecting computational resource statistics for some of the velocity tools.
 
 **Steps to run with Docker:**
 

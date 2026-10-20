@@ -47,11 +47,11 @@ dataset_id,path_id,position,label,closed
 14,1,2,Enterocytes,false
 15,1,0,Neuroblast,false
 15,1,1,AC/HC,false
-16,1,0,0h,false
-16,1,1,15h,false
-16,1,2,30h,false
-16,1,3,60h,false
-16,1,4,120h,false
+16,1,0,0,false
+16,1,1,15,false
+16,1,2,30,false
+16,1,3,60,false
+16,1,4,120,false
 17,1,0,OPCs,false
 17,1,1,COPs,false
 17,1,2,NFOLs,false

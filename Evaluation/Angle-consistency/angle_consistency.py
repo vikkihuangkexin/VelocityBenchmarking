@@ -1342,13 +1342,13 @@ def resolve_celltype_variant(
     """
     Resolve cell type name to available variant.
 
-    Handles cases like 'nlPC/ExN' vs 'nIPC/ExN' where different datasets
-    may use different naming conventions.
+    Keep an exact match unchanged. Only fall back to a known alias when the
+    original label is absent (e.g., 'nlPC/ExN' vs 'nIPC/ExN').
     """
     if cell_type in available_types:
         return cell_type
 
-    # Check variants
+    # The original label is absent; only now try known aliases.
     if cell_type in CELLTYPE_VARIANTS:
         for variant in CELLTYPE_VARIANTS[cell_type]:
             if variant in available_types:
@@ -1364,7 +1364,7 @@ def resolve_differentiation_paths(
     """
     Resolve differentiation paths by matching cell type variants.
 
-    Automatically handles naming variants (e.g., nlPC/ExN vs nIPC/ExN).
+    Keep original labels when present; try known aliases only for missing labels.
     """
     def resolve_single_path(path: List[str]) -> List[str]:
         resolved = []
@@ -1499,10 +1499,6 @@ def get_cluster_key(
             if len(matching) == 1:
                 return matching[0]
             raise ValueError(f"Multiple annotation columns match dataset {dataset}: {matching}; specify cluster_key")
-        if "time" in adata.obs and all(re.fullmatch(r"\d+h", label) for label in required):
-            observed = set(adata.obs["time"].dropna().astype(str))
-            if {label[:-1] for label in required}.issubset(observed):
-                return "time"
 
     # Default for dataset
     num_prefix = extract_numeric_prefix(dataset)
@@ -1531,41 +1527,28 @@ def process_time_column(
     dataset: str,
     paths: Optional[List[List[str]]] = None,
 ) -> None:
-    """
-    Process time-based cluster column: add units and sort.
-
-    Adds hours only when the declared path uses hour labels and obs is numeric.
-    """
+    """Sort numeric time labels or existing h/min labels without changing units."""
     if cluster_key not in adata.obs:
         return
 
-    unique_vals = adata.obs[cluster_key].astype(str).unique().tolist()
-
-    path_labels = {label for path in (paths or []) for label in path}
-    expects_hours = bool(path_labels) and all(re.fullmatch(r"\d+h", x) for x in path_labels)
-    if expects_hours and cluster_key.lower() == "time":
-        if all(str(x).isdigit() for x in unique_vals if str(x) != "nan"):
-            adata.obs[cluster_key] = (
-                adata.obs[cluster_key].astype(str)
-                .apply(lambda x: f"{x}h" if x.isdigit() else x)
-            )
-            unique_vals = adata.obs[cluster_key].astype(str).unique().tolist()
+    unique_vals = adata.obs[cluster_key].dropna().astype(str).unique().tolist()
+    if not unique_vals:
+        return
 
     # Sort by time value
-    if all(str(x).endswith("h") and str(x)[:-1].isdigit() for x in unique_vals):
+    if cluster_key.lower() == "time" and np.isfinite(pd.to_numeric(unique_vals, errors="coerce")).all():
+        categories = sorted(unique_vals, key=float)
+    elif all(str(x).endswith("h") and str(x)[:-1].isdigit() for x in unique_vals):
         categories = sorted(unique_vals, key=lambda x: int(str(x)[:-1]))
-        adata.obs[cluster_key] = pd.Categorical(
-            adata.obs[cluster_key].astype(str),
-            categories=categories,
-            ordered=True
-        )
     elif all(str(x).endswith("min") and str(x)[:-3].isdigit() for x in unique_vals):
         categories = sorted(unique_vals, key=lambda x: int(str(x)[:-3]))
-        adata.obs[cluster_key] = pd.Categorical(
-            adata.obs[cluster_key].astype(str),
-            categories=categories,
-            ordered=True
-        )
+    else:
+        return
+    adata.obs[cluster_key] = pd.Categorical(
+        adata.obs[cluster_key].astype(str),
+        categories=categories,
+        ordered=True
+    )
 
 
 # =============================================================================

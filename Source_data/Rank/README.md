@@ -10,7 +10,6 @@ Each folder contains six category files:
 - `scalability_rank.csv`
 - `stability_rank.csv`
 - `usability_rank.csv`
-- `overall_rank.csv`
 
 `rank_summary.csv` combines the six rank columns into one method-by-category
 table. Rows follow the original Overall display order. These summaries retain
@@ -27,7 +26,6 @@ Every CSV has an adjacent `*_README.md` explaining every physical column in head
 | `scalability_rank.csv` | [README](scRNA/scalability_rank_README.md) | [README](ATAC/scalability_rank_README.md) | [README](spatial/scalability_rank_README.md) |
 | `stability_rank.csv` | [README](scRNA/stability_rank_README.md) | [README](ATAC/stability_rank_README.md) | [README](spatial/stability_rank_README.md) |
 | `usability_rank.csv` | [README](scRNA/usability_rank_README.md) | [README](ATAC/usability_rank_README.md) | [README](spatial/usability_rank_README.md) |
-| `overall_rank.csv` | [README](scRNA/overall_rank_README.md) | [README](ATAC/overall_rank_README.md) | [README](spatial/overall_rank_README.md) |
 | `rank_summary.csv` | [README](scRNA/rank_summary_README.md) | [README](ATAC/rank_summary_README.md) | [README](spatial/rank_summary_README.md) |
 
 The CSV files are unchanged from the previous release. Read `rank` as the scientific rank; the separate spatial resource display/effective-rank fields retain their specified policy.

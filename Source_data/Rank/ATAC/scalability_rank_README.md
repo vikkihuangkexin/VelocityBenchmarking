@@ -36,11 +36,9 @@ Column names below follow the CSV header order exactly.
 | `n_raw_valid` | Number of nonmissing raw runtime/CPU RAM measurements in the selected resource grid, before standardization. A true numeric zero is counted as a measurement, not treated as missing. |
 | `entire_dimension_failure` | True exactly when n_raw_valid is zero: no usable raw runtime or CPU RAM measurements for this method. It does not refer to missing GPU data. |
 | `display_rank` | Plotting rank, identical to scientific rank in this modality. A method with no resource score keeps a missing display rank; no spatial failure exception is applied. |
-| `effective_reversed_rank` | Reversed rank available for Overall, identical to reversed_rank in this modality. Missing scientific ranks remain missing. |
 | `n_source_inputs_expected` | Number of declared source files for this category. This counts files, not methods, datasets, subitems, or valid numeric measurements. |
 | `n_source_inputs_available` | Number of those declared source files that exist. A present file may still contain missing values for a particular method. |
 | `input_status` | Source-file availability: complete when all declared files exist, partial when some exist, unavailable when none exist. This does not measure numeric task coverage. |
-| `overall_eligible` | Source-file eligibility flag: True when this category has its complete declared file set. It is not a guarantee that this method has a category score or a complete Overall score. |
 
 ## Missing values and source status
 

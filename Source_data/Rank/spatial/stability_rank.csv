@@ -1,8 +1,8 @@
-method,score,rank,reversed_rank,normalized_rank,fixed_method_order,display_order,n_components,expected_components,missing_components,component_downsampling,effective_weight_downsampling,downsampling_task_score,batchrun_normalized_variability,downsampling_n_valid,downsampling_n_expected,batchrun_measured,stability_mode,n_source_inputs_expected,n_source_inputs_available,input_status,overall_eligible
-spaVelo,1.3284175244216745,1,7,1,3,1,1,1,,1.3284175244216745,1,0.52194846459146782,,35,50,False,downsampling_only,5,5,complete,True
-TopoVelo,1.2278457267198997,2,6,0.8571428571428571,1,2,1,1,,1.2278457267198997,1,0.48408562465093774,,50,50,False,downsampling_only,5,5,complete,True
-STEER,0.080633902342897745,3,5,0.7142857142857143,2,3,1,1,,0.080633902342897745,1,0.052188227200883647,,50,50,False,downsampling_only,5,5,complete,True
-STT,-0.25242072546931765,4,4,0.5714285714285714,4,4,1,1,,-0.25242072546931765,1,-0.073198753567823197,,50,50,False,downsampling_only,5,5,complete,True
-SDEvelo,-0.26173370052809636,5,3,0.42857142857142855,5,5,1,1,,-0.26173370052809636,1,-0.076704862557405912,,50,50,False,downsampling_only,5,5,complete,True
-veloAgent,-0.65151722518333177,6,2,0.2857142857142857,7,6,1,1,,-0.65151722518333177,1,-0.22344889560372361,,50,50,False,downsampling_only,5,5,complete,True
-cell2fate,-1.471225502303726,7,1,0.14285714285714285,6,7,1,1,,-1.471225502303726,1,-0.53204915933341734,,50,50,False,downsampling_only,5,5,complete,True
+method,score,rank,reversed_rank,normalized_rank,fixed_method_order,display_order,n_components,expected_components,missing_components,component_downsampling,effective_weight_downsampling,downsampling_task_score,batchrun_normalized_variability,downsampling_n_valid,downsampling_n_expected,batchrun_measured,stability_mode,n_source_inputs_expected,n_source_inputs_available,input_status
+spaVelo,1.3284175244216745,1,7,1,3,1,1,1,,1.3284175244216745,1,0.52194846459146782,,35,50,False,downsampling_only,5,5,complete
+TopoVelo,1.2278457267198997,2,6,0.8571428571428571,1,2,1,1,,1.2278457267198997,1,0.48408562465093774,,50,50,False,downsampling_only,5,5,complete
+STEER,0.080633902342897745,3,5,0.7142857142857143,2,3,1,1,,0.080633902342897745,1,0.052188227200883647,,50,50,False,downsampling_only,5,5,complete
+STT,-0.25242072546931765,4,4,0.5714285714285714,4,4,1,1,,-0.25242072546931765,1,-0.073198753567823197,,50,50,False,downsampling_only,5,5,complete
+SDEvelo,-0.26173370052809636,5,3,0.42857142857142855,5,5,1,1,,-0.26173370052809636,1,-0.076704862557405912,,50,50,False,downsampling_only,5,5,complete
+veloAgent,-0.65151722518333177,6,2,0.2857142857142857,7,6,1,1,,-0.65151722518333177,1,-0.22344889560372361,,50,50,False,downsampling_only,5,5,complete
+cell2fate,-1.471225502303726,7,1,0.14285714285714285,6,7,1,1,,-1.471225502303726,1,-0.53204915933341734,,50,50,False,downsampling_only,5,5,complete

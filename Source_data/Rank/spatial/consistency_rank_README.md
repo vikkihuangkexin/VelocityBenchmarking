@@ -33,7 +33,6 @@ Column names below follow the CSV header order exactly.
 | `n_source_inputs_expected` | Number of declared source files for this category. This counts files, not methods, datasets, subitems, or valid numeric measurements. |
 | `n_source_inputs_available` | Number of those declared source files that exist. A present file may still contain missing values for a particular method. |
 | `input_status` | Source-file availability: complete when all declared files exist, partial when some exist, unavailable when none exist. This does not measure numeric task coverage. |
-| `overall_eligible` | Source-file eligibility flag: True when this category has its complete declared file set. It is not a guarantee that this method has a category score or a complete Overall score. |
 
 ## Missing values and source status
 

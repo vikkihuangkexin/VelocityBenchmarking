@@ -1,8 +1,8 @@
-method,accuracy_rank,consistency_rank,scalability_rank,stability_rank,usability_rank,overall_rank,scalability_display_rank
-TopoVelo,1,1,2,2,2,1,2
-STEER,3,7,4,3,3,2,4
-STT,2,6,NA,4,7,3,6.5
-spaVelo,4,2,NA,1,6,4,6.5
-cell2fate,5,5,5,7,5,5,5
-veloAgent,6,4,3,6,4,6,3
-SDEvelo,7,3,1,5,1,7,1
+method,accuracy_rank,consistency_rank,scalability_rank,stability_rank,usability_rank,scalability_display_rank
+TopoVelo,1,1,2,2,2,2
+STT,2,6,NA,4,7,6.5
+STEER,3,7,4,3,3,4
+spaVelo,4,2,NA,1,6,6.5
+cell2fate,5,5,5,7,5,5
+veloAgent,6,4,3,6,4,3
+SDEvelo,7,3,1,5,1,1

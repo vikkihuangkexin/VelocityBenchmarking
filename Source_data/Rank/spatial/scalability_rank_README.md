@@ -10,7 +10,7 @@ The expected grid has 22 entries per method: 11 selected workloads times two mea
 
 Runtime and CPU RAM are reversed before sample-z standardization within each workload. Averages of those unitless values are used as components; column suffixes identify the raw input units, not the units of the component scores.
 
-STT and spaVelo have missing scientific score/rank/reversed_rank, display_rank=6.5, and effective_reversed_rank=0. The display tie is the mean of positions 6 and 7. The effective 0 is the previously specified exception used by Overall; it is not obtained from 7 + 1 - 6.5.
+STT and spaVelo have missing scientific score/rank/reversed_rank and display_rank=6.5. The display tie is the mean of positions 6 and 7.
 
 ## Columns
 
@@ -38,11 +38,9 @@ Column names below follow the CSV header order exactly.
 | `n_raw_valid` | Number of nonmissing raw runtime/CPU RAM measurements in the selected resource grid, before standardization. A true numeric zero is counted as a measurement, not treated as missing. |
 | `entire_dimension_failure` | True exactly when n_raw_valid is zero: no usable raw runtime or CPU RAM measurements for this method. It does not refer to missing GPU data. |
 | `display_rank` | Plotting rank, normally identical to scientific rank. For STT and spaVelo, the spatial resource-failure policy assigns a bottom tie of 6.5 while scientific rank stays missing. |
-| `effective_reversed_rank` | Reversed rank supplied to Overall. Normally equals reversed_rank; the approved spatial policy gives STT and spaVelo 0 when the entire resource dimension failed. This 0 is a ranking-policy value, not an imputed resource score. |
 | `n_source_inputs_expected` | Number of declared source files for this category. This counts files, not methods, datasets, subitems, or valid numeric measurements. |
 | `n_source_inputs_available` | Number of those declared source files that exist. A present file may still contain missing values for a particular method. |
 | `input_status` | Source-file availability: complete when all declared files exist, partial when some exist, unavailable when none exist. This does not measure numeric task coverage. |
-| `overall_eligible` | Source-file eligibility flag: True when this category has its complete declared file set. It is not a guarantee that this method has a category score or a complete Overall score. |
 
 ## Missing values and source status
 

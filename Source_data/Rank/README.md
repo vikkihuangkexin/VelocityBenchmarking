@@ -1,9 +1,9 @@
 # Benchmark rankings
 
-Place this `rank` folder at the VelocityBenchmarking repository root.
+These ranking tables are stored in `Source_data/Rank`.
 The three modality folders are `scRNA`, `ATAC`, and `spatial`.
 
-Each folder contains six category files:
+Each folder contains five category files:
 
 - `accuracy_rank.csv`
 - `consistency_rank.csv`
@@ -11,8 +11,8 @@ Each folder contains six category files:
 - `stability_rank.csv`
 - `usability_rank.csv`
 
-`rank_summary.csv` combines the six rank columns into one method-by-category
-table. Rows follow the original Overall display order. These summaries retain
+`rank_summary.csv` combines the five rank columns into one method-by-category
+table. Rows follow the Accuracy display order. These summaries retain
 the category ranks; they do not calculate ranks across columns or modalities.
 
 ## Per-table column definitions
@@ -28,18 +28,13 @@ Every CSV has an adjacent `*_README.md` explaining every physical column in head
 | `usability_rank.csv` | [README](scRNA/usability_rank_README.md) | [README](ATAC/usability_rank_README.md) | [README](spatial/usability_rank_README.md) |
 | `rank_summary.csv` | [README](scRNA/rank_summary_README.md) | [README](ATAC/rank_summary_README.md) | [README](spatial/rank_summary_README.md) |
 
-The CSV files are unchanged from the previous release. Read `rank` as the scientific rank; the separate spatial resource display/effective-rank fields retain their specified policy.
+Category scores and ranks are unchanged. Read `rank` as the scientific rank; the separate spatial resource display-rank field retains its specified policy.
 
 ## Agreement with the previous analysis
 
-All three modalities were recalculated from the source CSV matrices using the
-latest supplied calculation code and independently verified against those
-matrices. The 18 category files were then compared with the latest previously
-verified analysis in this conversation. Every complete category table is
-byte-identical, including scores, ranks, ties, coverage, component values,
-and missing values. ATAC and spatial ranks also exactly match the latest
-previously generated figure-data tables. Scores in those figure-data exports
-differ only by CSV serialization rounding below 1e-12.
+The 15 category tables retain their existing scores, ranks, ties, coverage,
+component values, and missing values. The summary tables retain the five
+category ranks for each method and follow the Accuracy display order.
 
 ## Reading the files
 
@@ -75,5 +70,6 @@ python Figure_code/run.py --profile all --output Results_rank_check
 
 The calculation engine calls independent verification. For each modality and
 category, compare `Results_rank_check/PROFILE/CATEGORY/scores_ranks.csv` with
-the corresponding `rank/MODALITY/CATEGORY_rank.csv`. The calculation profile
+the shared columns in the corresponding
+`Source_data/Rank/MODALITY/CATEGORY_rank.csv`. The calculation profile
 name is `Spatial`; its release folder here is lowercase `spatial`.

@@ -1,206 +1,135 @@
-import pandas as pd
-import numpy as np
-from pathlib import Path
+"""Compare saved RNA velocity vectors across repeated runs."""
+
+import argparse
+import csv
+import sys
 from itertools import combinations
-from unit import find_h5ad
+from pathlib import Path
 
-def load_velocity(file_path, vkey='velocity', use_low_dim=False, dataset_type='real'):
-    """Load velocity vectors"""
-    if not file_path.exists():
-        raise FileNotFoundError(f"File does not exist: {file_path}")
+import h5py
+import numpy as np
+from anndata.io import read_elem
+from scipy.sparse import issparse
 
-    adata = sc.read_h5ad(file_path)
-    cell_names = adata.obs_names.tolist()
 
-    if use_low_dim:
-        # Low-dimensional vector
-        suffix = '_umap'
-        vkey_low = f"{vkey}{suffix}"
-        if vkey_low not in adata.obsm:
-            raise KeyError(f"Missing low-dimensional vector: {vkey_low}")
-        velocity = adata.obsm[vkey_low]
-    else:
-        # High-dimensional vector
-        if vkey not in adata.layers:
-            raise KeyError(f"Missing velocity vector: {vkey}")
-        velocity = adata.layers[vkey]
+MANIFEST_COLUMNS = ("method", "dataset_id", "run_id", "path", "vkey")
+OUTPUT_COLUMNS = ("tool_name", "dataset_name", "group", "group_cosine", "average_cosine")
 
-    # Convert to dense array
-    if hasattr(velocity, 'toarray'):
+
+def read_manifest(path):
+    groups = {}
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        missing = set(MANIFEST_COLUMNS) - set(reader.fieldnames or ())
+        if missing:
+            raise ValueError(f"Missing manifest columns: {', '.join(sorted(missing))}")
+        for row in reader:
+            values = [(row.get(column) or "").strip() for column in MANIFEST_COLUMNS]
+            if not all(values) or None in row:
+                raise ValueError(f"Invalid manifest row {reader.line_num} in {path}")
+            method, dataset, run_id, h5ad_path, vkey = values
+            runs = groups.setdefault((method, dataset), {})
+            if run_id in runs:
+                raise ValueError(f"Duplicate run ID {run_id!r} for {method} / {dataset}")
+            runs[run_id] = (path.parent / Path(h5ad_path).expanduser(), vkey)
+    return groups
+
+
+def load_velocity(path, vkey):
+    with h5py.File(path, "r") as h5ad:
+        layer = f"layers/{vkey}"
+        if layer not in h5ad:
+            raise ValueError(f"Missing {layer} in {path}")
+        obs, var = h5ad["obs"], h5ad["var"]
+        cells = read_elem(obs[obs.attrs["_index"]])
+        features = read_elem(var[var.attrs["_index"]])
+        velocity = read_elem(h5ad[layer])
+    if issparse(velocity):
         velocity = velocity.toarray()
+    if len(set(cells)) != len(cells) or len(set(features)) != len(features):
+        raise ValueError(f"Duplicate cell or feature identifiers in {path}")
+    if velocity.shape != (len(cells), len(features)):
+        raise ValueError(f"Invalid velocity shape in {layer} of {path}")
+    if velocity.dtype.kind not in "fiu" or not np.isfinite(velocity).all():
+        raise ValueError(f"Expected finite real velocities in {layer} of {path}")
+    return velocity, {cell: index for index, cell in enumerate(cells)}, features
 
-    return velocity, cell_names
 
-
-def cosine_similarity(v1, v2):
-    """Calculate cosine similarity of two vectors, normalized to [0,1]"""
-    norm1, norm2 = np.linalg.norm(v1), np.linalg.norm(v2)
-    if norm1 == 0 or norm2 == 0:
+def rescaled_cosine(a, b):
+    a, b = a.astype(np.float64, copy=False), b.astype(np.float64, copy=False)
+    norm_a, norm_b = np.linalg.norm(a), np.linalg.norm(b)
+    if norm_a == 0 or norm_b == 0:
         return 0.0
-    cos_sim = np.dot(v1, v2) / (norm1 * norm2)
-    return (cos_sim + 1) / 2  # Normalize to [0,1]
+    cosine = np.dot(a, b) / (norm_a * norm_b)
+    return (np.clip(cosine, -1.0, 1.0) + 1.0) / 2.0
 
 
-def calculate_pairwise_similarity(velocity1, velocity2, cells1, cells2):
-    """
-    Calculate cosine similarity of matched cells between two replicates.
-    Returns: (mean, median)
-    """
-    # Find common cells
-    common_cells = set(cells1) & set(cells2)
-    if len(common_cells) == 0:
-        raise ValueError("The two files have no common cells!")
+def score_group(method, dataset, runs):
+    if len(runs) == 1:
+        print(
+            f"Skipping {method} / {dataset}: only one run ({next(iter(runs))})",
+            file=sys.stderr,
+        )
+        return []
 
-    # Get indices of common cells
-    idx1 = [cells1.index(cell) for cell in common_cells]
-    idx2 = [cells2.index(cell) for cell in common_cells]
+    reference_features = None
+    loaded = {}
+    for run_id, (path, vkey) in runs.items():
+        velocity, cells, features = load_velocity(path, vkey)
+        if reference_features is None:
+            reference_features = features
+        elif not np.array_equal(features, reference_features):
+            feature_indices = {feature: index for index, feature in enumerate(features)}
+            if feature_indices.keys() != set(reference_features):
+                raise ValueError(f"Feature set differs from the first run in {path}")
+            velocity = velocity[:, [feature_indices[feature] for feature in reference_features]]
+        loaded[run_id] = velocity, cells
 
-    # Calculate similarity for each cell
-    similarities = [
-        cosine_similarity(velocity1[i], velocity2[j])
-        for i, j in zip(idx1, idx2)
+    pairs = []
+    for a, b in combinations(loaded, 2):
+        velocity_a, cells_a = loaded[a]
+        velocity_b, cells_b = loaded[b]
+        shared_cells = sorted(cells_a.keys() & cells_b.keys())
+        if not shared_cells:
+            raise ValueError(f"No shared cells for {method} / {dataset}, runs {a!r} and {b!r}")
+        similarities = [
+            rescaled_cosine(velocity_a[cells_a[cell]], velocity_b[cells_b[cell]])
+            for cell in shared_cells
+        ]
+        pairs.append((f"{a}_vs_{b}", np.mean(similarities)))
+
+    average_cosine = np.mean([mean for _, mean in pairs])
+    return [
+        (method, dataset, group, f"{mean:.6f}", f"{average_cosine:.6f}")
+        for group, mean in pairs
     ]
 
-    return np.mean(similarities), np.median(similarities)
 
-
-def analyze_dataset(inputdata_dir, tool_name, ID, file_prefix,
-                    vkey='velocity', use_low_dim=False, n_repeats=5):
-    """Analyze all replicate combinations for a single dataset"""
-
-    dataset_type = 'real' if ID == '8' else 'simulated'
-
-    print(f"\nProcessing: {ID}")
-
-    # Load all replicates
-    velocities = {}
-    cell_names_dict = {}
-
-    for r in range(0, n_repeats):
-        files = find_h5ad(f'{inputdata_dir}/{r}', ID, 'velo.h5ad')
-        if len(files) == 0:
-            print(f'{ID}/{r}')
-            return
-        file_path = Path(files[0])
-        try:
-            velocity, cell_names = load_velocity(
-                file_path, vkey, use_low_dim, dataset_type
-            )
-            velocities[r] = velocity
-            cell_names_dict[r] = cell_names
-        except Exception as e:
-            print(f"  Warning: Failed to load r{r}: {e}")
-            raise
-
-    # Calculate similarities for all pairwise combinations
-    results = []
-    all_means = []
-    all_medians = []
-
-    for r1, r2 in combinations(range(0, n_repeats), 2):
-        mean_sim, median_sim = calculate_pairwise_similarity(
-            velocities[r1], velocities[r2],
-            cell_names_dict[r1], cell_names_dict[r2]
-        )
-
-        all_means.append(mean_sim)
-        all_medians.append(median_sim)
-
-        results.append({
-            'tool_name': tool_name,
-            'dataset_name': ID,
-            'group': f"r{r1}_vs_r{r2}",
-            'group_cosine': mean_sim,
-            'group_median': median_sim
-        })
-
-    # Calculate overall mean and median
-    avg_cosine = np.mean(all_means)
-    avg_median = np.mean(all_medians)
-
-    # Add overall statistics to each row
-    for row in results:
-        row['average_cosine'] = avg_cosine
-        row['average_median'] = avg_median
-
-    print(f"  ✓ Completed (average cosine: {avg_cosine:.4f}, average median: {avg_median:.4f})")
-
-    return pd.DataFrame(results)
-
-
-def calculate_velocity_stability(
-        inputdata_dir,
-        tool_name,
-        ID,
-        data_file,
-        output_path,
-        vkey='velocity',
-        use_low_dim=False,
-        n_repeats=5
-):
-    """
-    Calculate stability of RNA Velocity tools
-
-    Parameters:
-    -----------
-    inputdata_dir : str
-        Directory path containing tool results (e.g., base_result/VeloVAE)
-    tool_name : str
-        Tool name (e.g., 'VeloVAE')
-    output_path : str
-        Output CSV file path
-    vkey : str
-        Velocity vector key name
-    use_low_dim : bool
-        Whether to use low-dimensional vectors (False=high-dim, True=low-dim)
-    n_repeats : int
-        Number of repeats
-
-    Returns:
-    --------
-    pd.DataFrame : Analysis results
-        Columns: tool_name, dataset_name, group, group_cosine, group_median,
-            average_cosine, average_median
-    """
-
-    inputdata_dir = Path(inputdata_dir)
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # Dataset configuration
-    all_results = []
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--manifest", type=Path, required=True, help="CSV of result H5AD files")
+    parser.add_argument("--output", type=Path, required=True, help="Output CSV file")
+    args = parser.parse_args()
 
     try:
-        df = analyze_dataset(
-            inputdata_dir, tool_name,
-            ID, data_file,
-            vkey, use_low_dim, n_repeats
-        )
-        all_results.append(df)
-    except Exception as e:
-        print(f"  ✗ Skipping dataset: {e}\n")
-        return
+        groups = read_manifest(args.manifest)
+        input_paths = {path.resolve() for runs in groups.values() for path, _ in runs.values()}
+        if args.output.resolve() in input_paths | {args.manifest.resolve()}:
+            raise ValueError("The output file must differ from the input files")
 
-    if not all_results:
-        raise FileNotFoundError(
-            f"No valid dataset files found!\n"
-            f"Please check directory: {inputdata_dir}"
-        )
+        rows = []
+        for (method, dataset), runs in groups.items():
+            rows.extend(score_group(method, dataset, runs))
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        with args.output.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(OUTPUT_COLUMNS)
+            writer.writerows(rows)
+    except (OSError, KeyError, TypeError, ValueError, csv.Error) as error:
+        parser.exit(1, f"Error: {error}\n")
 
-    # Merge and save
-    final_df = pd.concat(all_results, ignore_index=True)
-
-    # Ensure column order
-    final_df = final_df[[
-        'tool_name', 'dataset_name', 'group',
-        'group_cosine', 'group_median',
-        'average_cosine', 'average_median'
-    ]]
-
-    final_df.to_csv(output_path, index=False, float_format='%.6f')
-
-    print(f"\n✓ Analysis completed, results saved: {output_path}\n")
-
-    return final_df
+    print(f"Wrote {len(rows)} run-pair scores to {args.output}")
 
 
+if __name__ == "__main__":
+    main()

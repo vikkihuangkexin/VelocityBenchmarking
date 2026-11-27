@@ -116,6 +116,10 @@ and end. A header with `chrom`, `chromStart`, and `chromEnd` is also accepted.
 Use peak coordinates and a reference genome from the same assembly. The default
 width filter retains peaks with positive width strictly below 2,000 bp.
 
+To generate this BED from paired RNA labels and raw ATAC peak counts, see
+[real-data peak preprocessing](real_peak_preprocessing/README.md) for
+Cell Ranger ARC matrix directories and separate peak and barcode files.
+
 ### Simulated ATAC annotations
 
 RNA and ATAC must contain the same cells. The script aligns them using unique

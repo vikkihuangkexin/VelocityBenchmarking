@@ -1,0 +1,3 @@
+sample_name,input_format,input_h5ad,genome,cluster_key,matrix_dir,atac_counts,atac_barcodes,atac_peaks,barcode_map,rna_id_kind,matrix_id_kind
+multiome_sample,10x,data/multiome/rna.h5ad,mm39,celltype,data/multiome/outs/filtered_feature_bc_matrix,,,,,,
+paired_sample,share-seq,data/paired/rna.h5ad,mm10,celltype,,data/paired/peak_counts.mtx.gz,data/paired/matrix_barcodes.tsv.gz,data/paired/peaks.bed.gz,data/paired/barcode_map.tsv.gz,atac,rna
